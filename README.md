@@ -14,6 +14,7 @@ src/build_dataset.py  next-line windowing + by-poem split -> data/processed/next
 train/train_qlora.py  Unsloth QLoRA (default unsloth/gemma-3-4b-it)
 train/eval_compare.py base-vs-tuned next-line eval -> outputs/eval.md
 deploy/build_ollama_model.py  wrap tuned GGUF + real corpse system prompt -> Ollama model
+ui/corpse.html   intensely minimal play surface (caret = the poem's growing edge)
 configs/gutenberg_volumes.json   curated modernist volumes (Gutendex-resolved)
 PROGRESS.md      status ledger (source of truth)
 CONTINUE.md      runbook for the scheduled continue-the-project agent

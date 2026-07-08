@@ -25,9 +25,9 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - [x] **Source: PoetryDB** — `data/raw/poetrydb.jsonl` (~3k target; check count).
 - [x] **Source: Gutenberg volumes** — `data/raw/gutenberg.jsonl` = **2439 poems**.
 - [x] **Source: Gutenberg Poetry Corpus** — `data/raw/gpc.jsonl` = **15000 pseudo-poems**.
-- [x] **Clean/dedup** — `data/interim/poems.jsonl` = **19,061 unique poems**. RERUN whenever a source changes.
-- [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **156,271 / 6,109 examples**.
-- [x] **≥10,000 unique poems confirmed** — 19,061 (target exceeded).
+- [x] **Clean/dedup** — `data/interim/poems.jsonl` = **20,722 unique poems**. RERUN whenever a source changes.
+- [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **190,939 / 7,290 examples**.
+- [x] **≥10,000 unique poems confirmed** — 20,722 (target exceeded).
 - [x] **Dataset card** — `data/processed/dataset_card.md` written.
 - [x] **Install train deps** — done; verified **torch 2.10.0+cu128, CUDA True, RTX 5090**.
 - [ ] **Train QLoRA** — `.venv/bin/python train/train_qlora.py` → `outputs/lora`. **NEXT.**
@@ -41,12 +41,12 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 | source | raw records | kept after clean |
 |---|---|---|
 | poetrydb | 2526 | 2295 |
-| gutenberg volumes | 2439 | 2111 |
+| gutenberg volumes | 4360 | 3772 |
 | gpc (padding) | 15000 | 14655 |
-| **unique poems after clean** | | **19061** |
-| **train / val examples** | | **156271 / 6109** |
+| **unique poems after clean** | | **20722** |
+| **train / val examples** | | **190939 / 7290** |
 
-Core (surreal/modernist) = poetrydb + gutenberg = **4406** poems; GPC is padding.
+Core (surreal/modernist) = poetrydb + gutenberg = **6067** poems; GPC is padding.
 
 ## Known follow-ups (cron can pick these up to improve quality)
 1. ~~Recover missed volumes~~ **DONE** — `resolve_book` now searches title+author,
