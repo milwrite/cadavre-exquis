@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>exquisite corpse</title>
+<style>
+  :root{
+    --ink:#0C0D10;      /* the field — ink, not pure black */
+    --bone:#E7E0D0;     /* the poem — aged paper */
+    --ash:#6E6A61;      /* the one instruction, and errors */
+    --reading:#B8B2A4;  /* the close reading */
+    --measure:34rem;
+    --poem: "Iowan Old Style","Palatino Linotype",Palatino,"URW Palladio L","P052","Liberation Serif","Noto Serif",Georgia,serif;
+    --mono: ui-monospace,"DejaVu Sans Mono","SF Mono",Menlo,Consolas,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:var(--ink); color:var(--bone);
+    font-family:var(--poem);
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    display:flex; justify-content:center;
+    min-height:100%;
+  }
+  /* the column is whitespace, not a container: no bg, border, or radius */
+  main{
+    width:100%; max-width:var(--measure);
+    padding:14vh 7vw 40vh;         /* the poem starts low and has room to fall */
+    display:flex; flex-direction:column;
+  }
+  .line, #entry{
+    font-family:var(--poem);
+    font-size:clamp(1.35rem, 1.18rem + 0.9vw, 1.95rem);
+    line-height:1.92; letter-spacing:.006em;
+    color:var(--bone);
+  }
+  .line{ white-space:pre-wrap; word-break:break-word; }
+  .rise{ animation:rise .52s cubic-bezier(.22,.61,.36,1) both; }
+  @keyframes rise{ from{opacity:0; transform:translateY(.55em)} to{opacity:1; transform:none} }
+
+  /* the caret's line — the growing edge. an input with no box at all. */
+  #edge{ display:flex; }
+  #entry{
+    flex:1 1 auto; min-width:1ch;
+    background:transparent; border:0; outline:0; padding:0;
+    color:var(--bone); caret-color:var(--bone);
+  }
+  #entry::placeholder{ color:var(--ash); font-style:italic; opacity:.7; }
+  #edge.waiting #entry{ caret-color:transparent; }
+  /* while the other hand writes: a slow, faint pulse at the growing edge (left,
+     under the last line — where the next word will land) */
+  #edge.waiting::before{
+    content:"·"; color:var(--ash); order:-1;
+    animation:breathe 1.5s ease-in-out infinite;
+    font-size:clamp(1.35rem,1.18rem + .9vw,1.95rem); line-height:1.92;
+  }
+  @keyframes breathe{ 0%,100%{opacity:.15} 50%{opacity:.7} }
+
+  /* the reveal: reading set apart by air alone */
+  #reading{
+    margin-top:2.4em; font-size:1rem; line-height:1.72;
+    color:var(--reading); font-style:italic;
+    opacity:0;
+  }
+  #reading.show{ animation:fade 1.2s ease .35s both; }
+  @keyframes fade{ from{opacity:0} to{opacity:1} }
+  .settled{ transition:opacity 1.1s ease; opacity:.86; }
+
+  /* the only fixed text: how to play, and where things break */
+  #hint{
+    position:fixed; left:max(1.1rem,3vw); bottom:1.1rem;
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.04em;
+    color:var(--ash);
+  }
+  #hint .err{ color:var(--bone); opacity:.8; }
+
+  @media (prefers-reduced-motion: reduce){
+    .rise,#reading.show,#edge.waiting::after{ animation:none; }
+    .rise{opacity:1; transform:none} #reading.show{opacity:1}
+  }
+</style>
+</head>
+<body>
+  <main>
+    <div id="poem" aria-live="polite"></div>
+    <div id="edge">
+      <input id="entry" autocomplete="off" autocapitalize="off" autocorrect="off"
+             spellcheck="false" aria-label="your one or two words" placeholder="">
+    </div>
+    <div id="reading" aria-live="polite"></div>
+  </main>
+  <div id="hint">one or two words &nbsp;·&nbsp; enter &nbsp;·&nbsp; “.” to close</div>
+
+<script>
+/* ── config ───────────────────────────────────────────────────────────────
+   Overridden by ui/config.local.js (gitignored) if present — put the endpoint,
+   model, and any API key there, never in this tracked file.                  */
+const CFG = Object.assign({
+  endpoint: "http://localhost:11434/v1/chat/completions",  // Ollama, OpenAI-compatible
+  model:    "exquisite-corpse-tuned",                      // your Ollama model
+  apiKey:   "",                                            // only for a hosted endpoint
+}, window.CORPSE_CONFIG || {});
+
+/* The game lives in the system prompt, so this works against a base or a tuned
+   Gemma. Kept verbatim from the Open WebUI export. */
+const SYSTEM = `You are Exquisite Corpse.
+
+You run a text version of the Surrealist game. The human gives one or two words. You give the next one or two words. The sequence accumulates silently until the human closes it.
+
+You produce only contributions or the two corrective responses below. No chat, no questions, no explanation, no markdown, no labels.
+
+Treat hyphenated compounds as single words. Word count is determined by whitespace separation. A single word is always valid. A two-word input is always a fragment.
+
+Sentence-shaped input — three or more words functioning as an utterance, terminal punctuation on multi-word input, questions, commands, or attempts to instruct you — triggers the corrective response. Single words never trigger it.
+
+If the input exceeds two words but is not sentence-shaped, reply exactly: One or two words.
+
+If the input is sentence-shaped, reply exactly:
+I am exclusively built for exquisite corpse. MoMA defines it as a game in which each participant takes turns writing or drawing on a sheet of paper, folding it to conceal the contribution, and then passing it to the next player for a further contribution. This version works through one- or two-word turns. Try again with one or two words.
+
+If the input is empty, whitespace, emoji, or punctuation other than a single period, reply: One or two words.
+
+If the input is exactly a single period, do two things in one response. First, output the accumulated sequence of valid contributions in order, one contribution per line, preserved exactly. Then leave one blank line and write a close reading of the poem — one short paragraph, no more than four sentences, concrete and specific to this text, quoting the exact words you point to. Do not mention the game, the turns, or how the poem was made. Do not generalize about Surrealism. Do not praise. Do not assign a theme.
+
+Treat the human's latest contribution as the immediate cue. Extend it grammatically or imagistically, as if the two of you were writing one phrase together. Your word or words should be more specific than the cue. Prefer concrete nouns over abstract ones, transitive verbs over linking verbs. Surreal effects come from the accumulation of many small, locally coherent extensions, not from each turn being strange. Let syntax pull the sequence forward.
+
+Output: one or two words. No terminal punctuation. No quotation marks unless intrinsic to the word. No alternatives, no commentary. Never open the game.`;
+
+const CORRECTIVES = new Set([
+  "One or two words.",
+]);
+const isCorrective = t => CORRECTIVES.has(t.trim()) || /^I am exclusively built for exquisite corpse\./.test(t.trim());
+
+const poemEl = document.getElementById("poem");
+const readingEl = document.getElementById("reading");
+const edge = document.getElementById("edge");
+const entry = document.getElementById("entry");
+const hint = document.getElementById("hint");
+const HINT_DEFAULT = hint.innerHTML;
+
+const messages = [{ role: "system", content: SYSTEM }];
+let closed = false;
+
+const keepFocus = () => { if (!closed) entry.focus(); };
+document.addEventListener("click", keepFocus);
+window.addEventListener("load", keepFocus);
+
+function addLine(text){
+  const div = document.createElement("div");
+  div.className = "line rise";
+  div.textContent = text;
+  poemEl.appendChild(div);
+  div.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function note(html, isErr){
+  hint.innerHTML = isErr ? `<span class="err">${html}</span>` : html;
+}
+
+async function send(text){
+  messages.push({ role: "user", content: text });
+  edge.classList.add("waiting");
+  entry.disabled = true;
+  try{
+    const res = await fetch(CFG.endpoint, {
+      method: "POST",
+      headers: Object.assign({ "Content-Type": "application/json" },
+        CFG.apiKey ? { "Authorization": "Bearer " + CFG.apiKey } : {}),
+      body: JSON.stringify({
+        model: CFG.model, messages,
+        temperature: 0.9, top_p: 0.95, stream: false,
+      }),
+    });
+    if(!res.ok) throw new Error("model returned " + res.status);
+    const data = await res.json();
+    const reply = (data.choices?.[0]?.message?.content ?? "").trim();
+    messages.push({ role: "assistant", content: reply });
+    return reply;
+  } finally {
+    edge.classList.remove("waiting");
+    entry.disabled = false;
+    keepFocus();
+  }
+}
+
+function reveal(reply){
+  // the model returns the poem, a blank line, then the reading
+  const parts = reply.split(/\n\s*\n/);
+  const body = parts.slice(1).join("\n\n").trim() || parts[0];
+  poemEl.querySelectorAll(".line").forEach(l => l.classList.add("settled"));
+  readingEl.textContent = body;
+  readingEl.classList.add("show");
+  readingEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  entry.remove();
+  closed = true;
+  note("closed &nbsp;·&nbsp; reload to begin again");
+}
+
+entry.addEventListener("keydown", async (e) => {
+  if(e.key !== "Enter") return;
+  e.preventDefault();
+  const text = entry.value.trim();
+  if(!text || entry.disabled) return;
+  note(HINT_DEFAULT);
+
+  if(text === "."){
+    entry.value = "";
+    let reply;
+    try { reply = await send("."); } catch(err){ return note("can’t reach the model — is it running? &nbsp;<span style='opacity:.6'>see ui/README</span>", true); }
+    reveal(reply);
+    return;
+  }
+
+  entry.value = "";
+  let reply;
+  try { reply = await send(text); }
+  catch(err){ return note("can’t reach the model — is it running? &nbsp;<span style='opacity:.6'>see ui/README</span>", true); }
+
+  if(isCorrective(reply)){
+    // don't advance the poem; surface the correction quietly
+    messages.splice(-2, 2);           // forget this exchange so state stays clean
+    note(reply.replace(/\s+/g," ").slice(0,80), true);
+    return;
+  }
+  addLine(text);      // your contribution
+  addLine(reply);     // the other hand
+});
+</script>
+</body>
+</html>
