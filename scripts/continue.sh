@@ -6,6 +6,16 @@
 #
 # Remove from schedule:  crontab -e   (delete the exquisite-corpse line)
 # Watch it:              tail -f /home/milwrite/exquisite-corpse/logs/cron.log
+#
+# SECURITY (acknowledged, user-authorized 2026-07-08): this launches an
+# unattended agent with `--permission-mode bypassPermissions` — no per-action
+# approval, runs as your user with network access. Accepted because the work
+# (pip install, launch training, git commit) needs arbitrary Bash, and blast
+# radius is bounded: no git remote (no push/exfil), flock + timeout guards,
+# CONTINUE.md forbids deleting data / adding copyright-restricted scrapers.
+# To harden: wrap the `claude` call in bubblewrap/firejail with a read-only
+# rootfs + no-network except pypi/HF, or run under a dedicated unprivileged
+# user with no ssh keys. See docs/superpowers/specs for rationale.
 set -uo pipefail
 
 PROJ="/home/milwrite/exquisite-corpse"
