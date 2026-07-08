@@ -1,0 +1,5 @@
+# Data pipeline (scrape + clean + build). Light; runs anywhere.
+requests>=2.31
+tqdm>=4.66
+langdetect>=1.0.9
+regex>=2024.0
