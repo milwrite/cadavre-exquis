@@ -12,3 +12,4 @@ data/processed/*.jsonl
 # keep small summaries
 !data/processed/dataset_stats.json
 !data/processed/dataset_card.md
+ui/config.local.js
