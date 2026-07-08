@@ -15,6 +15,11 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   Recipe transfers to `google/gemma-4-12B-it` then the deployed 31B later.
 - Split by poem 95/5. GPC padding down-weighted; never in val.
 
+## Automation
+- [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 09:00**.
+  Runs headless Claude Code against `CONTINUE.md`, advances one step, commits.
+  Disable: `crontab -e` → delete the `exquisite-corpse` lines. Log: `logs/cron.log`.
+
 ## Pipeline status
 - [x] **Scaffold + venv + git** — `.venv` (py3.12), package `src/`.
 - [x] **Source: PoetryDB** — `data/raw/poetrydb.jsonl` (~3k target; check count).
