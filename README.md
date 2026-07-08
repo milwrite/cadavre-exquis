@@ -3,6 +3,11 @@
 Fine-tune a small Gemma to write surreal, modernist **next-line continuations**,
 to feed the *Exquisite Corpse* game bot (deployed on `gemma-4-31b-it`).
 
+**Live:** https://milwrite.github.io/cadavre-exquis/ — `index.html` (featured) is
+the landing page; the minimal surface is at [`/ui/corpse.html`](ui/corpse.html).
+Note: playing needs a model backend — set one in `ui/config.local.js` (gitignored),
+so the public page is a showcase until you point it at your own Ollama.
+
 Pipeline: scrape public-domain modernist/imagist/surrealist verse → clean &
 dedup → reshape into next-line chat examples → QLoRA a small Gemma with Unsloth.
 
