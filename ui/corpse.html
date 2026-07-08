@@ -327,6 +327,10 @@ syncPromptView();
 
 const messages = [{ role: "system", content: composeSystem() }];
 let closed = false;
+let last = null;   // { userText, reply, lineEl, avoided:[] } — the current growing edge
+function setRegenEnabled(on){ $("regen").disabled = !on; }
+function setRereadEnabled(on){ $("reread").disabled = !on; }
+function setKeepEnabled(on){ $("keep").disabled = !on; }
 
 const keepFocus = (e) => {
   if (closed) return;
@@ -343,6 +347,7 @@ function addLine(text){
   div.textContent = text;
   poemEl.appendChild(div);
   div.scrollIntoView({ behavior: "smooth", block: "center" });
+  return div;
 }
 
 function note(html, isErr){
@@ -382,17 +387,64 @@ async function send(text){
   }
 }
 
-function reveal(reply){
-  // the model returns the poem, a blank line, then the reading
+function parseReading(reply){
   const parts = reply.split(/\n\s*\n/);
-  const body = parts.slice(1).join("\n\n").trim() || parts[0];
-  poemEl.querySelectorAll(".line").forEach(l => l.classList.add("settled"));
-  readingEl.textContent = body;
+  return parts.slice(1).join("\n\n").trim() || parts[0];
+}
+function renderReading(reply){
+  readingEl.textContent = parseReading(reply);
   readingEl.classList.add("show");
   readingEl.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+function reveal(reply){
+  poemEl.querySelectorAll(".line").forEach(l => l.classList.add("settled"));
+  renderReading(reply);
   entry.remove();
   closed = true;
+  last = null;
+  setRegenEnabled(false);
+  setRereadEnabled(true);
+  setKeepEnabled(true);
   note("closed &nbsp;·&nbsp; reload to begin again");
+}
+
+async function regenerate(){
+  if(!last || entry.disabled) return;
+  const rejected = last.reply;
+  if(messages[messages.length - 1]?.role === "assistant") messages.pop();
+  last.lineEl.remove();
+  setWaiting(true); setRegenEnabled(false);
+  const avoid = last.avoided.concat(rejected);
+  try {
+    const list = avoid.map(w => `"${w}"`).join(", ");
+    const req = messages.concat([{ role: "user",
+      content: `Previous attempt${avoid.length > 1 ? "s" : ""}: ${list}. `
+        + `Give a different next line — one or two words only, do not repeat those.` }]);
+    const reply = await request(req, 1.0);
+    messages.push({ role: "assistant", content: reply });
+    last = { userText: last.userText, reply, lineEl: addLine(reply), avoided: avoid };
+  } catch(err){
+    messages.push({ role: "assistant", content: rejected });   // restore on failure
+    last = { userText: last.userText, reply: rejected, lineEl: addLine(rejected), avoided: last.avoided };
+    note("can’t reach the model — is it running?", true);
+  } finally {
+    setWaiting(false); setRegenEnabled(!!last); keepFocus();
+  }
+}
+
+async function reread(){
+  if(!closed) return;
+  if(messages[messages.length - 1]?.role === "assistant") messages.pop();
+  setWaiting(true); setRereadEnabled(false);
+  try {
+    const reply = await request(messages, 1.0);
+    messages.push({ role: "assistant", content: reply });
+    renderReading(reply);
+  } catch(err){
+    note("can’t reach the model — is it running?", true);
+  } finally {
+    setWaiting(false); setRereadEnabled(true);
+  }
 }
 
 entry.addEventListener("keydown", async (e) => {
@@ -414,6 +466,7 @@ entry.addEventListener("keydown", async (e) => {
   }
 
   entry.value = "";
+  last = null; setRegenEnabled(false);
   let reply;
   try { reply = await send(text); }
   catch(err){ return note(unreachable, true); }
@@ -424,9 +477,14 @@ entry.addEventListener("keydown", async (e) => {
     note(reply.replace(/\s+/g," ").slice(0,80), true);
     return;
   }
-  addLine(text);      // your contribution
-  addLine(reply);     // the other hand
+  addLine(text);                          // your contribution
+  const modelEl = addLine(reply);         // the other hand
+  last = { userText: text, reply, lineEl: modelEl, avoided: [] };
+  setRegenEnabled(true); setKeepEnabled(true);
 });
+
+$("regen").addEventListener("click", regenerate);
+$("reread").addEventListener("click", reread);
 </script>
 </body>
 </html>
