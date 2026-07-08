@@ -39,6 +39,34 @@ GUTENDEX = "https://gutendex.com/books"
 SESSION = requests.Session()
 SESSION.headers["User-Agent"] = "exquisite-corpse-corpus/0.1 (research; HF milwright)"
 
+# on-disk cache so re-runs (e.g. to re-segment) don't re-search or re-download.
+CACHE = RAW / ".volume_cache"
+TEXT_CACHE = CACHE / "text"
+RESOLVE_CACHE = CACHE / "resolve.json"
+TEXT_CACHE.mkdir(parents=True, exist_ok=True)
+
+
+def _load_resolve_cache() -> dict:
+    if RESOLVE_CACHE.exists():
+        try:
+            return json.loads(RESOLVE_CACHE.read_text())
+        except Exception:  # noqa: BLE001
+            return {}
+    return {}
+
+
+def _cached_body(gid, text_url) -> str | None:
+    """Return a volume's stripped body, from cache or by downloading once."""
+    fp = TEXT_CACHE / f"{gid}.txt"
+    if fp.exists():
+        return fp.read_text(encoding="utf-8")
+    text = _get_text(text_url)
+    if not text:
+        return None
+    body = strip_gutenberg_boilerplate(text)
+    fp.write_text(body, encoding="utf-8")
+    return body
+
 _JUNK = re.compile(
     r"\b(CONTENTS|INDEX|TRANSCRIBER|GUTENBERG|COPYRIGHT|ALL RIGHTS RESERVED|"
     r"PRINTED IN|BIBLIOGRAPH|ACKNOWLEDG|PREFACE|INTRODUCTION|FOOTNOTE|ILLUSTRATION)\b",
@@ -137,14 +165,14 @@ def _median_len(poems: list[list[str]]) -> float:
 
 
 def segment_poems(body: str) -> list[list[str]]:
-    """Split a volume into candidate poems. Default separator is 3+ blank lines,
-    but volumes that separate poems with a *single* blank line (e.g. Spoon River's
-    epitaphs) get lumped — so if the coarse split yields few or huge chunks, fall
-    back to a 2-blank split and keep whichever is better-proportioned."""
-    coarse = _split_chunks(body, 3)
-    # coarse looks wrong when it barely split or lumped long blocks together
+    """Split a volume into candidate poems. Default separator is a 2-blank-line
+    gap (blanks=2 → min 3 newlines), which fits most PG poetry volumes. Volumes
+    that separate poems with a *single* blank line (e.g. Spoon River's epitaphs)
+    get lumped — so if the coarse split yields few or huge chunks, fall back to a
+    1-blank split and keep it only when it's better-proportioned."""
+    coarse = _split_chunks(body, 2)
     if len(coarse) < 5 or _median_len(coarse) > 60:
-        fine = _split_chunks(body, 2)
+        fine = _split_chunks(body, 1)
         if len(fine) > len(coarse) and 3 <= _median_len(fine) <= 60:
             return fine
     return coarse
@@ -165,25 +193,41 @@ def main() -> None:
             done_books.add(r["meta"].get("gutenberg_id"))
         print(f"resume: {len(records)} poems from {len(done_books)} books")
 
+    resolve_cache = _load_resolve_cache()
     processed = 0
     for q in queries:
         if args.limit and processed >= args.limit:
             break
-        resolved = resolve_book(q)
-        if not resolved:
+        key = f"{q['title']}||{q.get('author')}"
+        if key in resolve_cache:
+            hit = resolve_cache[key]  # {gid,title,author,text_url} or None (known miss)
+        else:
+            resolved = resolve_book(q)
+            hit = None
+            if resolved:
+                book, text_url = resolved
+                hit = {
+                    "gid": book["id"],
+                    "title": book["title"],
+                    "author": (book.get("authors") or [{}])[0].get("name")
+                    or (q.get("author") or "Unknown"),
+                    "text_url": text_url,
+                }
+            resolve_cache[key] = hit
+            RESOLVE_CACHE.write_text(json.dumps(resolve_cache, ensure_ascii=False, indent=0))
+        if not hit:
             print(f"  miss: {q['title']} ({q.get('author')})")
             continue
-        book, text_url = resolved
-        gid = book["id"]
+        gid = hit["gid"]
         if gid in done_books:
             continue
         processed += 1
-        text = _get_text(text_url)
-        if not text:
-            print(f"  dl-fail: {book['title']} [{gid}]")
+        body = _cached_body(gid, hit["text_url"])
+        if not body:
+            print(f"  dl-fail: {hit['title']} [{gid}]")
             continue
-        body = strip_gutenberg_boilerplate(text)
-        author = (book.get("authors") or [{}])[0].get("name", q.get("author") or "Unknown")
+        author = hit["author"]
+        book = {"id": gid, "title": hit["title"]}
         poems = segment_poems(body)
         for lines in poems:
             title = lines[0][:120] if lines else ""

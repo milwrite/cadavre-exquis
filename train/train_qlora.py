@@ -27,6 +27,8 @@ OUT = ROOT / "outputs"
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--epochs", type=float, default=2.0)
+    ap.add_argument("--max-steps", type=int, default=0,
+                    help="if >0, cap training at this many steps (smoke test)")
     ap.add_argument("--lr", type=float, default=2e-4)
     ap.add_argument("--r", type=int, default=16)
     ap.add_argument("--bs", type=int, default=2)
@@ -82,6 +84,7 @@ def main() -> None:
             gradient_accumulation_steps=args.grad_accum,
             warmup_steps=10,
             num_train_epochs=args.epochs,
+            max_steps=args.max_steps if args.max_steps > 0 else -1,
             learning_rate=args.lr,
             logging_steps=20,
             eval_strategy="steps",

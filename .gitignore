@@ -6,6 +6,7 @@ outputs/
 # large / regenerable data artifacts (rebuild via src/ scripts)
 data/raw/*.gz
 data/raw/*.jsonl
+data/raw/.volume_cache/
 data/interim/*.jsonl
 data/processed/*.jsonl
 # keep small summaries
