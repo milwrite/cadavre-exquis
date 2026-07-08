@@ -42,6 +42,26 @@
     {"title": "Harmonium", "author": "Stevens", "tag": "modernist"},
     {"title": "Tulips and Chimneys", "author": "Cummings", "tag": "modernist"},
     {"title": "The Ghostly Lover", "author": "Bogan", "tag": "modernist"},
-    {"title": "Prejudices", "author": "Loy", "tag": "surrealist"}
+    {"title": "A Few Figs from Thistles", "author": "Millay", "tag": "modernist"},
+    {"title": "Second April", "author": "Millay", "tag": "modernist"},
+    {"title": "Rivers to the Sea", "author": "Teasdale", "tag": "lyric"},
+    {"title": "Love Songs", "author": "Teasdale", "tag": "lyric"},
+    {"title": "General William Booth Enters into Heaven", "author": "Lindsay", "tag": "modernist"},
+    {"title": "Look! We Have Come Through!", "author": "Lawrence", "tag": "modernist"},
+    {"title": "Amores", "author": "Lawrence", "tag": "modernist"},
+    {"title": "Birds, Beasts and Flowers", "author": "Lawrence", "tag": "modernist"},
+    {"title": "Poems", "author": "Wilfred Owen", "tag": "war-modernist"},
+    {"title": "Poems", "author": "Gerard Manley Hopkins", "tag": "proto-modernist"},
+    {"title": "Harlem Shadows", "author": "McKay", "tag": "harlem-renaissance"},
+    {"title": "The Book of American Negro Poetry", "author": "Johnson", "tag": "anthology"},
+    {"title": "Nets to Catch the Wind", "author": "Wylie", "tag": "modernist"},
+    {"title": "North of Boston", "author": "Frost", "tag": "modernist"},
+    {"title": "Mountain Interval", "author": "Frost", "tag": "modernist"},
+    {"title": "The New Poetry: An Anthology of Twentieth-Century Verse", "author": "Monroe", "tag": "modernist-anthology"},
+    {"title": "Modern American Poetry: A Critical Anthology", "author": "Untermeyer", "tag": "modernist-anthology"},
+    {"title": "Georgian Poetry", "author": null, "tag": "anthology"},
+    {"title": "Others for 1919", "author": "Kreymborg", "tag": "avant-anthology"},
+    {"title": "Chicago Poems", "author": "Carl Sandburg", "tag": "modernist"},
+    {"title": "Turns and Movies", "author": "Aiken", "tag": "modernist"}
   ]
 }

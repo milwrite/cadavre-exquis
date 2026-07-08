@@ -16,7 +16,7 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - Split by poem 95/5. GPC padding down-weighted; never in val.
 
 ## Automation
-- [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 09:00**.
+- [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 12:00 (noon)**.
   Runs headless Claude Code against `CONTINUE.md`, advances one step, commits.
   Disable: `crontab -e` → delete the `exquisite-corpse` lines. Log: `logs/cron.log`.
 
@@ -29,10 +29,12 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **156,271 / 6,109 examples**.
 - [x] **≥10,000 unique poems confirmed** — 19,061 (target exceeded).
 - [x] **Dataset card** — `data/processed/dataset_card.md` written.
-- [ ] **Install train deps** — `.venv/bin/pip install -r requirements-train.txt` (on GPU box). NEXT.
-- [ ] **Train QLoRA** — `python train/train_qlora.py` → `outputs/lora`.
-- [ ] **Qualitative eval** — base vs tuned on 10 held-out prefixes; save to `outputs/eval.md`.
-- [ ] **(opt) GGUF export** for Ollama/Open WebUI — `GGUF=1 python train/train_qlora.py`.
+- [x] **Install train deps** — done; verified **torch 2.10.0+cu128, CUDA True, RTX 5090**.
+- [ ] **Train QLoRA** — `.venv/bin/python train/train_qlora.py` → `outputs/lora`. **NEXT.**
+- [ ] **Qualitative eval** — `.venv/bin/python train/eval_compare.py` → `outputs/eval.md`.
+- [ ] **(opt) GGUF export** — `GGUF=1 .venv/bin/python train/train_qlora.py`.
+- [ ] **(opt) Ollama model** — `.venv/bin/python deploy/build_ollama_model.py --create`
+      (wraps GGUF with the real Exquisite Corpse system prompt).
 - [ ] **(opt) Push private HF dataset** under `milwright/`.
 
 ## Counts (update each run)
@@ -47,14 +49,11 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 Core (surreal/modernist) = poetrydb + gutenberg = **4406** poems; GPC is padding.
 
 ## Known follow-ups (cron can pick these up to improve quality)
-1. **Recover missed volumes** — Untermeyer *Modern American/British Poetry*,
-   Monroe *The New Poetry*, Sandburg (*Chicago Poems* etc.), Aiken, Kreymborg
-   *Others* missed via Gutendex author filter. Refine `resolve_book` (check >1
-   page of results; relax author match) or add explicit ebook IDs to
-   `configs/gutenberg_volumes.json`.
-2. **Better segmentation** — Spoon River (240 epitaphs → only 3) and other
-   single-blank-line volumes are under-split. Add a per-volume segmentation hint
-   (split on single blank when 3-blank yields <5 chunks) in `src/sources/gutenberg.py`.
+1. ~~Recover missed volumes~~ **DONE** — `resolve_book` now searches title+author,
+   paginates 3 pages, matches on last name, and supports explicit `gid`. Volume
+   list expanded (Millay, Teasdale, Lawrence, McKay, Frost, Owen, Hopkins, +anthologies).
+2. ~~Better segmentation~~ **DONE** — `segment_poems` falls back from 3-blank to
+   2-blank split when the coarse split is too few/too-lumpy (fixes Spoon River etc.).
 3. **Genre balance** — after clean, report share of surreal/proto-language tags;
    if GPC dominates, lower `--gpc-ratio` in build_dataset.
 4. **Surrealist depth** — add PD translations (Rimbaud/Lautréamont/Apollinaire)
