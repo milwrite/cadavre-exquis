@@ -12,6 +12,8 @@ src/sources/     poetrydb.py, gutenberg.py, gutenberg_corpus.py   # fetch raw po
 src/clean.py     merge + clean + dedup + language filter  -> data/interim/poems.jsonl
 src/build_dataset.py  next-line windowing + by-poem split -> data/processed/next_line.*.jsonl
 train/train_qlora.py  Unsloth QLoRA (default unsloth/gemma-3-4b-it)
+train/eval_compare.py base-vs-tuned next-line eval -> outputs/eval.md
+deploy/build_ollama_model.py  wrap tuned GGUF + real corpse system prompt -> Ollama model
 configs/gutenberg_volumes.json   curated modernist volumes (Gutendex-resolved)
 PROGRESS.md      status ledger (source of truth)
 CONTINUE.md      runbook for the scheduled continue-the-project agent

@@ -71,36 +71,54 @@ def _get_text(url: str, tries=3):
     return None
 
 
-def resolve_book(q: dict):
-    """Return (book_dict, text_url) for the best Gutendex match, or None."""
-    data = _get_json(GUTENDEX, params={"search": q["title"]})
-    if not data or not data.get("results"):
-        return None
-    want_author = (q.get("author") or "").lower()
-    for book in data["results"]:
-        if "en" not in (book.get("languages") or []):
-            continue
-        if want_author:
-            authors = " ".join(a.get("name", "") for a in book.get("authors", [])).lower()
-            if want_author not in authors:
-                continue
-        fmts = book.get("formats", {})
-        text_url = None
-        for k, v in fmts.items():
-            if k.startswith("text/plain") and not v.endswith(".zip"):
-                text_url = v
-                break
-        if text_url:
-            return book, text_url
+def _text_url(book: dict):
+    for k, v in (book.get("formats") or {}).items():
+        if k.startswith("text/plain") and not v.endswith(".zip"):
+            return v
     return None
 
 
-def segment_poems(body: str) -> list[list[str]]:
-    """Split a volume body into candidate poems on 3+ blank lines."""
-    body = re.sub(r"\n{3,}", "\n\n\n", body)
-    chunks = re.split(r"\n\s*\n\s*\n", body)
+def resolve_book(q: dict, max_pages: int = 3):
+    """Return (book_dict, text_url) for the best Gutendex match, or None.
+
+    Improvements over v1: direct ebook-id support; search combines title+author
+    for better ranking; paginates several pages; matches on the author's *last
+    name* so 'Sandburg'/'Untermeyer' anthologies aren't missed."""
+    # explicit ebook id short-circuits search
+    if q.get("gid"):
+        data = _get_json(GUTENDEX, params={"ids": q["gid"]})
+        book = (data or {}).get("results", [None])[0] if data else None
+        if book and _text_url(book):
+            return book, _text_url(book)
+
+    author = (q.get("author") or "").strip()
+    last = author.split()[-1].lower() if author else ""
+    search = f"{q['title']} {author}".strip() if author else q["title"]
+
+    url, params, page = GUTENDEX, {"search": search}, 0
+    while url and page < max_pages:
+        data = _get_json(url, params=params)
+        if not data:
+            break
+        for book in data.get("results", []):
+            if "en" not in (book.get("languages") or []):
+                continue
+            if last:
+                authors = " ".join(a.get("name", "") for a in book.get("authors", [])).lower()
+                if last not in authors:
+                    continue
+            tu = _text_url(book)
+            if tu:
+                return book, tu
+        url, params = data.get("next"), None  # `next` is a full URL
+        page += 1
+    return None
+
+
+def _split_chunks(body: str, blanks: int) -> list[list[str]]:
+    sep = r"\n\s*" * blanks + r"\n"
     poems = []
-    for ch in chunks:
+    for ch in re.split(sep, body):
         if _JUNK.search(ch[:200]):
             continue
         lines = lines_to_stanza_lines(ch)
@@ -111,6 +129,25 @@ def segment_poems(body: str) -> list[list[str]]:
             continue
         poems.append(lines)
     return poems
+
+
+def _median_len(poems: list[list[str]]) -> float:
+    sizes = sorted(len([l for l in p if l.strip()]) for p in poems)
+    return sizes[len(sizes) // 2] if sizes else 0.0
+
+
+def segment_poems(body: str) -> list[list[str]]:
+    """Split a volume into candidate poems. Default separator is 3+ blank lines,
+    but volumes that separate poems with a *single* blank line (e.g. Spoon River's
+    epitaphs) get lumped — so if the coarse split yields few or huge chunks, fall
+    back to a 2-blank split and keep whichever is better-proportioned."""
+    coarse = _split_chunks(body, 3)
+    # coarse looks wrong when it barely split or lumped long blocks together
+    if len(coarse) < 5 or _median_len(coarse) > 60:
+        fine = _split_chunks(body, 2)
+        if len(fine) > len(coarse) and 3 <= _median_len(fine) <= 60:
+            return fine
+    return coarse
 
 
 def main() -> None:
