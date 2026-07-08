@@ -63,7 +63,11 @@ def main() -> None:
         use_gradient_checkpointing="unsloth",
         random_state=3407,
     )
-    tokenizer = get_chat_template(tokenizer, chat_template="gemma-3")
+    # Prefer the model's OWN chat template (this is what vLLM applies at
+    # inference); only fall back to the Unsloth gemma-3 template if the base
+    # tokenizer ships without one. Keeps train-time formatting == serve-time.
+    if not getattr(tokenizer, "chat_template", None):
+        tokenizer = get_chat_template(tokenizer, chat_template="gemma-3")
 
     def fmt(ex):
         return {"text": tokenizer.apply_chat_template(
@@ -97,12 +101,22 @@ def main() -> None:
             report_to="none",
         ),
     )
-    # Gemma-3 turn markers — mask everything before the model's turn.
+    # Auto-detect the turn markers from THIS base's own template (gemma-3 uses
+    # <start_of_turn>…, gemma-4 E4B uses <|turn>…), so the response-only mask
+    # works regardless of base. We render a probe and read the exact strings that
+    # bracket the user and assistant content.
+    def detect_parts(tk):
+        U, A = "▐USR▐", "▐AST▐"
+        full = tk.apply_chat_template(
+            [{"role": "user", "content": U}, {"role": "assistant", "content": A}],
+            tokenize=False, add_generation_prompt=False)
+        iu, ia = full.index(U), full.index(A)
+        return full[:iu], full[iu + len(U):ia]
+
+    instruction_part, response_part = detect_parts(tokenizer)
+    print(f"train_on_responses_only markers: instr={instruction_part!r} resp={response_part!r}")
     trainer = train_on_responses_only(
-        trainer,
-        instruction_part="<start_of_turn>user\n",
-        response_part="<start_of_turn>model\n",
-    )
+        trainer, instruction_part=instruction_part, response_part=response_part)
     trainer.train()
 
     lora_dir = OUT / "lora"
