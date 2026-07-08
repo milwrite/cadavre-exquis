@@ -268,6 +268,29 @@ document.addEventListener("keydown", (e) => {
   if(e.key === "Escape" && panel.classList.contains("open")) togglePanel(false);
 });
 
+function syncPromptView(){}
+const steerEl = $("steer");
+steerEl.value = state.steer || "";
+steerEl.addEventListener("input", () => { state.steer = steerEl.value; applySystem(); syncPromptView(); });
+
+const chipsEl = $("chips");
+function renderChips(){
+  chipsEl.innerHTML = "";
+  TAGS.forEach(([label]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = label;
+    b.setAttribute("aria-pressed", state.tags.includes(label) ? "true" : "false");
+    b.addEventListener("click", () => {
+      const on = b.getAttribute("aria-pressed") === "true";
+      b.setAttribute("aria-pressed", on ? "false" : "true");
+      state.tags = on ? state.tags.filter(t => t !== label) : state.tags.concat(label);
+      applySystem(); syncPromptView();
+    });
+    chipsEl.appendChild(b);
+  });
+}
+renderChips();
+
 const messages = [{ role: "system", content: composeSystem() }];
 let closed = false;
 
