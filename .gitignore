@@ -1,7 +1,7 @@
 .venv/
 __pycache__/
 *.pyc
-logs/*.log
+logs/
 outputs/
 # large / regenerable data artifacts (rebuild via src/ scripts)
 data/raw/*.gz
