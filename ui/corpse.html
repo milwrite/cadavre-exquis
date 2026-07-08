@@ -268,7 +268,6 @@ document.addEventListener("keydown", (e) => {
   if(e.key === "Escape" && panel.classList.contains("open")) togglePanel(false);
 });
 
-function syncPromptView(){}
 const steerEl = $("steer");
 steerEl.value = state.steer || "";
 steerEl.addEventListener("input", () => { state.steer = steerEl.value; applySystem(); syncPromptView(); });
@@ -290,6 +289,33 @@ function renderChips(){
   });
 }
 renderChips();
+
+const fullEl = $("full-prompt");
+const overrideText = $("override-text");
+const overrideOn = $("override-on");
+const toggleFull = $("toggle-full");
+let fullShown = false;
+
+function syncPromptView(){
+  const ov = state.override != null;
+  overrideText.style.display = ov ? "block" : "none";
+  fullEl.style.display = (!ov && fullShown) ? "block" : "none";
+  if (ov) { if (overrideText.value !== state.override) overrideText.value = state.override; }
+  else if (fullShown) { fullEl.textContent = composeSystem(); }
+}
+
+overrideOn.checked = state.override != null;
+overrideOn.addEventListener("change", () => {
+  state.override = overrideOn.checked ? composeSystem() : null;
+  applySystem(); syncPromptView();
+});
+overrideText.addEventListener("input", () => { state.override = overrideText.value; applySystem(); });
+toggleFull.addEventListener("click", () => {
+  fullShown = !fullShown;
+  toggleFull.textContent = fullShown ? "hide" : "view";
+  syncPromptView();
+});
+syncPromptView();
 
 const messages = [{ role: "system", content: composeSystem() }];
 let closed = false;
