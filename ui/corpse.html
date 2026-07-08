@@ -79,6 +79,52 @@
     .rise,#reading.show,#edge.waiting::after{ animation:none; }
     .rise{opacity:1; transform:none} #reading.show{opacity:1}
   }
+
+  /* control panel — off-screen until summoned; center stage stays minimal */
+  #panel-tab{
+    position:fixed; top:1.1rem; right:max(1.1rem,3vw);
+    font-family:var(--mono); font-size:.95rem; letter-spacing:.1em;
+    background:transparent; border:0; color:var(--ash); cursor:pointer; z-index:20;
+  }
+  #panel-tab:hover{ color:var(--bone); }
+  #panel{
+    position:fixed; top:0; right:0; height:100%; z-index:19;
+    width:min(22rem,86vw); overflow-y:auto;
+    background:var(--ink); border-left:1px solid #1c1d22;
+    padding:3.4rem 1.4rem 2rem;
+    font-family:var(--mono); color:var(--bone);
+    transform:translateX(100%); transition:transform .32s cubic-bezier(.22,.61,.36,1);
+  }
+  #panel.open{ transform:none; }
+  #panel h2{ font-size:.7rem; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ash); font-weight:400; margin:1.5rem 0 .6rem; }
+  #panel h2:first-of-type{ margin-top:0; }
+  #panel textarea{
+    width:100%; min-height:4.5rem; resize:vertical;
+    background:#111217; color:var(--bone); border:1px solid #1c1d22;
+    padding:.6rem; font-family:var(--mono); font-size:.8rem; outline:0;
+  }
+  #panel textarea:focus{ border-color:var(--ash); }
+  .chips{ display:flex; flex-wrap:wrap; gap:.4rem; }
+  .chip{
+    font-family:var(--mono); font-size:.72rem; color:var(--ash);
+    background:transparent; border:1px solid #1c1d22; padding:.28rem .5rem; cursor:pointer;
+  }
+  .chip[aria-pressed="true"]{ color:var(--ink); background:var(--bone); border-color:var(--bone); }
+  .pbtn{
+    font-family:var(--mono); font-size:.75rem; color:var(--bone);
+    background:transparent; border:1px solid #1c1d22;
+    padding:.4rem .7rem; margin:.2rem .3rem .2rem 0; cursor:pointer;
+  }
+  .pbtn:hover:not(:disabled){ border-color:var(--ash); }
+  .pbtn:disabled{ opacity:.35; cursor:not-allowed; }
+  #full-prompt{ white-space:pre-wrap; font-size:.72rem; color:var(--reading);
+    border:1px dashed #1c1d22; padding:.6rem; margin-top:.5rem; display:none; }
+  .lib-item{ border-top:1px solid #1c1d22; padding:.5rem 0; font-size:.75rem; }
+  .lib-item .first{ color:var(--bone); }
+  .lib-item .when{ color:var(--ash); font-size:.68rem; }
+  .lib-item .row{ margin-top:.3rem; }
+  @media (prefers-reduced-motion: reduce){ #panel{ transition:none; } }
 </style>
 </head>
 <body>
@@ -91,6 +137,32 @@
     <div id="reading" aria-live="polite"></div>
   </main>
   <div id="hint">one or two words &nbsp;·&nbsp; enter &nbsp;·&nbsp; “.” to close</div>
+  <button id="panel-tab" aria-label="open controls" aria-expanded="false">⋯</button>
+  <aside id="panel" aria-label="controls">
+    <h2>System steer</h2>
+    <textarea id="steer" placeholder="a line of guidance for the other hand…"></textarea>
+
+    <h2>Subgenre</h2>
+    <div class="chips" id="chips"></div>
+
+    <h2>Full prompt</h2>
+    <label class="pbtn" style="user-select:none"><input type="checkbox" id="override-on" style="margin-right:.4rem">override</label>
+    <button class="pbtn" id="toggle-full">view</button>
+    <pre id="full-prompt"></pre>
+    <textarea id="override-text" placeholder="full system prompt…" style="display:none"></textarea>
+
+    <h2>The other hand</h2>
+    <button class="pbtn" id="regen" disabled>↻ regenerate</button>
+    <button class="pbtn" id="reread" disabled>↻ re-read</button>
+
+    <h2>Keep</h2>
+    <button class="pbtn" id="keep" disabled>♥ keep poem</button>
+    <button class="pbtn" id="copy">copy</button>
+    <button class="pbtn" id="export">export .md</button>
+
+    <h2>Library</h2>
+    <div id="library"></div>
+  </aside>
 
 <script>
 /* ── config ───────────────────────────────────────────────────────────────
@@ -182,13 +254,30 @@ const edge = document.getElementById("edge");
 const entry = document.getElementById("entry");
 const hint = document.getElementById("hint");
 const HINT_DEFAULT = hint.innerHTML;
+const $ = id => document.getElementById(id);
+const panel = $("panel");
+const panelTab = $("panel-tab");
+
+function togglePanel(open){
+  const show = (open === undefined) ? !panel.classList.contains("open") : open;
+  panel.classList.toggle("open", show);
+  panelTab.setAttribute("aria-expanded", show ? "true" : "false");
+}
+panelTab.addEventListener("click", () => togglePanel());
+document.addEventListener("keydown", (e) => {
+  if(e.key === "Escape" && panel.classList.contains("open")) togglePanel(false);
+});
 
 const messages = [{ role: "system", content: composeSystem() }];
 let closed = false;
 
-const keepFocus = () => { if (!closed) entry.focus(); };
+const keepFocus = (e) => {
+  if (closed) return;
+  if (e && panel.contains(e.target)) return;   // don't steal focus from the panel
+  entry.focus();
+};
 document.addEventListener("click", keepFocus);
-window.addEventListener("load", keepFocus);
+window.addEventListener("load", () => keepFocus());
 
 function addLine(text){
   const div = document.createElement("div");
