@@ -15,6 +15,11 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   Recipe transfers to `google/gemma-4-12B-it` then the deployed 31B later.
 - Split by poem 95/5. GPC padding down-weighted; never in val.
 
+## Published
+- **Repo:** https://github.com/milwrite/cadavre-exquis (public, branch `master`)
+- **Pages:** https://milwrite.github.io/cadavre-exquis/ (serves `index.html`; minimal UI at `/ui/corpse.html`)
+- Model export PII scrubbed before first push; API key stays in gitignored `ui/config.local.js`.
+
 ## Automation
 - [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 12:00 (noon)**.
   Runs headless Claude Code against `CONTINUE.md`, advances one step, commits.
