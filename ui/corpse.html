@@ -425,13 +425,15 @@ async function regenerate(){
 
 async function reread(){
   if(!closed) return;
-  if(messages[messages.length - 1]?.role === "assistant") messages.pop();
+  let prev = null;
+  if(messages[messages.length - 1]?.role === "assistant") prev = messages.pop().content;
   setWaiting(true); setRereadEnabled(false);
   try {
     const reply = await request(messages, 1.0);
     messages.push({ role: "assistant", content: reply });
     renderReading(reply);
   } catch(err){
+    if(prev != null) messages.push({ role: "assistant", content: prev });   // restore on failure
     note("can’t reach the model — is it running?", true);
   } finally {
     setWaiting(false); setRereadEnabled(true);
