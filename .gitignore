@@ -13,3 +13,4 @@ data/processed/*.jsonl
 !data/processed/dataset_stats.json
 !data/processed/dataset_card.md
 ui/config.local.js
+unsloth_compiled_cache/
