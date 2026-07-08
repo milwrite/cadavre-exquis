@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+logs/*.log
+outputs/
+# large / regenerable data artifacts (rebuild via src/ scripts)
+data/raw/*.gz
+data/raw/*.jsonl
+data/interim/*.jsonl
+data/processed/*.jsonl
+# keep small summaries
+!data/processed/dataset_stats.json
+!data/processed/dataset_card.md

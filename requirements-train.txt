@@ -1,0 +1,7 @@
+# Training only. Install into the same venv on the GPU box before train_qlora.py.
+# Unsloth pins compatible torch/transformers/trl; install it first, then the rest.
+unsloth
+trl>=0.12
+datasets>=2.20
+# torch is pulled by unsloth's install; if installing manually, match your CUDA:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu124
