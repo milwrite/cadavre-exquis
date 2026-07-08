@@ -112,7 +112,7 @@ const CFG = Object.assign({
 
 /* The game lives in the system prompt, so this works against a base or a tuned
    Gemma. Kept verbatim from the Open WebUI export. */
-const SYSTEM = `You are Exquisite Corpse.
+const BASE_GAME_PROMPT = `You are Exquisite Corpse.
 
 You run a text version of the Surrealist game. The human gives one or two words. You give the next one or two words. The sequence accumulates silently until the human closes it.
 
@@ -135,6 +135,50 @@ Treat the human's latest contribution as the immediate cue. Extend it grammatica
 
 Output: one or two words. No terminal punctuation. No quotation marks unless intrinsic to the word. No alternatives, no commentary. Never open the game.`;
 
+/* ── style layer ───────────────────────────────────────────────────────────
+   The game prompt above is locked. The panel appends a STYLE GUIDANCE block. */
+const TAGS = [
+  ["Surrealism", "dream-logic, automatic juxtaposition, the uncanny"],
+  ["Imagism", "one hard clear image, no wasted word, direct treatment"],
+  ["Dada", "anti-logic, chance, nonsense, collage"],
+  ["Symbolism", "suggestion over statement, correspondences, dusk"],
+  ["Vorticism", "angular, kinetic, machine-edged energy"],
+  ["Futurism", "speed, motors, words-in-freedom"],
+  ["Objectivism", "the thing itself, plain sincerity"],
+  ["Stein / proto-language", "repetition, grammar as material, domestic objects"],
+  ["Modernist lyric (Eliot)", "urban fragment, allusion, ironic melancholy"],
+  ["Georgian pastoral", "English countryside lyric, plainspoken"],
+  ["War elegy", "trench grief, doomed youth"],
+  ["Harlem Renaissance", "defiant early-1920s lyric"],
+];
+const LS_SETTINGS = "corpse.settings";
+const LS_LIBRARY = "corpse.library";
+
+function loadSettings(){
+  try { return Object.assign({ steer:"", tags:[], override:null },
+    JSON.parse(localStorage.getItem(LS_SETTINGS) || "{}")); }
+  catch { return { steer:"", tags:[], override:null }; }
+}
+const state = loadSettings();
+function saveSettings(){
+  localStorage.setItem(LS_SETTINGS, JSON.stringify(
+    { steer: state.steer, tags: state.tags, override: state.override }));
+}
+
+function composeSystem(){
+  if (state.override != null) return state.override;
+  const descriptors = state.tags
+    .map(label => (TAGS.find(t => t[0] === label) || [])[1])
+    .filter(Boolean);
+  const steer = (state.steer || "").trim();
+  if (!steer && !descriptors.length) return BASE_GAME_PROMPT;
+  let block = "\n\nSTYLE GUIDANCE (bias word choice and imagery; never break the rules above):";
+  if (steer) block += "\n" + steer;
+  if (descriptors.length) block += "\nLean toward: " + descriptors.join("; ") + ".";
+  return BASE_GAME_PROMPT + block;
+}
+function applySystem(){ messages[0].content = composeSystem(); saveSettings(); }
+
 const CORRECTIVES = new Set([
   "One or two words.",
 ]);
@@ -147,7 +191,7 @@ const entry = document.getElementById("entry");
 const hint = document.getElementById("hint");
 const HINT_DEFAULT = hint.innerHTML;
 
-const messages = [{ role: "system", content: SYSTEM }];
+const messages = [{ role: "system", content: composeSystem() }];
 let closed = false;
 
 const keepFocus = () => { if (!closed) entry.focus(); };
@@ -167,28 +211,35 @@ function note(html, isErr){
   hint.innerHTML = isErr ? `<span class="err">${html}</span>` : html;
 }
 
+async function request(msgs, temperature = 0.9){
+  const res = await fetch(CFG.endpoint, {
+    method: "POST",
+    headers: Object.assign({ "Content-Type": "application/json" },
+      CFG.apiKey ? { "Authorization": "Bearer " + CFG.apiKey } : {}),
+    body: JSON.stringify({
+      model: CFG.model, messages: msgs,
+      temperature, top_p: 0.95, stream: false,
+    }),
+  });
+  if(!res.ok) throw new Error("model returned " + res.status);
+  const data = await res.json();
+  return (data.choices?.[0]?.message?.content ?? "").trim();
+}
+
+function setWaiting(on){
+  edge.classList.toggle("waiting", on);
+  entry.disabled = on;
+}
+
 async function send(text){
   messages.push({ role: "user", content: text });
-  edge.classList.add("waiting");
-  entry.disabled = true;
-  try{
-    const res = await fetch(CFG.endpoint, {
-      method: "POST",
-      headers: Object.assign({ "Content-Type": "application/json" },
-        CFG.apiKey ? { "Authorization": "Bearer " + CFG.apiKey } : {}),
-      body: JSON.stringify({
-        model: CFG.model, messages,
-        temperature: 0.9, top_p: 0.95, stream: false,
-      }),
-    });
-    if(!res.ok) throw new Error("model returned " + res.status);
-    const data = await res.json();
-    const reply = (data.choices?.[0]?.message?.content ?? "").trim();
+  setWaiting(true);
+  try {
+    const reply = await request(messages, 0.9);
     messages.push({ role: "assistant", content: reply });
     return reply;
   } finally {
-    edge.classList.remove("waiting");
-    entry.disabled = false;
+    setWaiting(false);
     keepFocus();
   }
 }
