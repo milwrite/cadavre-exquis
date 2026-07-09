@@ -40,9 +40,10 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - [x] **Integrated into vLLM** — `scripts/vllm_serve.sh` serves base + 3 adapters
       (`cloze-reader`, `jeopardylm`, **`exquisite-corpse`**) on :1234; smoke-tested.
       UI (`ui/config.local.js`) points at it. Needs `VLLM_USE_FLASHINFER_SAMPLER=0`.
-- [ ] **Qualitative eval** — `.venv/bin/python train/eval_compare.py` → `outputs/eval.md`.
-- [ ] **(opt) Push adapter to HF** `milwright/exquisite-corpse-gemma-4-e4b-lora` +
-      uncomment its line in `../cloze-reader-monorepo/finetune/deploy/serve_gemma.sh`.
+- [x] **Qualitative eval** — `train/eval_vllm.py` (base vs tuned via the live vLLM
+      host, no GPU reload) → `docs/eval-e4b.md`, 12 held-out prefixes.
+- [x] **Pushed adapter to HF** — https://huggingface.co/milwright/exquisite-corpse-gemma-4-e4b-lora
+      (public); uncommented in `../cloze-reader-monorepo/finetune/deploy/serve_gemma.sh`.
 - [ ] **(opt) GGUF export** — `GGUF=1 .venv/bin/python train/train_qlora.py`.
 - [ ] **(opt) Ollama model** — `.venv/bin/python deploy/build_ollama_model.py --create`
       (wraps GGUF with the real Exquisite Corpse system prompt).
