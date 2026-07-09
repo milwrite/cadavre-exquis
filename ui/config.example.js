@@ -15,6 +15,6 @@ window.CORPSE_CONFIG = {
   // Hosted endpoint? Point at it and set apiKey — fine for personal local
   // use; never commit or ship a key.
   // endpoint: "https://ollama.com/v1/chat/completions",
-  // model:    "gemma-4-31b-it",
+  // model:    "deepseek-v4-lite",
   // apiKey:   "sk-...",
 };

@@ -2,7 +2,7 @@
 
 **Owner:** Zach Muhlbauer (CUNY GC) · **Goal:** fine-tune a small Gemma to write
 surreal next-line continuations, feeding the "Exquisite Corpse" game bot
-(deployed on `gemma-4-31b-it`). Spec: `docs/superpowers/specs/2026-07-08-surrealist-corpus-gemma-qlora-design.md`.
+(deployed on `deepseek-v4-lite`). Spec: `docs/superpowers/specs/2026-07-08-surrealist-corpus-gemma-qlora-design.md`.
 
 This file is the **single source of truth for what is done and what is next.**
 The cron agent (see `CONTINUE.md`) reads it, advances the next unchecked item,
@@ -12,7 +12,7 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - Corpus: aesthetic-first, public-domain-heavy. Surrealist core + modernist breadth.
 - Objective: **chat next-line continuation**, model-agnostic messages, loss on assistant only.
 - Local train target: **`unsloth/gemma-3-4b-it`** (smallest sensible; no Gemma-4 < 12B exists).
-  Recipe transfers to `google/gemma-4-12B-it` then the deployed 31B later.
+  Recipe can transfer to `google/gemma-4-12B-it` / a larger hosted model later.
 - Split by poem 95/5. GPC padding down-weighted; never in val.
 
 ## Published

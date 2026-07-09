@@ -1,7 +1,7 @@
 # Exquisite Corpse — surrealist corpus → Gemma QLoRA
 
 Fine-tune a small Gemma to write surreal, modernist **next-line continuations**,
-to feed the *Exquisite Corpse* game bot (deployed on `gemma-4-31b-it`).
+to feed the *Exquisite Corpse* game bot (deployed on `deepseek-v4-lite`).
 
 **Live:** https://milwrite.github.io/cadavre-exquis/ — `index.html` (featured) is
 the landing page; the minimal surface is at [`/ui/corpse.html`](ui/corpse.html).
