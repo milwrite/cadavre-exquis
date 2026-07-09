@@ -2,7 +2,7 @@
 
 **Owner:** Zach Muhlbauer (CUNY GC) · **Goal:** fine-tune a small Gemma to write
 surreal next-line continuations, feeding the "Exquisite Corpse" game bot
-(deployed on `deepseek-v4-lite`). Spec: `docs/superpowers/specs/2026-07-08-surrealist-corpus-gemma-qlora-design.md`.
+(deployed on `deepseek-v4-flash`). Spec: `docs/superpowers/specs/2026-07-08-surrealist-corpus-gemma-qlora-design.md`.
 
 This file is the **single source of truth for what is done and what is next.**
 The cron agent (see `CONTINUE.md`) reads it, advances the next unchecked item,

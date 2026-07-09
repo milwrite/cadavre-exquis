@@ -5,6 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Pipeline that scrapes public-domain surrealist/modernist poetry, reshapes it into
 next-line-continuation examples, QLoRA-fine-tunes a small Gemma, and serves the
 adapter from a multi-LoRA vLLM host that feeds an *Exquisite Corpse* game UI.
+The Open WebUI wrapper defaults to `deepseek-v4-flash`; local vLLM routes use
+the `exquisite-corpse` adapter.
 
 **`PROGRESS.md` is the source of truth** for what's done and what's next.
 `CONTINUE.md` is the runbook the scheduled agent follows.

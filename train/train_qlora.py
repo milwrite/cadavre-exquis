@@ -2,7 +2,7 @@
 
 Default target is `unsloth/gemma-3-4b-it` (ungated mirror, Unsloth-proven) so it
 trains on a 24 GB laptop RTX 5090. The hosted game currently uses
-`deepseek-v4-lite`; this recipe can transfer upward — set
+`deepseek-v4-flash`; this recipe can transfer upward — set
 MODEL=google/gemma-4-12B-it to move up once proven.
 
 Loss is masked to the assistant (next-line) tokens via train_on_responses_only,
