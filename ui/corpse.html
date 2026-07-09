@@ -199,16 +199,21 @@
 <script>
 /* ── config ───────────────────────────────────────────────────────────────
    Layered: defaults < ui/config.local.js (gitignored; 404s harmlessly when
-   absent) < ?endpoint=…&model=…&key=… URL params. Never put a key here.    */
+   absent) < ?endpoint=…&model=… URL params (this visit only). Keys never
+   travel in URLs — they leak via history; put them in config.local.js.    */
 const q = new URLSearchParams(location.search);
+const DEFAULT_ENDPOINT = "http://127.0.0.1:1234/v1/chat/completions";
 const CFG = Object.assign({
-  endpoint: "http://127.0.0.1:1234/v1/chat/completions",   // multi-LoRA vLLM host
+  endpoint: DEFAULT_ENDPOINT,                              // multi-LoRA vLLM host
   model:    "exquisite-corpse",                            // adapter, per-request
   apiKey:   "",                                            // only for a hosted endpoint
 }, window.CORPSE_CONFIG || {},
   q.get("endpoint") && { endpoint: q.get("endpoint") },
-  q.get("model")    && { model: q.get("model") },
-  q.get("key")      && { apiKey: q.get("key") });
+  q.get("model")    && { model: q.get("model") });
+try {
+  if(!/^https?:$/.test(new URL(CFG.endpoint).protocol)) throw new Error("bad scheme");
+} catch { CFG.endpoint = DEFAULT_ENDPOINT; }               // only parseable http(s) plays
+const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 /* The game lives in the system prompt, so this works against a base or a tuned
    Gemma. Kept verbatim from the Open WebUI export. */
@@ -538,8 +543,7 @@ entry.addEventListener("keydown", async (e) => {
   if(!text || entry.disabled) return;
   note(HINT_DEFAULT);
 
-  const host = (() => { try { return new URL(CFG.endpoint).host; } catch { return CFG.endpoint; } })();
-  const unreachable = `can’t reach the model at ${host} — is it running?`;
+  const unreachable = `can’t reach the model at ${esc(new URL(CFG.endpoint).host)} — is it running?`;
 
   if(text === "."){
     entry.value = "";
@@ -558,7 +562,7 @@ entry.addEventListener("keydown", async (e) => {
   if(isCorrective(reply)){
     // don't advance the poem; surface the correction quietly
     messages.splice(-2, 2);           // forget this exchange so state stays clean
-    note(reply.replace(/\s+/g," ").slice(0,80), true);
+    note(esc(reply.replace(/\s+/g," ").slice(0,80)), true);
     return;
   }
   addLine(text);                          // your contribution

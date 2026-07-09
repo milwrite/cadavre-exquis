@@ -28,8 +28,11 @@ Layered, most specific wins:
 
 1. defaults — vLLM host at `http://127.0.0.1:1234`, model `exquisite-corpse`
 2. `ui/config.local.js` (gitignored; 404s harmlessly on Pages)
-3. URL params: `?endpoint=…&model=…&key=…` — handy for pointing the Pages
-   deployment at your own machine; the parlor remembers them until you
-   "forget override" in its footer.
+3. URL params: `?endpoint=…&model=…` — handy for pointing the Pages
+   deployment at your own machine. Ephemeral by design: overrides last one
+   visit and are never persisted, so a crafted link can't quietly repoint
+   the app for good. Endpoints must be parseable http(s) URLs.
 
-A browser-embedded key is fine for personal local use; don't ship one.
+API keys never travel in URLs (they leak via browser history) — put a key in
+`config.local.js` only. A browser-embedded key is fine for personal local
+use; don't ship one.

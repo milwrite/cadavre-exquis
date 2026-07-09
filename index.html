@@ -699,8 +699,7 @@
     <footer>
       <div>a barer surface for solo play: <a href="ui/corpse.html">the open sheet</a> · <a href="https://github.com/milwrite/cadavre-exquis">source</a></div>
       <div id="connLine">model <span id="connModel"></span> at <span id="connHost"></span>
-        — point elsewhere with <span style="white-space:nowrap">?endpoint=…&amp;model=…</span>
-        <button class="linklike" id="connForget" hidden>forget override</button>
+        — point elsewhere with <span style="white-space:nowrap">?endpoint=…&amp;model=…</span> (this visit only)
       </div>
     </footer>
   </div>
@@ -716,23 +715,26 @@
 
   <script src="ui/config.local.js"></script>
   <script>
-    /* ── connection: defaults < stored override < config.local.js < URL params.
-       On GitHub Pages config.local.js 404s harmlessly and defaults apply. ── */
+    /* ── connection: defaults < config.local.js < URL params (this visit only —
+       never persisted, so a crafted link can't poison future visits; keys
+       never travel in URLs, only in config.local.js). On GitHub Pages
+       config.local.js 404s harmlessly and defaults apply. ── */
     const DEFAULTS = {
       endpoint: "http://127.0.0.1:1234/v1/chat/completions",
       model: "exquisite-corpse",
       apiKey: "",
     };
     const params = new URLSearchParams(location.search);
-    const storedConn = JSON.parse(localStorage.getItem("corpseConn") || "null");
     const paramConn = {};
     if (params.get("endpoint")) paramConn.endpoint = params.get("endpoint");
     if (params.get("model")) paramConn.model = params.get("model");
-    if (params.get("key")) paramConn.apiKey = params.get("key");
-    const CFG = Object.assign({}, DEFAULTS, storedConn || {}, window.CORPSE_CONFIG || {}, paramConn);
-    if (Object.keys(paramConn).length) {
-      localStorage.setItem("corpseConn", JSON.stringify(paramConn));
+    const CFG = Object.assign({}, DEFAULTS, window.CORPSE_CONFIG || {}, paramConn);
+    try {
+      if (!/^https?:$/.test(new URL(CFG.endpoint).protocol)) throw new Error("bad scheme");
+    } catch {
+      CFG.endpoint = DEFAULTS.endpoint;   // only parseable http(s) endpoints play
     }
+    localStorage.removeItem("corpseConn"); // retired: overrides no longer persist
 
     /* The game lives in the system prompt, so play works against a hosted
        model or a tuned local model. The word cap follows the table setting. */
@@ -788,7 +790,8 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     const currentSeat = () => (actorIndex % players) + 1;
     const isModelTurn = () => currentSeat() === Number(modelSeat);
     const round = () => Math.floor(actorIndex / players) + 1;
-    const endpointHost = () => { try { return new URL(CFG.endpoint).host; } catch { return CFG.endpoint; } };
+    const endpointHost = () => new URL(CFG.endpoint).host;  // always parseable, validated above
+    const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
     function setStatus(html, isErr) {
       el("status").innerHTML = html;
@@ -1031,7 +1034,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
         }
       } catch (e) {
         if (id !== gameId || !gameActive) return;
-        setStatus(`the model isn’t answering at ${endpointHost()} — is it running?
+        setStatus(`the model isn’t answering at ${esc(endpointHost())} — is it running?
           <button class="linklike" id="retryTurn">try again</button>`, true);
         el("retryTurn").addEventListener("click", modelTurn);
         return;
@@ -1090,7 +1093,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
         readingEl.classList.add("show");
       } catch (e) {
         readingText = "";
-        readingEl.innerHTML = `<span class="err">the reading didn’t arrive from ${endpointHost()}
+        readingEl.innerHTML = `<span class="err">the reading didn’t arrive from ${esc(endpointHost())}
           — <button class="linklike" id="retryReading">try again</button></span>`;
         el("retryReading").addEventListener("click", fetchReading);
       }
@@ -1227,13 +1230,6 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     /* ── footer connection line ─────────────────────────────────────────── */
     el("connModel").textContent = CFG.model;
     el("connHost").textContent = endpointHost();
-    if (storedConn || Object.keys(paramConn).length) {
-      el("connForget").hidden = false;
-      el("connForget").addEventListener("click", () => {
-        localStorage.removeItem("corpseConn");
-        location.href = location.pathname;
-      });
-    }
 
     syncSeats();
     renderWall();
