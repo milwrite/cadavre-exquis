@@ -7,6 +7,6 @@ window.CORPSE_CONFIG = {
 
   // Hosted Ollama instead? Point the endpoint at it and set apiKey:
   // endpoint: "https://ollama.com/v1/chat/completions",
-  // model:    "gemma-4-31b-it",
+  // model:    "deepseek-v4-lite",
   // apiKey:   "sk-...",
 };
