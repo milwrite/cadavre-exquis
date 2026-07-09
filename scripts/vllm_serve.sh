@@ -8,6 +8,12 @@
 #   nohup ./scripts/vllm_serve.sh &    # background
 set -uo pipefail
 
+# RTX 5090 is Blackwell (sm_120): this vLLM build's FlashInfer sampler fails to
+# init ("FlashInfer requires GPUs with sm75 or higher"). Disable it and use
+# FlashAttention — matches cloze-reader-monorepo/finetune/deploy/serve_gemma.sh.
+export VLLM_USE_FLASHINFER_SAMPLER="${VLLM_USE_FLASHINFER_SAMPLER:-0}"
+export VLLM_ATTENTION_BACKEND="${VLLM_ATTENTION_BACKEND:-FLASH_ATTN}"
+
 CORPSE_LORA="${CORPSE_LORA:-/home/milwrite/exquisite-corpse/outputs/lora}"
 
 exec /home/milwrite/vllm-serve/bin/vllm serve unsloth/gemma-4-E4B-it \

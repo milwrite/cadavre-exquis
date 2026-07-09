@@ -35,8 +35,14 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - [x] **≥10,000 unique poems confirmed** — 20,722 (target exceeded).
 - [x] **Dataset card** — `data/processed/dataset_card.md` written.
 - [x] **Install train deps** — done; verified **torch 2.10.0+cu128, CUDA True, RTX 5090**.
-- [ ] **Train QLoRA** — `.venv/bin/python train/train_qlora.py` → `outputs/lora`. **NEXT.**
+- [x] **Train QLoRA** — trained on **`unsloth/gemma-4-E4B-it`** (on-stock vLLM base),
+      2500 steps, `train_loss 0.81` → `outputs/lora` (r=16). Markers auto-detected.
+- [x] **Integrated into vLLM** — `scripts/vllm_serve.sh` serves base + 3 adapters
+      (`cloze-reader`, `jeopardylm`, **`exquisite-corpse`**) on :1234; smoke-tested.
+      UI (`ui/config.local.js`) points at it. Needs `VLLM_USE_FLASHINFER_SAMPLER=0`.
 - [ ] **Qualitative eval** — `.venv/bin/python train/eval_compare.py` → `outputs/eval.md`.
+- [ ] **(opt) Push adapter to HF** `milwright/exquisite-corpse-gemma-4-e4b-lora` +
+      uncomment its line in `../cloze-reader-monorepo/finetune/deploy/serve_gemma.sh`.
 - [ ] **(opt) GGUF export** — `GGUF=1 .venv/bin/python train/train_qlora.py`.
 - [ ] **(opt) Ollama model** — `.venv/bin/python deploy/build_ollama_model.py --create`
       (wraps GGUF with the real Exquisite Corpse system prompt).
