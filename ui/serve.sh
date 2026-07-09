@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Serve the UI from a localhost origin (Ollama allows localhost CORS; file:// it
-# does not). Then open the printed URL.
-cd "$(dirname "$0")" || exit 1
+# Serve BOTH play surfaces from a localhost origin (the model hosts allow
+# localhost CORS; file:// they do not). Serves the repo root so the featured
+# page and the minimal one share the same origin and config.
+cd "$(dirname "$0")/.." || exit 1
 PORT="${1:-8800}"
-echo "corpse UI  ->  http://localhost:${PORT}/corpse.html"
+echo "the parlor      ->  http://localhost:${PORT}/"
+echo "the open sheet  ->  http://localhost:${PORT}/ui/corpse.html"
 exec python3 -m http.server "$PORT"

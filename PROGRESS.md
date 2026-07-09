@@ -17,8 +17,14 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 ## Published
 - **Repo:** https://github.com/milwrite/cadavre-exquis (public, branch `master`)
-- **Pages:** https://milwrite.github.io/cadavre-exquis/ (serves `index.html`; minimal UI at `/ui/corpse.html`)
+- **Pages:** https://milwrite.github.io/cadavre-exquis/ (serves `index.html`,
+  "the parlor"; minimal solo UI at `/ui/corpse.html`, "the open sheet")
 - Model export PII scrubbed before first push; API key stays in gitignored `ui/config.local.js`.
+- **2026-07-09 UX audit:** both UIs unified on the ink/bone identity and one
+  config contract (defaults → `config.local.js` → URL params); the parlor now
+  actually folds contributions out of sight during play, reveals locally, and
+  has a viewable wall; error paths all have retry. Verified end-to-end in-browser
+  against the live vLLM adapter.
 
 ## Automation
 - [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 12:00 (noon)**.

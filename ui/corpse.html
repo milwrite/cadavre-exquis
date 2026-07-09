@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>exquisite corpse</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230C0D10'/%3E%3Cpath d='M2 5h12M2 8h12M2 11h12' stroke='%23E7E0D0' stroke-width='1.2'/%3E%3C/svg%3E">
 <style>
   :root{
     --ink:#0C0D10;      /* the field — ink, not pure black */
@@ -21,7 +22,7 @@
     font-family:var(--poem);
     -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
     display:flex; justify-content:center; align-items:center;
-    min-height:100%; overflow-y:auto; padding:3.5vh 4vw;
+    min-height:100%; overflow-y:auto; overflow-x:clip; padding:3.5vh 4vw;
   }
   /* the poem is a content-hugging block, centered — margins become framing,
      not dead space. no bg, border, or radius. */
@@ -43,7 +44,7 @@
   /* the caret's line — the growing edge. an input with no box at all. */
   #edge{ width:100%; text-align:center; }
   #entry{
-    display:inline-block; width:auto; min-width:10ch; text-align:center;
+    display:inline-block; width:20ch; max-width:100%; text-align:center;
     background:transparent; border:0; outline:0; padding:0;
     color:var(--bone); caret-color:var(--bone);
   }
@@ -72,13 +73,14 @@
   #hint{
     position:fixed; left:max(1.1rem,3vw); bottom:1.1rem;
     font-family:var(--mono); font-size:.72rem; letter-spacing:.04em;
-    color:var(--ash);
+    color:#8A8375;   /* a notch above --ash: small text needs the contrast */
   }
   #hint .err{ color:var(--bone); opacity:.8; }
 
   @media (prefers-reduced-motion: reduce){
-    .rise,#reading.show,#edge.waiting::after{ animation:none; }
+    .rise,#reading.show,#edge.waiting::before{ animation:none; }
     .rise{opacity:1; transform:none} #reading.show{opacity:1}
+    #edge.waiting::before{opacity:.6}
   }
 </style>
 </head>
@@ -87,21 +89,26 @@
     <div id="poem" aria-live="polite"></div>
     <div id="edge">
       <input id="entry" autocomplete="off" autocapitalize="off" autocorrect="off"
-             spellcheck="false" aria-label="your one or two words" placeholder="">
+             spellcheck="false" aria-label="your one or two words" placeholder="one or two words">
     </div>
     <div id="reading" aria-live="polite"></div>
   </main>
   <div id="hint">one or two words &nbsp;·&nbsp; enter &nbsp;·&nbsp; “.” to close</div>
 
+<script src="config.local.js"></script>
 <script>
 /* ── config ───────────────────────────────────────────────────────────────
-   Overridden by ui/config.local.js (gitignored) if present — put the endpoint,
-   model, and any API key there, never in this tracked file.                  */
+   Layered: defaults < ui/config.local.js (gitignored; 404s harmlessly when
+   absent) < ?endpoint=…&model=…&key=… URL params. Never put a key here.    */
+const q = new URLSearchParams(location.search);
 const CFG = Object.assign({
-  endpoint: "http://localhost:11434/v1/chat/completions",  // Ollama, OpenAI-compatible
-  model:    "exquisite-corpse-tuned",                      // your Ollama model
+  endpoint: "http://127.0.0.1:1234/v1/chat/completions",   // multi-LoRA vLLM host
+  model:    "exquisite-corpse",                            // adapter, per-request
   apiKey:   "",                                            // only for a hosted endpoint
-}, window.CORPSE_CONFIG || {});
+}, window.CORPSE_CONFIG || {},
+  q.get("endpoint") && { endpoint: q.get("endpoint") },
+  q.get("model")    && { model: q.get("model") },
+  q.get("key")      && { apiKey: q.get("key") });
 
 /* The game lives in the system prompt, so this works against a base or a tuned
    Gemma. Kept verbatim from the Open WebUI export. */
@@ -148,6 +155,7 @@ document.addEventListener("click", keepFocus);
 window.addEventListener("load", keepFocus);
 
 function addLine(text){
+  entry.placeholder = "";                      // the ghost cue has done its job
   const div = document.createElement("div");
   div.className = "line rise";
   div.textContent = text;
@@ -205,10 +213,13 @@ entry.addEventListener("keydown", async (e) => {
   if(!text || entry.disabled) return;
   note(HINT_DEFAULT);
 
+  const host = (() => { try { return new URL(CFG.endpoint).host; } catch { return CFG.endpoint; } })();
+  const unreachable = `can’t reach the model at ${host} — is it running?`;
+
   if(text === "."){
     entry.value = "";
     let reply;
-    try { reply = await send("."); } catch(err){ return note("can’t reach the model — is it running? &nbsp;<span style='opacity:.6'>see ui/README</span>", true); }
+    try { reply = await send("."); } catch(err){ return note(unreachable, true); }
     reveal(reply);
     return;
   }
@@ -216,7 +227,7 @@ entry.addEventListener("keydown", async (e) => {
   entry.value = "";
   let reply;
   try { reply = await send(text); }
-  catch(err){ return note("can’t reach the model — is it running? &nbsp;<span style='opacity:.6'>see ui/README</span>", true); }
+  catch(err){ return note(unreachable, true); }
 
   if(isCorrective(reply)){
     // don't advance the poem; surface the correction quietly

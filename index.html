@@ -4,418 +4,514 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Exquisite Corpse — Cadavre Exquis</title>
+  <meta name="description" content="Play exquisite corpse, the Surrealist parlor game, at a table that seats a small Gemma fine-tuned on public-domain surrealist and modernist poetry." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230C0D10'/%3E%3Cpath d='M2 5h12M2 8h12M2 11h12' stroke='%23E7E0D0' stroke-width='1.2'/%3E%3C/svg%3E" />
   <style>
     :root {
-      --bg: #0a0a0a;
-      --panel: rgba(18, 18, 18, 0.92);
-      --chrome: #111;
-      --text: #e8e8e8;
-      --muted: #888;
-      --accent: #b8e0ff;
-      --accent2: #ffd1b8;
-      --danger: #ff4d4d;
-      --ok: #5cff85;
-      --border: rgba(255, 255, 255, 0.08);
-      --glow: rgba(184, 224, 255, 0.25);
+      color-scheme: dark;
+      --ink: #0C0D10;       /* the field */
+      --bone: #E7E0D0;      /* the poem */
+      --ash: #6E6A61;       /* large quiet text */
+      --label: #8A8375;     /* small mono chrome (AA on ink) */
+      --reading: #B8B2A4;   /* the close reading */
+      --fold-hi: #191B22;   /* folded strip face, lit edge */
+      --fold-lo: #111318;   /* folded strip face, shadow edge */
+      --crease: rgba(231, 224, 208, 0.13);
+      --wine: #A44856;      /* the model's hand; le vin nouveau */
+      --wine-bright: #C57080;
+      --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "URW Palladio L", "P052", "Liberation Serif", "Noto Serif", Georgia, serif;
+      --mono: ui-monospace, "DejaVu Sans Mono", "SF Mono", Menlo, Consolas, monospace;
     }
 
-    * { box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    html, body {
-      margin: 0;
-      min-height: 100%;
-      background:
-        radial-gradient(circle at 20% 30%, rgba(255,255,255,0.03) 1px, transparent 1px),
-        radial-gradient(circle at 70% 80%, rgba(255,255,255,0.02) 1px, transparent 1px),
-        linear-gradient(rgba(10,10,10,0.97), rgba(10,10,10,0.97)),
-        repeating-linear-gradient(0deg, transparent, transparent 16px, rgba(255,255,255,0.03) 16px, rgba(255,255,255,0.03) 17px),
-        repeating-linear-gradient(90deg, transparent, transparent 16px, rgba(255,255,255,0.03) 16px, rgba(255,255,255,0.03) 17px);
-      background-attachment: fixed;
-      color: var(--text);
-      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    html, body { min-height: 100%; }
+
+    body {
+      background: var(--ink);
+      color: var(--bone);
+      font-family: var(--serif);
       line-height: 1.5;
-      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
 
-    .wrap {
-      max-width: 760px;
+    .page {
+      max-width: 44rem;
       margin: 0 auto;
-      padding: 32px 20px 220px;
+      padding: clamp(2.5rem, 7vh, 5rem) 1.25rem 5rem;
     }
 
-    header {
-      text-align: center;
-      margin-bottom: 24px;
-    }
+    a { color: inherit; text-decoration: underline; text-underline-offset: 0.18em; text-decoration-color: var(--ash); }
+    a:hover { color: var(--wine-bright); text-decoration-color: var(--wine-bright); }
+
+    :focus-visible { outline: 2px solid var(--wine-bright); outline-offset: 2px; }
+
+    /* ── header ─────────────────────────────────────────────────────────── */
+    header { text-align: center; margin-bottom: clamp(2rem, 5vh, 3.2rem); }
 
     h1 {
-      font-size: 2.2rem;
-      font-weight: 300;
+      font-weight: 400;
+      font-size: clamp(2.6rem, 1.9rem + 3.2vw, 4.4rem);
+      letter-spacing: 0.01em;
+      line-height: 1.08;
+    }
+
+    .epigraph {
+      margin-top: 0.9rem;
+      font-style: italic;
+      font-size: clamp(1.05rem, 1rem + 0.4vw, 1.25rem);
+      color: var(--ash);
+    }
+
+    .epigraph .attr {
+      display: block;
+      margin-top: 0.45rem;
+      font-family: var(--mono);
+      font-style: normal;
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      color: var(--label);
+    }
+
+    /* ── prose ──────────────────────────────────────────────────────────── */
+    .prose {
+      max-width: 36rem;
+      margin: 0 auto 2.6rem;
+      font-size: 1.12rem;
+      line-height: 1.7;
+      color: rgba(231, 224, 208, 0.88);
+    }
+
+    .prose p + p { margin-top: 0.9em; }
+    .prose strong { font-weight: 600; color: var(--bone); }
+
+    /* ── section labels: museum wall tags ───────────────────────────────── */
+    .eyebrow {
+      font-family: var(--mono);
+      font-weight: 400;
+      font-size: 0.7rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--label);
+      text-align: center;
+      margin-bottom: 1.3rem;
+    }
+
+    /* ── the table: settings composed as a sentence ─────────────────────── */
+    .table-setting {
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      color: var(--label);
+      line-height: 2.4;
+    }
+
+    .table-setting select {
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      color: var(--bone);
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid var(--crease);
+      padding: 0.15em 0.1em;
+      cursor: pointer;
+    }
+
+    .table-setting select:hover { border-bottom-color: var(--wine-bright); }
+
+    .table-actions { text-align: center; margin-top: 1.6rem; }
+
+    /* ── buttons: quiet catalog chrome ──────────────────────────────────── */
+    button {
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      letter-spacing: 0.12em;
+      color: var(--bone);
+      background: transparent;
+      border: 1px solid var(--crease);
+      padding: 0.7em 1.3em;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+
+    button:hover:not(:disabled) { border-color: var(--wine-bright); }
+    button:disabled { opacity: 0.35; cursor: not-allowed; }
+    button.primary { border-color: var(--wine); color: var(--wine-bright); }
+    button.primary:hover:not(:disabled) { border-color: var(--wine-bright); }
+
+    button.linklike {
+      border: 0;
+      padding: 0 0.2em;
+      text-decoration: underline;
+      text-underline-offset: 0.18em;
+      color: var(--wine-bright);
+      font-size: inherit;
+      letter-spacing: inherit;
+    }
+
+    /* ── the sheet ──────────────────────────────────────────────────────── */
+    .sheet { margin-top: 0.6rem; }
+
+    .folds {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 1.6rem;
+      min-height: 0;
+    }
+
+    .fold {
+      height: 2.1rem;
+      background: linear-gradient(180deg, var(--fold-hi), var(--fold-lo));
+      border-top: 1px solid var(--crease);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.55);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+      position: relative;
+      transform-origin: top center;
+      animation: foldIn 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+    }
+
+    .fold:nth-child(odd) { rotate: -0.45deg; }
+    .fold:nth-child(even) { rotate: 0.4deg; }
+
+    .fold.model::after {
+      content: "";
+      position: absolute;
+      left: 0.7rem;
+      top: 50%;
+      width: 0.32rem;
+      height: 0.32rem;
+      border-radius: 50%;
+      background: var(--wine);
+      transform: translateY(-50%);
+    }
+
+    @keyframes foldIn {
+      from { transform: scaleY(0.1); opacity: 0; }
+      to { transform: scaleY(1); opacity: 1; }
+    }
+
+    .cue { text-align: center; margin-bottom: 1.8rem; }
+
+    .cue-label {
+      font-family: var(--mono);
+      font-size: 0.68rem;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      margin: 0 0 8px;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: var(--label);
+      margin-bottom: 0.5rem;
     }
 
-    .subtitle {
-      font-size: 0.95rem;
-      color: var(--muted);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
+    .cue-words {
+      font-size: clamp(1.7rem, 1.15rem + 2.6vw, 3rem);
+      line-height: 1.25;
+      overflow-wrap: break-word;
     }
 
-    .moma {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      padding: 20px 24px;
-      margin-bottom: 20px;
-      font-size: 1.08rem;
-      line-height: 1.65;
-      color: #cfcfcf;
-    }
+    .cue-words.blank { font-style: italic; color: var(--ash); font-size: clamp(1.3rem, 1rem + 1.4vw, 1.8rem); }
+    .cue-words.rise { animation: rise 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
 
-    .moma strong {
-      color: var(--text);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .moma em {
-      color: var(--accent);
-      font-style: normal;
-    }
-
-    .controls {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    label {
-      font-size: 0.75rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    select, input[type="text"], input[type="number"] {
-      background: var(--chrome);
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 8px 10px;
-      font-size: 0.9rem;
-      outline: none;
-    }
-
-    select:focus, input:focus { border-color: var(--accent); }
-
-    button {
-      background: var(--chrome);
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 9px 16px;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    button:hover:not(:disabled) {
-      border-color: var(--accent);
-      box-shadow: 0 0 12px var(--glow);
-      color: #fff;
-    }
-
-    button:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    .primary { border-color: var(--accent); color: var(--accent); }
-    .danger { border-color: var(--danger); color: var(--danger); }
-    .ok { border-color: var(--ok); color: var(--ok); }
-
-    .status {
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-bottom: 16px;
-      min-height: 1.2em;
-    }
-
-    .turn {
-      background: var(--panel);
-      border-left: 2px solid var(--accent);
-      padding: 14px 18px;
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      animation: fadeIn 0.4s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .turn.model { border-left-color: var(--accent2); }
-
-    .turn .who {
-      font-size: 0.65rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      flex-shrink: 0;
-      margin-right: 14px;
-    }
-
-    .turn .words {
-      flex-grow: 1;
-      font-size: 1.15rem;
-      letter-spacing: 0.02em;
-    }
-
-    .glow-text {
-      animation: textGlow 1.2s ease-out forwards;
-    }
-
-    @keyframes textGlow {
-      0% { text-shadow: 0 0 18px var(--glow), 0 0 36px var(--glow); color: #fff; }
-      100% { text-shadow: none; color: var(--text); }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(0.5em); }
+      to { opacity: 1; transform: none; }
     }
 
     .entry {
       display: flex;
-      gap: 10px;
-      margin-bottom: 18px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: baseline;
+      gap: 0.9rem;
+      margin-bottom: 1.1rem;
     }
 
     .entry input {
-      flex-grow: 1;
-      font-size: 1rem;
-      padding: 12px 14px;
+      font-family: var(--serif);
+      font-size: 1.3rem;
+      text-align: center;
+      color: var(--bone);
+      caret-color: var(--wine-bright);
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid var(--crease);
+      padding: 0.35em 0.2em;
+      width: min(24ch, 100%);
     }
 
-    .entry button { padding: 12px 22px; }
+    .entry input:focus { border-bottom-color: var(--wine); outline: none; }
+    .entry input::placeholder { color: var(--ash); font-style: italic; }
+
+    .status {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--label);
+      text-align: center;
+      min-height: 1.5em;
+      margin-bottom: 1.4rem;
+    }
+
+    .status.err { color: var(--wine-bright); }
+
+    .breathe { color: var(--wine-bright); animation: breathe 1.5s ease-in-out infinite; }
+
+    @keyframes breathe { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.9; } }
+
+    .sheet-actions { text-align: center; display: flex; justify-content: center; gap: 0.8rem; flex-wrap: wrap; }
+
+    /* ── the reveal ─────────────────────────────────────────────────────── */
+    .revealed { margin-top: 1rem; }
 
     .poem {
-      display: none;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      padding: 28px 32px;
-      margin: 24px 0;
       text-align: center;
-      white-space: pre-wrap;
-      font-size: 1.35rem;
-      line-height: 1.85;
-      letter-spacing: 0.03em;
+      font-size: clamp(1.45rem, 1.05rem + 1.9vw, 2.35rem);
+      line-height: 1.42;
+      margin-bottom: 2rem;
     }
 
-    .analysis {
-      display: none;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-left: 3px solid var(--accent2);
-      padding: 22px;
-      margin: 18px 0;
-      font-size: 0.92rem;
-      color: #bbb;
-      line-height: 1.7;
+    .poem .line { overflow-wrap: break-word; animation: rise 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+
+    .reading {
+      max-width: 34rem;
+      margin: 0 auto 2.2rem;
+      text-align: center;
+      font-style: italic;
+      font-size: clamp(1.05rem, 0.95rem + 0.5vw, 1.3rem);
+      line-height: 1.65;
+      color: var(--reading);
     }
 
-    .actions {
+    .reading.show { animation: fade 1.1s ease 0.2s both; }
+
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+    .reading .pending { font-family: var(--mono); font-style: normal; font-size: 0.8rem; color: var(--label); }
+    .reading .err { font-family: var(--mono); font-style: normal; font-size: 0.8rem; color: var(--wine-bright); }
+
+    .reveal-actions { display: flex; justify-content: center; gap: 0.8rem; flex-wrap: wrap; }
+
+    /* ── the wall ───────────────────────────────────────────────────────── */
+    .wall { margin-top: 4rem; }
+
+    .wall-note {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--label);
+      text-align: center;
+      margin: -0.6rem 0 1.6rem;
+    }
+
+    .pin { border-top: 1px solid var(--crease); padding: 1.5rem 0.2rem; }
+
+    .pin-poem { white-space: pre-wrap; font-size: 1.08rem; line-height: 1.55; overflow-wrap: break-word; }
+
+    .pin-meta {
       display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin: 18px 0;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 1rem;
+      margin-top: 0.8rem;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--label);
     }
 
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.85);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
+    .pin-meta .linklike { font-size: 0.72rem; }
+
+    /* ── footer ─────────────────────────────────────────────────────────── */
+    footer {
+      margin-top: 4.5rem;
+      border-top: 1px solid var(--crease);
+      padding-top: 1.2rem;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      line-height: 2;
+      color: var(--label);
+      text-align: center;
     }
 
-    .modal {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      padding: 24px;
-      width: min(420px, 92vw);
+    /* ── pin dialog ─────────────────────────────────────────────────────── */
+    dialog {
+      background: var(--ink);
+      color: var(--bone);
+      border: 1px solid var(--crease);
+      padding: 1.8rem;
+      width: min(24rem, 92vw);
+      margin: auto;
     }
 
-    .modal h3 {
-      margin: 0 0 16px;
-      font-weight: 400;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      font-size: 1rem;
-    }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.72); }
 
-    .modal input, .modal select {
+    dialog p { font-family: var(--mono); font-size: 0.8rem; color: var(--label); margin-bottom: 1rem; }
+
+    dialog input {
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      color: var(--bone);
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid var(--crease);
+      padding: 0.3em 0.1em;
       width: 100%;
-      margin-bottom: 14px;
+      margin-bottom: 1.4rem;
     }
 
-    .modal .row {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
+    dialog input:focus { border-bottom-color: var(--wine); outline: none; }
+    dialog .row { display: flex; justify-content: flex-end; gap: 0.8rem; }
+
+    /* ── motion, print ──────────────────────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      .fold, .cue-words.rise, .poem .line, .reading.show, .breathe { animation: none; }
+      .reading.show { opacity: 1; }
     }
 
-    .sticky-footer {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 170px;
-      pointer-events: none;
-      overflow: hidden;
-      z-index: 50;
-    }
-
-    .snowflake {
-      position: absolute;
-      color: rgba(255,255,255,0.35);
-      font-size: 12px;
-      line-height: 1;
-      animation: fall 8s linear infinite, sway 3s ease-in-out infinite alternate;
-      user-select: none;
-    }
-
-    @keyframes fall {
-      0% { top: -10px; opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { top: 170px; opacity: 0; }
-    }
-
-    @keyframes sway {
-      from { transform: translateX(-6px); }
-      to { transform: translateX(6px); }
-    }
-
-    .notice {
-      font-size: 0.72rem;
-      color: var(--muted);
-      margin-top: 6px;
-    }
-
-    .adapter-note {
-      font-size: 0.72rem;
-      color: var(--accent2);
-      border-left: 2px solid var(--accent2);
-      padding-left: 10px;
-      margin: 12px 0;
-      line-height: 1.5;
+    @media print {
+      :root { color-scheme: light; }
+      body { background: #fff; color: #111; }
+      header .epigraph, .prose, .table, .sheet, .wall, footer,
+      .reveal-actions, .eyebrow, .reading .pending, .reading .err { display: none; }
+      h1 { font-size: 1.6rem; margin-bottom: 1.5rem; }
+      .poem { color: #111; font-size: 1.3rem; }
+      .reading { color: #444; }
     }
   </style>
 </head>
 <body>
-  <div class="sticky-footer" id="snowField"></div>
-
-  <div class="wrap">
+  <div class="page">
     <header>
       <h1>Exquisite Corpse</h1>
-      <div class="subtitle">Cadavre Exquis — A Surrealist Parlor Game</div>
+      <p class="epigraph">“The exquisite corpse will drink the new wine.”
+        <span class="attr">the game’s first sentence — Paris, 1925</span>
+      </p>
     </header>
 
-    <section class="moma">
-      <p><strong>MoMA defines it as</strong> a game in which each participant takes turns writing or drawing on a sheet of paper, folding it to conceal the contribution, and then passing it to the next player for a further contribution.</p>
-      <p>This version seats a language model at the table. Players add a word or two per turn; the poem accumulates until someone ends it, and the finished piece is revealed.</p>
-      <p><em>“The forms of surrealist language are possibly best suited to dialogue, when two thoughts confront one another, the one reacting to the other.” — André Breton</em></p>
+    <section class="prose" aria-label="about the game">
+      <p><strong>MoMA defines it</strong> as a game in which each participant takes turns writing or drawing on a sheet of paper, folding it to conceal the contribution, and then passing it to the next player for a further contribution.</p>
+      <p>This version seats a language model at the table. Each player adds a few words, and the sheet is folded as it passes — only the newest contribution stays visible as the next player’s cue. When someone ends the game, the sheet unfolds.</p>
     </section>
 
-    <section class="controls">
-      <div>
-        <label for="playerCount">Players (2–4)</label><br />
-        <select id="playerCount">
-          <option value="2">2</option>
-          <option value="3" selected>3</option>
-          <option value="4">4</option>
+    <section class="table" id="tableSec" aria-label="table setting">
+      <h2 class="eyebrow">The Table</h2>
+      <div class="table-setting">
+        a table of
+        <select id="playerCount" aria-label="number of players">
+          <option value="2">two</option>
+          <option value="3" selected>three</option>
+          <option value="4">four</option>
         </select>
-      </div>
-      <div>
-        <label for="modelSlot">Model seat</label><br />
-        <select id="modelSlot">
-          <option value="1">1</option>
-          <option value="2" selected>2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
+        · the model sits at seat
+        <select id="modelSlot" aria-label="the model's seat">
+          <option value="1">one</option>
+          <option value="2" selected>two</option>
+          <option value="3">three</option>
         </select>
+        ·
+        <select id="maxWords" aria-label="words per turn">
+          <option value="1">one word</option>
+          <option value="2" selected>two words</option>
+          <option value="3">three words</option>
+          <option value="4">four words</option>
+          <option value="5">five words</option>
+        </select>
+        a turn
       </div>
-      <div>
-        <label for="maxWords">Words per turn</label><br />
-        <input id="maxWords" type="number" min="1" max="5" value="2" style="width:60px" />
-      </div>
-      <div>
-        <label>&nbsp;</label><br />
-        <button id="startBtn" class="primary">Start Game</button>
-      </div>
-      <div>
-        <label>&nbsp;</label><br />
-        <button id="resetBtn" class="danger">Reset</button>
-      </div>
-    </section>
-
-    <div id="status" class="status">Ready. Press Start Game.</div>
-
-    <section id="playArea" style="display:none">
-      <div class="entry">
-        <input id="wordInput" type="text" placeholder="Enter 1–5 words…" autocomplete="off" />
-        <button id="submitBtn" class="primary">Submit</button>
-      </div>
-      <div class="notice">Turn <span id="turnNum">1</span> — <span id="currentPlayer">Player 1</span></div>
-      <div class="adapter-note">Proof-of-concept: this page calls the local Qwen cloze-reader model on :1234. A dedicated exquisite-corpse adapter on the Gemma host is required for true 1–5-word Surrealist turns.</div>
-
-      <div id="history"></div>
-
-      <div class="actions">
-        <button id="endBtn" class="ok">End Game &amp; Reveal</button>
-        <button id="analyzeBtn" disabled>Analyze Poem</button>
-        <button id="exportMdBtn" disabled>Export Markdown</button>
-        <button id="exportPdfBtn" disabled>Export PDF</button>
-        <button id="publishBtn" disabled>Publish to Wall</button>
+      <div class="table-actions">
+        <button id="startBtn" class="primary">begin</button>
       </div>
     </section>
 
-    <pre id="poem" class="poem"></pre>
-    <div id="analysis" class="analysis"></div>
+    <section class="sheet" id="sheetSec" hidden aria-label="the sheet">
+      <h2 class="eyebrow">The Sheet</h2>
+      <div class="folds" id="folds" aria-hidden="true"></div>
+      <div class="cue" id="cue">
+        <div class="cue-label" id="cueLabel"></div>
+        <div class="cue-words blank" id="cueWords" aria-live="polite"></div>
+      </div>
+      <form class="entry" id="entryForm">
+        <input id="wordInput" type="text" autocomplete="off" autocapitalize="off"
+               autocorrect="off" spellcheck="false" aria-label="your contribution" />
+        <button id="submitBtn" class="primary" type="submit">fold in</button>
+      </form>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+      <div class="sheet-actions">
+        <button id="endBtn" disabled>reveal the poem</button>
+        <button id="resetBtn">clear the table</button>
+      </div>
+    </section>
+
+    <section class="revealed" id="revealSec" hidden aria-label="the poem">
+      <h2 class="eyebrow">The Poem</h2>
+      <div class="poem" id="poem"></div>
+      <div class="reading" id="reading" aria-live="polite"></div>
+      <div class="reveal-actions">
+        <button id="againBtn" class="primary">play again</button>
+        <button id="exportMdBtn">save as markdown</button>
+        <button id="printBtn">print</button>
+        <button id="pinBtn">pin to the wall</button>
+      </div>
+    </section>
+
+    <section class="wall" id="wallSec" hidden aria-label="the wall">
+      <h2 class="eyebrow">The Wall</h2>
+      <p class="wall-note">corpses pinned in this browser</p>
+      <div id="wallList"></div>
+    </section>
+
+    <footer>
+      <div>a barer surface for solo play: <a href="ui/corpse.html">the open sheet</a> · <a href="https://github.com/milwrite/cadavre-exquis">source</a></div>
+      <div id="connLine">model <span id="connModel"></span> at <span id="connHost"></span>
+        — point elsewhere with <span style="white-space:nowrap">?endpoint=…&amp;model=…</span>
+        <button class="linklike" id="connForget" hidden>forget override</button>
+      </div>
+    </footer>
   </div>
 
-  <div class="modal-overlay" id="publishModal">
-    <div class="modal">
-      <h3>Publish to Cadavre Wall</h3>
-      <label for="pubName">Name</label>
-      <input id="pubName" type="text" placeholder="Your name or alias" />
-      <div class="row">
-        <button id="cancelPublish">Cancel</button>
-        <button id="confirmPublish" class="primary">Publish</button>
-      </div>
+  <dialog id="pinDialog">
+    <p>pin this corpse to the wall</p>
+    <input id="pinName" type="text" placeholder="your name, or an alias" aria-label="your name" />
+    <div class="row">
+      <button id="pinCancel" type="button">cancel</button>
+      <button id="pinConfirm" class="primary" type="button">pin it</button>
     </div>
-  </div>
+  </dialog>
 
+  <script src="ui/config.local.js"></script>
   <script>
-    const API_URL = 'http://127.0.0.1:1234/v1/chat/completions';
-    const MODEL_NAME = 'cloze-reader';
+    /* ── connection: defaults < stored override < config.local.js < URL params.
+       On GitHub Pages config.local.js 404s harmlessly and defaults apply. ── */
+    const DEFAULTS = {
+      endpoint: "http://127.0.0.1:1234/v1/chat/completions",
+      model: "exquisite-corpse",
+      apiKey: "",
+    };
+    const params = new URLSearchParams(location.search);
+    const storedConn = JSON.parse(localStorage.getItem("corpseConn") || "null");
+    const paramConn = {};
+    if (params.get("endpoint")) paramConn.endpoint = params.get("endpoint");
+    if (params.get("model")) paramConn.model = params.get("model");
+    if (params.get("key")) paramConn.apiKey = params.get("key");
+    const CFG = Object.assign({}, DEFAULTS, storedConn || {}, window.CORPSE_CONFIG || {}, paramConn);
+    if (Object.keys(paramConn).length) {
+      localStorage.setItem("corpseConn", JSON.stringify(paramConn));
+    }
 
-    const SYSTEM = `You are Exquisite Corpse.
+    /* The game lives in the system prompt, so play works against a base or a
+       tuned Gemma — the exquisite-corpse adapter just plays it better. The
+       word cap is written in from the table setting so the model plays by
+       the same rule as everyone else at the table. */
+    const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five"];
+    const capPhrase = () => (maxWords === 1 ? "one word" : `one to ${NUMBER_WORDS[maxWords]} words`);
+    const cap0 = () => { const p = capPhrase(); return p[0].toUpperCase() + p.slice(1); };
+    const systemPrompt = () => `You are Exquisite Corpse.
 
-You run a text version of the Surrealist game. Players give one to five words; you give the next one to five words. The sequence accumulates silently until the game closes.
+You run a text version of the Surrealist game. Players give ${capPhrase()}; you give the next ${capPhrase()}. The sequence accumulates silently until the game closes.
 
 INPUT HANDLING
-- Valid input: 1–5 words separated by whitespace.
+- Valid input: ${capPhrase()} separated by whitespace.
 - Hyphenated compounds count as single words.
-- If the user sends more than 5 words, reply exactly: One to five words.
-- If the input is empty or only punctuation/emoji, reply exactly: One to five words.
+- If the user sends more words than that, reply exactly: ${cap0()}.
+- If the input is empty or only punctuation/emoji, reply exactly: ${cap0()}.
 
 PLAY
 - Treat the latest contribution as the immediate cue. Extend it grammatically or imagistically.
@@ -423,235 +519,330 @@ PLAY
 - Let syntax pull the sequence forward; avoid introducing a brand-new image every turn.
 - Output only the contribution words: no punctuation unless intrinsic, no quotation marks unless intrinsic, no commentary.
 
-CLOSING THE GAME
-When asked to end the game:
-1. Output the accumulated contributions in order, one per line, preserving each exactly as given. Add line breaks and tabs where they create enjambment or lyrical pacing. Do not add a title.
-2. Then leave one blank line and write a concise close reading of the poem as a finished work. Point to specific words, juxtapositions, line breaks, or pronouns. Do not mention the game, collaboration, or Surrealism in general terms. Do not praise the poem. Keep the reading to 2–4 sentences.
+CLOSE READING
+When asked to analyze a finished poem, write a concise close reading of it as a finished work. Point to specific words, juxtapositions, line breaks, or pronouns. Do not mention the game, collaboration, or Surrealism in general terms. Do not praise the poem. Keep the reading to 2–4 sentences.`;
 
-When asked only to analyze an already closed poem, provide just the close reading paragraph (no title, no game reference).`;
-
-    let contributions = [];
+    let players = 3, modelSeat = 2, maxWords = 2;
+    let contributions = [];   // { text, isModel, seat }
+    let actorIndex = 0;       // total turns taken so far
+    let gameId = 0;           // stale in-flight replies must not join a new game
+    let poemText = "", readingText = "";
     let gameActive = false;
-    let turn = 0;
-    let players = 2;
-    let modelSeat = 2;
-    let maxWords = 2;
-    let currentPlayerIndex = 0;
-    let poemText = '';
-    let analysisText = '';
-    let wall = JSON.parse(localStorage.getItem('cadavreWall') || '[]');
+    let wall = JSON.parse(localStorage.getItem("cadavreWall") || "[]");
 
-    const el = id => document.getElementById(id);
+    const el = (id) => document.getElementById(id);
+    const currentSeat = () => (actorIndex % players) + 1;
+    const isModelTurn = () => currentSeat() === Number(modelSeat);
+    const round = () => Math.floor(actorIndex / players) + 1;
+    const endpointHost = () => { try { return new URL(CFG.endpoint).host; } catch { return CFG.endpoint; } };
 
-    function setStatus(msg) { el('status').textContent = msg; }
+    function setStatus(html, isErr) {
+      el("status").innerHTML = html;
+      el("status").classList.toggle("err", !!isErr);
+    }
 
-    function nextPlayer() { return (currentPlayerIndex % players) + 1; }
-    function isModelTurn() { return nextPlayer() === Number(modelSeat); }
+    /* ── the fold: conceal everything but the newest contribution ───────── */
+    function foldAway(entry) {
+      const strip = document.createElement("div");
+      strip.className = "fold" + (entry.isModel ? " model" : "");
+      // width tracks contribution length, so the folded sheet keeps the
+      // poem's silhouette without giving its words away
+      strip.style.width = Math.min(88, 26 + entry.text.length * 2.4) + "%";
+      el("folds").appendChild(strip);
+    }
+
+    function showCue(entry) {
+      const words = el("cueWords");
+      if (!entry) {
+        el("cueLabel").textContent = "";
+        words.textContent = "the sheet is blank — begin anywhere";
+        words.className = "cue-words blank";
+        return;
+      }
+      el("cueLabel").textContent = "visible at the fold";
+      words.textContent = entry.text;
+      words.className = "cue-words";
+      // restart the rise animation
+      void words.offsetWidth;
+      words.classList.add("rise");
+    }
 
     function addContribution(text, isModel) {
-      const div = document.createElement('div');
-      div.className = `turn ${isModel ? 'model' : ''}`;
-      const playerLabel = isModel ? 'Model' : `Player ${nextPlayer()}`;
-      div.innerHTML = `<span class="who">${playerLabel}</span><span class="words glow-text">${escapeHtml(text)}</span>`;
-      el('history').prepend(div);
-      contributions.push({ player: playerLabel, text });
-      spawnSnowflakes(text);
+      const prev = contributions[contributions.length - 1];
+      if (prev) foldAway(prev);
+      const entry = { text, isModel, seat: currentSeat() };
+      contributions.push(entry);
+      showCue(entry);
+      el("endBtn").disabled = false;
+      actorIndex++;
     }
 
-    function escapeHtml(s) {
-      const d = document.createElement('div');
-      d.textContent = s;
-      return d.innerHTML;
+    function promptTurn() {
+      if (!gameActive) return;
+      if (isModelTurn()) { modelTurn(); return; }
+      const cap = NUMBER_WORDS[maxWords];
+      const limit = maxWords === 1 ? "one word" : `up to ${cap} words`;
+      setStatus(`round ${round()} · player ${currentSeat()} writes — ${limit}`);
+      el("wordInput").disabled = false;
+      el("submitBtn").disabled = false;
+      el("wordInput").placeholder = limit + "…";
+      el("wordInput").focus();
     }
 
-    function spawnSnowflakes(text) {
-      const field = el('snowField');
-      const chars = text.replace(/\s/g, '').slice(0, 24);
-      const w = field.clientWidth;
-      chars.split('').forEach((ch, i) => {
-        const span = document.createElement('span');
-        span.className = 'snowflake';
-        span.textContent = ch;
-        span.style.left = `${Math.random() * w}px`;
-        span.style.animationDuration = `${6 + Math.random() * 5}s, ${2 + Math.random() * 3}s`;
-        span.style.animationDelay = `${i * 0.08}s`;
-        field.appendChild(span);
-        setTimeout(() => span.remove(), 13000);
-      });
+    /* ── talking to the model ───────────────────────────────────────────── */
+    async function chat(messages, maxTokens) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 60000);
+      try {
+        const res = await fetch(CFG.endpoint, {
+          method: "POST",
+          headers: Object.assign({ "Content-Type": "application/json" },
+            CFG.apiKey ? { Authorization: "Bearer " + CFG.apiKey } : {}),
+          body: JSON.stringify({
+            model: CFG.model, messages,
+            max_tokens: maxTokens, temperature: 0.8, stream: false,
+          }),
+          signal: ctrl.signal,
+        });
+        if (!res.ok) throw new Error("the model answered " + res.status);
+        const data = await res.json();
+        return (data.choices?.[0]?.message?.content ?? "").trim();
+      } finally {
+        clearTimeout(timer);
+      }
     }
 
-    async function chat(messages, maxTokens = 80) {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: MODEL_NAME, messages, max_tokens: maxTokens, temperature: 0.8 })
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      return data.choices[0].message.content.trim();
+    const isCorrective = (t) => /^one (word|to (two|three|four|five) words)\.?$/i.test(t.trim());
+
+    /* the table's rule is a hard rule: however many words the model offers,
+       only the first maxWords make it onto the sheet */
+    function trimToCap(t) {
+      return t.split(/\s+/).slice(0, maxWords).join(" ").replace(/[.,;:!?]+$/, "");
     }
 
     async function modelTurn() {
-      setStatus('Model is thinking…');
-      el('submitBtn').disabled = true;
-      el('wordInput').disabled = true;
-      const recent = contributions.slice(-4).map(c => c.text).join(' ');
-      const userMsg = recent ? `Continue: ${recent}` : 'Begin the exquisite corpse with one to five words.';
+      const id = gameId;
+      setStatus(`round ${round()} · the model writes <span class="breathe">·</span>`);
+      el("wordInput").disabled = true;
+      el("submitBtn").disabled = true;
+      const recent = contributions.slice(-4).map((c) => c.text).join(" ");
+      const userMsg = recent
+        ? `Continue: ${recent}`
+        : `Begin the exquisite corpse with ${capPhrase()}.`;
+      let reply;
       try {
-        const reply = await chat([
-          { role: 'system', content: SYSTEM },
-          { role: 'user', content: userMsg }
+        reply = await chat([
+          { role: "system", content: systemPrompt() },
+          { role: "user", content: userMsg },
         ], 60);
-        if (/^one to five words/i.test(reply)) {
-          addContribution('…', true);
-        } else {
-          addContribution(reply, true);
+        if (isCorrective(reply)) {
+          reply = await chat([
+            { role: "system", content: systemPrompt() },
+            { role: "user", content: userMsg },
+          ], 60);
         }
       } catch (e) {
-        setStatus('Model error: ' + e.message);
+        if (id !== gameId || !gameActive) return;
+        setStatus(`the model isn’t answering at ${endpointHost()} — is it running?
+          <button class="linklike" id="retryTurn">try again</button>`, true);
+        el("retryTurn").addEventListener("click", modelTurn);
         return;
-      } finally {
-        el('submitBtn').disabled = false;
-        el('wordInput').disabled = false;
       }
-      currentPlayerIndex++;
-      updateTurnUI();
-      if (isModelTurn()) await modelTurn();
+      if (id !== gameId || !gameActive) return;
+      reply = isCorrective(reply) ? "" : trimToCap(reply);
+      if (!reply) {
+        // twice corrective, or nothing usable: let the table move on
+        actorIndex++;
+        setStatus("the model passed its turn");
+        setTimeout(promptTurn, 900);
+        return;
+      }
+      addContribution(reply, true);
+      promptTurn();
     }
 
-    function updateTurnUI() {
-      el('turnNum').textContent = Math.floor(currentPlayerIndex / players) + 1;
-      el('currentPlayer').textContent = isModelTurn() ? `Model (seat ${modelSeat})` : `Player ${nextPlayer()}`;
-      setStatus(gameActive ? `Turn ${el('turnNum').textContent} — ${el('currentPlayer').textContent}` : 'Game over.');
-      el('wordInput').focus();
-    }
-
-    async function handleUserSubmit() {
-      if (!gameActive) return;
-      const raw = el('wordInput').value.trim();
+    /* ── human turn ─────────────────────────────────────────────────────── */
+    el("entryForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (!gameActive || isModelTurn()) return;
+      const raw = el("wordInput").value.trim();
       if (!raw) return;
-      const count = raw.split(/\s+/).length;
-      if (count > maxWords) {
-        setStatus(`Too many words. Enter 1–${maxWords}.`);
+      if (raw.split(/\s+/).length > maxWords) {
+        const cap = NUMBER_WORDS[maxWords];
+        setStatus(maxWords === 1 ? "one word only" : `one to ${cap} words`, true);
         return;
       }
-      el('wordInput').value = '';
+      el("wordInput").value = "";
       addContribution(raw, false);
-      turn++;
-      currentPlayerIndex++;
-      updateTurnUI();
-      if (isModelTurn()) await modelTurn();
-    }
+      promptTurn();
+    });
 
-    async function endGame() {
-      if (!gameActive || contributions.length === 0) return;
+    /* ── the reveal: the sheet unfolds ──────────────────────────────────── */
+    function reveal() {
+      if (!contributions.length) return;
       gameActive = false;
-      el('playArea').style.display = 'none';
-      setStatus('Cohering the poem…');
-      const seq = contributions.map(c => c.text).join('\n');
-      const reply = await chat([
-        { role: 'system', content: SYSTEM },
-        { role: 'user', content: `End the game. Here is the sequence of contributions in order, one per line:\n${seq}\n\nClose the game: reveal the poem with line breaks/tabs for lyrical pacing, then a blank line and a close reading.` }
-      ], 600);
-      const parts = reply.split(/\n\n+/);
-      poemText = parts[0].trim();
-      analysisText = parts.slice(1).join('\n\n').trim();
-      el('poem').style.display = 'block';
-      el('poem').textContent = poemText;
-      el('analyzeBtn').disabled = false;
-      el('exportMdBtn').disabled = false;
-      el('exportPdfBtn').disabled = false;
-      el('publishBtn').disabled = false;
-      setStatus('Poem revealed.');
+      poemText = contributions.map((c) => c.text).join("\n");
+      el("sheetSec").hidden = true;
+      el("revealSec").hidden = false;
+      const poemEl = el("poem");
+      poemEl.innerHTML = "";
+      contributions.forEach((c, i) => {
+        const line = document.createElement("div");
+        line.className = "line";
+        line.textContent = c.text;
+        line.style.animationDelay = (i * 0.09) + "s";
+        poemEl.appendChild(line);
+      });
+      el("revealSec").scrollIntoView({ behavior: "smooth", block: "start" });
+      fetchReading();
     }
 
-    async function analyzePoem() {
-      if (!poemText) return;
-      setStatus('Analyzing…');
-      analysisText = await chat([
-        { role: 'system', content: SYSTEM },
-        { role: 'user', content: `Close-read this finished poem:\n\n${poemText}\n\nProvide only the close reading paragraph. Do not mention the game or how it was made.` }
-      ], 400);
-      el('analysis').style.display = 'block';
-      el('analysis').textContent = analysisText;
-      setStatus('Analysis complete.');
+    async function fetchReading() {
+      const readingEl = el("reading");
+      readingEl.classList.remove("show");
+      readingEl.innerHTML = `<span class="pending">reading <span class="breathe">·</span></span>`;
+      try {
+        readingText = await chat([
+          { role: "system", content: systemPrompt() },
+          { role: "user", content: `Close-read this finished poem:\n\n${poemText}\n\nProvide only the close reading paragraph. Do not mention the game or how it was made.` },
+        ], 400);
+        readingEl.textContent = readingText;
+        readingEl.classList.add("show");
+      } catch (e) {
+        readingText = "";
+        readingEl.innerHTML = `<span class="err">the reading didn’t arrive from ${endpointHost()}
+          — <button class="linklike" id="retryReading">try again</button></span>`;
+        el("retryReading").addEventListener("click", fetchReading);
+      }
     }
 
-    function exportMarkdown() {
-      const blob = new Blob([`# Exquisite Corpse\n\n${poemText}\n\n## Close Reading\n\n${analysisText}\n`], { type: 'text/markdown' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
+    /* ── table setup ────────────────────────────────────────────────────── */
+    function syncSeats() {
+      const n = Number(el("playerCount").value);
+      const slot = el("modelSlot");
+      const keep = Math.min(Number(slot.value), n);
+      slot.innerHTML = "";
+      for (let i = 1; i <= n; i++) {
+        const o = document.createElement("option");
+        o.value = i;
+        o.textContent = NUMBER_WORDS[i];
+        if (i === keep) o.selected = true;
+        slot.appendChild(o);
+      }
+    }
+    el("playerCount").addEventListener("change", syncSeats);
+
+    function begin() {
+      players = Number(el("playerCount").value);
+      modelSeat = Number(el("modelSlot").value);
+      maxWords = Number(el("maxWords").value);
+      contributions = [];
+      actorIndex = 0;
+      gameId++;
+      poemText = readingText = "";
+      gameActive = true;
+      el("folds").innerHTML = "";
+      el("endBtn").disabled = true;
+      el("tableSec").hidden = true;
+      el("revealSec").hidden = true;
+      el("sheetSec").hidden = false;
+      showCue(null);
+      el("sheetSec").scrollIntoView({ behavior: "smooth", block: "start" });
+      promptTurn();
+    }
+
+    function clearTable() {
+      gameActive = false;
+      contributions = [];
+      el("sheetSec").hidden = true;
+      el("revealSec").hidden = true;
+      el("tableSec").hidden = false;
+      setStatus("");
+    }
+
+    el("startBtn").addEventListener("click", begin);
+    el("resetBtn").addEventListener("click", clearTable);
+    el("endBtn").addEventListener("click", reveal);
+    el("againBtn").addEventListener("click", clearTable);
+
+    /* ── keep, print, pin ───────────────────────────────────────────────── */
+    el("exportMdBtn").addEventListener("click", () => {
+      const md = `# Exquisite Corpse\n\n${poemText}\n\n` +
+        (readingText ? `## Close reading\n\n${readingText}\n\n` : "") +
+        `— played ${new Date().toLocaleDateString()} · model \`${CFG.model}\`\n`;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([md], { type: "text/markdown" }));
       a.download = `exquisite-corpse-${Date.now()}.md`;
       a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    el("printBtn").addEventListener("click", () => window.print());
+
+    el("pinBtn").addEventListener("click", () => {
+      el("pinName").value = "";
+      el("pinDialog").showModal();
+    });
+    el("pinCancel").addEventListener("click", () => el("pinDialog").close());
+    el("pinName").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); el("pinConfirm").click(); }
+    });
+    el("pinConfirm").addEventListener("click", () => {
+      wall.unshift({
+        name: el("pinName").value.trim() || "anonymous",
+        poem: poemText,
+        analysis: readingText,
+        ts: new Date().toISOString(),
+      });
+      localStorage.setItem("cadavreWall", JSON.stringify(wall));
+      el("pinDialog").close();
+      renderWall();
+      el("wallSec").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    /* ── the wall ───────────────────────────────────────────────────────── */
+    function renderWall() {
+      const list = el("wallList");
+      list.innerHTML = "";
+      el("wallSec").hidden = wall.length === 0;
+      wall.forEach((item, i) => {
+        const pin = document.createElement("div");
+        pin.className = "pin";
+        const poem = document.createElement("div");
+        poem.className = "pin-poem";
+        poem.textContent = item.poem;
+        const meta = document.createElement("div");
+        meta.className = "pin-meta";
+        const who = document.createElement("span");
+        const when = new Date(item.ts);
+        who.textContent = `— ${item.name} · ${isNaN(when) ? "" : when.toLocaleDateString()}`;
+        const unpin = document.createElement("button");
+        unpin.className = "linklike";
+        unpin.textContent = "unpin";
+        unpin.addEventListener("click", () => {
+          wall.splice(i, 1);
+          localStorage.setItem("cadavreWall", JSON.stringify(wall));
+          renderWall();
+        });
+        meta.append(who, unpin);
+        pin.append(poem, meta);
+        list.appendChild(pin);
+      });
     }
 
-    function exportPdf() {
-      const win = window.open('', '_blank');
-      win.document.write(`<html><head><title>Exquisite Corpse</title><style>body{background:#0a0a0a;color:#e8e8e8;font-family:sans-serif;padding:40px;white-space:pre-wrap;line-height:1.8;font-size:18px;}</style></head><body><h1 style="font-weight:300;letter-spacing:0.2em;text-transform:uppercase;">Exquisite Corpse</h1><p>${poemText.replace(/\n/g, '<br>')}</p><h2 style="margin-top:40px;font-weight:300;letter-spacing:0.15em;">Close Reading</h2><p style="font-size:15px;color:#bbb;">${analysisText.replace(/\n/g, '<br>')}</p></body></html>`);
-      win.document.close();
-      win.print();
+    /* ── footer connection line ─────────────────────────────────────────── */
+    el("connModel").textContent = CFG.model;
+    el("connHost").textContent = endpointHost();
+    if (storedConn || Object.keys(paramConn).length) {
+      el("connForget").hidden = false;
+      el("connForget").addEventListener("click", () => {
+        localStorage.removeItem("corpseConn");
+        location.href = location.pathname;
+      });
     }
 
-    function publishToWall() {
-      el('publishModal').style.display = 'flex';
-    }
-
-    el('startBtn').addEventListener('click', () => {
-      players = Number(el('playerCount').value);
-      modelSeat = Number(el('modelSlot').value);
-      maxWords = Number(el('maxWords').value);
-      if (modelSeat > players) {
-        setStatus('Model seat cannot exceed player count.');
-        return;
-      }
-      contributions = [];
-      turn = 0;
-      currentPlayerIndex = 0;
-      gameActive = true;
-      el('history').innerHTML = '';
-      el('poem').style.display = 'none';
-      el('analysis').style.display = 'none';
-      el('analyzeBtn').disabled = true;
-      el('exportMdBtn').disabled = true;
-      el('exportPdfBtn').disabled = true;
-      el('publishBtn').disabled = true;
-      el('playArea').style.display = 'block';
-      setStatus('Game started.');
-      updateTurnUI();
-      if (isModelTurn()) modelTurn();
-    });
-
-    el('resetBtn').addEventListener('click', () => {
-      gameActive = false;
-      contributions = [];
-      el('playArea').style.display = 'none';
-      el('poem').style.display = 'none';
-      el('analysis').style.display = 'none';
-      el('history').innerHTML = '';
-      setStatus('Reset. Press Start Game.');
-    });
-
-    el('submitBtn').addEventListener('click', handleUserSubmit);
-    el('wordInput').addEventListener('keydown', e => { if (e.key === 'Enter') handleUserSubmit(); });
-    el('endBtn').addEventListener('click', endGame);
-    el('analyzeBtn').addEventListener('click', analyzePoem);
-    el('exportMdBtn').addEventListener('click', exportMarkdown);
-    el('exportPdfBtn').addEventListener('click', exportPdf);
-    el('publishBtn').addEventListener('click', publishToWall);
-
-    el('cancelPublish').addEventListener('click', () => { el('publishModal').style.display = 'none'; });
-    el('confirmPublish').addEventListener('click', () => {
-      const name = el('pubName').value.trim() || 'Anonymous';
-      wall.unshift({ name, poem: poemText, analysis: analysisText, ts: new Date().toISOString() });
-      localStorage.setItem('cadavreWall', JSON.stringify(wall));
-      el('publishModal').style.display = 'none';
-      setStatus(`Published by ${name} to Cadavre Wall.`);
-    });
-
-    // Close modal on outside click
-    el('publishModal').addEventListener('click', e => {
-      if (e.target === el('publishModal')) el('publishModal').style.display = 'none';
-    });
+    syncSeats();
+    renderWall();
   </script>
 </body>
 </html>

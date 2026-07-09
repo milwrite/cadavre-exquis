@@ -53,11 +53,16 @@ MODEL=unsloth/gemma-4-E4B-it .venv/bin/python train/train_qlora.py --max-steps 2
   base and within `--max-lora-rank 32`. The canonical launcher is
   `../cloze-reader-monorepo/finetune/deploy/serve_gemma.sh`; `scripts/vllm_serve.sh`
   is this repo's copy (adds `exquisite-corpse`).
-- **Two UIs, one contract.** `index.html` (featured, the GitHub Pages landing)
-  and `ui/corpse.html` (minimal) both POST to an OpenAI-compatible endpoint and
-  embed the corpse **system prompt** — the game logic lives there, so it works
-  against a base *or* tuned model. Endpoint/model/key come from gitignored
-  `ui/config.local.js` (`window.CORPSE_CONFIG`).
+- **Two UIs, one contract.** `index.html` ("the parlor": 2–4 players, folded
+  concealment, reveal/wall — the GitHub Pages landing) and `ui/corpse.html`
+  ("the open sheet": minimal solo) both POST to an OpenAI-compatible endpoint
+  and embed the corpse **system prompt** — the game logic lives there, so it
+  works against a base *or* tuned model. Config layers: defaults (vLLM
+  `127.0.0.1:1234`, adapter `exquisite-corpse`) < gitignored
+  `ui/config.local.js` (`window.CORPSE_CONFIG`, loaded via `<script src>` that
+  404s harmlessly on Pages) < `?endpoint=…&model=…` URL params. The parlor
+  builds the revealed poem from its own state — only the close reading needs
+  the model.
 - The corpse system prompt's canonical source is the Open WebUI export
   `exquisite-corpse-*.json` (`params.system`); `deploy/build_ollama_model.py`
   reads it to wrap a GGUF for Ollama.
