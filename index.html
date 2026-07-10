@@ -37,9 +37,9 @@
     }
 
     .page {
-      max-width: 44rem;
+      max-width: 76rem;
       margin: 0 auto;
-      padding: clamp(2.5rem, 7vh, 5rem) 1.25rem 5rem;
+      padding: clamp(1rem, 3vw, 2.5rem) clamp(0.85rem, 2.5vw, 2rem) 4rem;
     }
 
     a { color: inherit; text-decoration: underline; text-underline-offset: 0.18em; text-decoration-color: var(--ash); }
@@ -48,7 +48,7 @@
     :focus-visible { outline: 2px solid var(--wine-bright); outline-offset: 2px; }
 
     /* ── header ─────────────────────────────────────────────────────────── */
-    header { text-align: center; margin-bottom: clamp(2rem, 5vh, 3.2rem); }
+    header { text-align: left; margin-bottom: 1.6rem; }
 
     h1 {
       font-weight: 400;
@@ -74,12 +74,36 @@
       color: var(--label);
     }
 
+    /* ── one compact game surface ──────────────────────────────────────── */
+    .game-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(24rem, 1.1fr);
+      grid-template-areas: "intro stage";
+      align-items: start;
+      border: 1px solid var(--crease);
+      min-width: 0;
+    }
+
+    .game-intro {
+      grid-area: intro;
+      padding: clamp(1.5rem, 4vw, 3.2rem) clamp(1.35rem, 4vw, 3rem);
+      min-width: 0;
+    }
+
+    .game-stage {
+      grid-area: stage;
+      align-self: stretch;
+      min-width: 0;
+      padding: clamp(1.4rem, 3.5vw, 3rem);
+      border-left: 1px solid var(--crease);
+    }
+
     /* ── prose ──────────────────────────────────────────────────────────── */
     .prose {
-      max-width: 36rem;
-      margin: 0 auto 2.6rem;
-      font-size: 1.12rem;
-      line-height: 1.7;
+      max-width: 34rem;
+      margin: 0;
+      font-size: clamp(0.9rem, 0.86rem + 0.18vw, 1rem);
+      line-height: 1.65;
       color: rgba(231, 224, 208, 0.88);
     }
 
@@ -98,29 +122,48 @@
       margin-bottom: 1.3rem;
     }
 
-    /* ── the table: settings composed as a sentence ─────────────────────── */
+    /* ── the table ──────────────────────────────────────────────────────── */
     .table-setting {
-      text-align: center;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
       font-family: var(--mono);
-      font-size: 0.88rem;
+      font-size: 0.78rem;
       color: var(--label);
-      line-height: 2.4;
+    }
+
+    .setting-field {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .setting-label {
+      font-size: 0.66rem;
+      line-height: 1.25;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
     }
 
     .table-setting select {
       font-family: var(--mono);
-      font-size: 0.88rem;
+      font-size: 0.82rem;
       color: var(--bone);
       background: transparent;
       border: 0;
       border-bottom: 1px solid var(--crease);
-      padding: 0.15em 0.1em;
+      border-radius: 0;
+      padding: 0.45em 0.1em;
+      width: 100%;
+      min-width: 0;
       cursor: pointer;
     }
 
     .table-setting select:hover { border-bottom-color: var(--wine-bright); }
 
-    .table-actions { text-align: center; margin-top: 1.6rem; }
+    .table-actions { margin-top: 1rem; }
+    .table-actions .primary { width: 100%; padding-block: 0.9em; }
 
     /* ── buttons: quiet catalog chrome ──────────────────────────────────── */
     button {
@@ -156,10 +199,13 @@
     .folds {
       display: flex;
       flex-direction: column;
+      justify-content: flex-end;
       align-items: center;
       gap: 7px;
       margin-bottom: 1.6rem;
       min-height: 0;
+      max-height: 7rem;
+      overflow: hidden;
     }
 
     .fold {
@@ -331,6 +377,40 @@
       text-align: center;
     }
 
+    @media (max-width: 47.99rem) {
+      .page { padding-top: 0.85rem; }
+
+      .game-shell {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+          "intro"
+          "stage";
+      }
+
+      .game-intro { padding-bottom: 1.35rem; }
+
+      .game-stage {
+        padding: 1.35rem;
+        border-left: 0;
+        border-top: 1px solid var(--crease);
+        border-bottom: 1px solid var(--crease);
+      }
+
+      .eyebrow { margin-bottom: 1rem; }
+    }
+
+    @media (max-width: 24rem) {
+      .page { padding-inline: 0.55rem; }
+      .game-intro, .game-stage { padding-inline: 1rem; }
+      .table-setting { gap: 0.5rem; }
+      .setting-label { font-size: 0.6rem; letter-spacing: 0.06em; }
+      .table-setting select { font-size: 0.75rem; }
+      .entry { align-items: stretch; }
+      .entry input, .entry button { width: 100%; }
+      .sheet-actions, .reveal-actions { flex-direction: column; }
+      .sheet-actions button, .reveal-actions button { width: 100%; }
+    }
+
     /* ── pin dialog ─────────────────────────────────────────────────────── */
     dialog {
       background: var(--ink);
@@ -379,78 +459,90 @@
 </head>
 <body>
   <div class="page">
-    <header>
-      <h1>Exquisite Corpse</h1>
-      <p class="epigraph">“The exquisite corpse will drink the new wine.”
-        <span class="attr">the game’s first sentence — Paris, 1925</span>
-      </p>
-    </header>
+    <main class="game-shell">
+      <div class="game-intro">
+        <header>
+          <h1>Exquisite Corpse</h1>
+          <p class="epigraph">“The exquisite corpse will drink the new wine.”
+            <span class="attr">the game’s first sentence — Paris, 1925</span>
+          </p>
+        </header>
 
-    <section class="prose" aria-label="about the game">
-      <p><strong>MoMA defines it</strong> as a game in which each participant takes turns writing or drawing on a sheet of paper, folding it to conceal the contribution, and then passing it to the next player for a further contribution.</p>
-      <p>This version seats a language model at the table. Each player adds a few words, and the sheet is folded as it passes — only the newest contribution stays visible as the next player’s cue. When someone ends the game, the sheet unfolds.</p>
-    </section>
+        <section class="prose" aria-label="about the game">
+          <p><strong>Exquisite Corpse</strong> is a surrealist parlor game in which each participant takes turns writing or drawing on a sheet of paper, folding it to conceal the contribution, and passing it to the next player.</p>
+          <p>This version seats a language model at the table. Each player adds a few words, and the sheet folds as it passes so the next player sees only the newest contribution. The complete poem appears when someone ends the game.</p>
+        </section>
+      </div>
 
-    <section class="table" id="tableSec" aria-label="table setting">
-      <h2 class="eyebrow">The Table</h2>
-      <div class="table-setting">
-        a table of
-        <select id="playerCount" aria-label="number of players">
-          <option value="2">two</option>
-          <option value="3" selected>three</option>
-          <option value="4">four</option>
-        </select>
-        · the model sits at seat
-        <select id="modelSlot" aria-label="the model's seat">
-          <option value="1">one</option>
-          <option value="2" selected>two</option>
-          <option value="3">three</option>
-        </select>
-        ·
-        <select id="maxWords" aria-label="words per turn">
-          <option value="1">one word</option>
-          <option value="2" selected>two words</option>
-          <option value="3">three words</option>
-          <option value="4">four words</option>
-          <option value="5">five words</option>
-        </select>
-        a turn
-      </div>
-      <div class="table-actions">
-        <button id="startBtn" class="primary">begin</button>
-      </div>
-    </section>
+      <div class="game-stage">
+        <section class="table" id="tableSec" aria-label="table setting">
+          <h2 class="eyebrow">The Table</h2>
+          <div class="table-setting">
+            <label class="setting-field">
+              <span class="setting-label">players</span>
+              <select id="playerCount" aria-label="number of players">
+                <option value="2">two</option>
+                <option value="3" selected>three</option>
+                <option value="4">four</option>
+              </select>
+            </label>
+            <label class="setting-field">
+              <span class="setting-label">model seat</span>
+              <select id="modelSlot" aria-label="the model's seat">
+                <option value="1">one</option>
+                <option value="2" selected>two</option>
+                <option value="3">three</option>
+              </select>
+            </label>
+            <label class="setting-field">
+              <span class="setting-label">words per turn</span>
+              <select id="maxWords" aria-label="words per turn">
+                <option value="1">one word</option>
+                <option value="2" selected>two words</option>
+                <option value="3">three words</option>
+                <option value="4">four words</option>
+                <option value="5">five words</option>
+              </select>
+            </label>
+          </div>
+          <div class="table-actions">
+            <button id="startBtn" class="primary">begin</button>
+          </div>
+        </section>
 
-    <section class="sheet" id="sheetSec" hidden aria-label="the sheet">
-      <h2 class="eyebrow">The Sheet</h2>
-      <div class="folds" id="folds" aria-hidden="true"></div>
-      <div class="cue" id="cue">
-        <div class="cue-label" id="cueLabel"></div>
-        <div class="cue-words blank" id="cueWords" aria-live="polite"></div>
-      </div>
-      <form class="entry" id="entryForm">
-        <input id="wordInput" type="text" autocomplete="off" autocapitalize="off"
-               autocorrect="off" spellcheck="false" aria-label="your contribution" />
-        <button id="submitBtn" class="primary" type="submit">fold in</button>
-      </form>
-      <p class="status" id="status" role="status" aria-live="polite"></p>
-      <div class="sheet-actions">
-        <button id="endBtn" disabled>reveal the poem</button>
-        <button id="resetBtn">clear the table</button>
-      </div>
-    </section>
+        <section class="sheet" id="sheetSec" hidden aria-label="the sheet">
+          <h2 class="eyebrow">The Sheet</h2>
+          <div class="folds" id="folds" aria-hidden="true"></div>
+          <div class="cue" id="cue">
+            <div class="cue-label" id="cueLabel"></div>
+            <div class="cue-words blank" id="cueWords" aria-live="polite"></div>
+          </div>
+          <form class="entry" id="entryForm">
+            <input id="wordInput" type="text" autocomplete="off" autocapitalize="off"
+                   autocorrect="off" spellcheck="false" aria-label="your contribution" />
+            <button id="submitBtn" class="primary" type="submit">fold in</button>
+          </form>
+          <p class="status" id="status" role="status" aria-live="polite"></p>
+          <div class="sheet-actions">
+            <button id="endBtn" disabled>reveal the poem</button>
+            <button id="resetBtn">clear the table</button>
+          </div>
+        </section>
 
-    <section class="revealed" id="revealSec" hidden aria-label="the poem">
-      <h2 class="eyebrow">The Poem</h2>
-      <div class="poem" id="poem"></div>
-      <div class="reading" id="reading" aria-live="polite"></div>
-      <div class="reveal-actions">
-        <button id="againBtn" class="primary">play again</button>
-        <button id="exportMdBtn">save as markdown</button>
-        <button id="printBtn">print</button>
-        <button id="pinBtn">pin to the wall</button>
+        <section class="revealed" id="revealSec" hidden aria-label="the poem">
+          <h2 class="eyebrow">The Poem</h2>
+          <div class="poem" id="poem"></div>
+          <div class="reading" id="reading" aria-live="polite"></div>
+          <div class="reveal-actions">
+            <button id="againBtn" class="primary">play again</button>
+            <button id="exportMdBtn">save as markdown</button>
+            <button id="printBtn">print</button>
+            <button id="pinBtn">pin to the wall</button>
+          </div>
+        </section>
       </div>
-    </section>
+
+    </main>
 
     <section class="wall" id="wallSec" hidden aria-label="the wall">
       <h2 class="eyebrow">The Wall</h2>
@@ -496,31 +588,45 @@
       localStorage.setItem("corpseConn", JSON.stringify(paramConn));
     }
 
-    /* The game lives in the system prompt, so play works against a base or a
-       tuned Gemma — the exquisite-corpse adapter just plays it better. The
-       word cap is written in from the table setting so the model plays by
-       the same rule as everyone else at the table. */
+    /* The game lives in the system prompt, so play works against a hosted
+       model or a tuned local model. The word cap follows the table setting. */
     const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five"];
     const capPhrase = () => (maxWords === 1 ? "one word" : `one to ${NUMBER_WORDS[maxWords]} words`);
     const cap0 = () => { const p = capPhrase(); return p[0].toUpperCase() + p.slice(1); };
-    const systemPrompt = () => `You are Exquisite Corpse.
-
-You run a text version of the Surrealist game. Players give ${capPhrase()}; you give the next ${capPhrase()}. The sequence accumulates silently until the game closes.
+    const playPrompt = () => `You are one writer in an Exquisite Corpse poem. Each turn adds ${capPhrase()}.
 
 INPUT HANDLING
-- Valid input: ${capPhrase()} separated by whitespace.
-- Hyphenated compounds count as single words.
-- If the user sends more words than that, reply exactly: ${cap0()}.
-- If the input is empty or only punctuation/emoji, reply exactly: ${cap0()}.
+- Treat ${capPhrase()} as a valid fold.
+- Hyphenated compounds count as one word.
+- For a longer or empty fold, reply exactly: ${cap0()}.
 
-PLAY
-- Treat the latest contribution as the immediate cue. Extend it grammatically or imagistically.
-- Prefer concrete nouns, transitive verbs, and specificity over abstraction.
-- Let syntax pull the sequence forward; avoid introducing a brand-new image every turn.
-- Output only the contribution words: no punctuation unless intrinsic, no quotation marks unless intrinsic, no commentary.
+TASK
 
-CLOSE READING
-When asked to analyze a finished poem, write a concise close reading of it as a finished work. Point to specific words, juxtapositions, line breaks, or pronouns. Do not mention the game, collaboration, or Surrealism in general terms. Do not praise the poem. Keep the reading to 2–4 sentences.`;
+Continue LATEST FOLD. EARLIER FOLDS provide context.
+
+Extend grammar first, then deepen an action, object, speaker, or setting already present. Surprise should come from a new relation among existing elements. Introduce a new noun when the syntax calls for an object or complement.
+
+Before answering, silently draft three candidates: one that completes the syntax, one that develops an existing image or action, and one that uses repetition purposefully. Choose the candidate that gives the poem the strongest local motion. Fit the entire advance inside ${capPhrase()}.
+
+REPETITION
+
+Repetition earns its place through refrain, parallel structure, escalation, reversal, or a changed grammatical role. An exact repeat should alter rhythm or pressure. Otherwise advance the phrase.
+
+POETRY EXAMPLES
+
+Study the movement in these public-domain lines, rather than borrowing their vocabulary:
+- Dickinson: Hope is -> the thing -> with feathers. Each phrase fills the next grammatical slot.
+- Stevens: The blackbird -> whirled -> in the -> autumn winds. One subject moves through one scene.
+- Moore: imaginary gardens -> with real -> toads -> in them. Prepositions bind the surprise into a sentence.
+- Blake: Tyger, tyger -> burning bright. Repetition establishes an address, then the line advances.
+
+OUTPUT
+
+Return only ${capPhrase()}. Use plain text without a label, explanation, alternative, quotation marks, or terminal punctuation.`;
+
+    const readingPrompt = () => `You are a close reader of a finished poem.
+
+Write one paragraph of 2–4 concrete sentences. Quote specific words and describe how syntax, juxtaposition, line breaks, or pronouns shape the poem. Treat the poem as a finished, single-authored work. Focus on what the language does.`;
 
     let players = 3, modelSeat = 2, maxWords = 2;
     let contributions = [];   // { text, isModel, seat }
@@ -590,6 +696,14 @@ When asked to analyze a finished poem, write a concise close reading of it as a 
     }
 
     /* ── talking to the model ───────────────────────────────────────────── */
+    let activeModel = CFG.model;
+
+    function showRoute(data) {
+      if (!data.model) return;
+      activeModel = data.model;
+      el("connModel").textContent = data.model + (data.provider ? ` via ${data.provider}` : "");
+    }
+
     async function chat(messages, maxTokens) {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 60000);
@@ -606,7 +720,12 @@ When asked to analyze a finished poem, write a concise close reading of it as a 
         });
         if (!res.ok) throw new Error("the model answered " + res.status);
         const data = await res.json();
-        return (data.choices?.[0]?.message?.content ?? "").trim();
+        showRoute(data);
+        return {
+          content: (data.choices?.[0]?.message?.content ?? "").trim(),
+          model: data.model,
+          provider: data.provider,
+        };
       } finally {
         clearTimeout(timer);
       }
@@ -614,10 +733,21 @@ When asked to analyze a finished poem, write a concise close reading of it as a 
 
     const isCorrective = (t) => /^one (word|to (two|three|four|five) words)\.?$/i.test(t.trim());
 
-    /* the table's rule is a hard rule: however many words the model offers,
-       only the first maxWords make it onto the sheet */
-    function trimToCap(t) {
-      return t.split(/\s+/).slice(0, maxWords).join(" ").replace(/[.,;:!?]+$/, "");
+    function validContribution(raw) {
+      const text = raw.trim().replace(/[.,;:!?]+$/, "").trim();
+      const words = text ? text.split(/\s+/) : [];
+      const hasFormatting = /[\n\r`*_]/.test(text);
+      return {
+        text,
+        valid: words.length > 0 && words.length <= maxWords && !hasFormatting && !isCorrective(text),
+      };
+    }
+
+    function turnPrompt() {
+      const latest = contributions[contributions.length - 1];
+      if (!latest) return `Begin the poem with ${capPhrase()}.`;
+      const earlier = contributions.slice(-7, -1).map((c) => c.text).join("\n") || "(none)";
+      return `EARLIER FOLDS:\n${earlier}\n\nLATEST FOLD:\n${latest.text}\n\nWrite the next ${capPhrase()}.`;
     }
 
     async function modelTurn() {
@@ -625,21 +755,22 @@ When asked to analyze a finished poem, write a concise close reading of it as a 
       setStatus(`round ${round()} · the model writes <span class="breathe">·</span>`);
       el("wordInput").disabled = true;
       el("submitBtn").disabled = true;
-      const recent = contributions.slice(-4).map((c) => c.text).join(" ");
-      const userMsg = recent
-        ? `Continue: ${recent}`
-        : `Begin the exquisite corpse with ${capPhrase()}.`;
+      const userMsg = turnPrompt();
       let reply;
       try {
-        reply = await chat([
-          { role: "system", content: systemPrompt() },
+        const messages = [
+          { role: "system", content: playPrompt() },
           { role: "user", content: userMsg },
-        ], 60);
-        if (isCorrective(reply)) {
-          reply = await chat([
-            { role: "system", content: systemPrompt() },
-            { role: "user", content: userMsg },
-          ], 60);
+        ];
+        let result = await chat(messages, 80);
+        reply = validContribution(result.content);
+        if (!reply.valid) {
+          result = await chat([
+            ...messages,
+            { role: "assistant", content: result.content },
+            { role: "user", content: `Rewrite the contribution so its complete advance fits inside ${capPhrase()}. Return plain contribution words only.` },
+          ], 80);
+          reply = validContribution(result.content);
         }
       } catch (e) {
         if (id !== gameId || !gameActive) return;
@@ -649,15 +780,14 @@ When asked to analyze a finished poem, write a concise close reading of it as a 
         return;
       }
       if (id !== gameId || !gameActive) return;
-      reply = isCorrective(reply) ? "" : trimToCap(reply);
-      if (!reply) {
-        // twice corrective, or nothing usable: let the table move on
+      if (!reply.valid) {
+        // Two unusable answers let the table move on.
         actorIndex++;
         setStatus("the model passed its turn");
         setTimeout(promptTurn, 900);
         return;
       }
-      addContribution(reply, true);
+      addContribution(reply.text, true);
       promptTurn();
     }
 
@@ -702,10 +832,11 @@ When asked to analyze a finished poem, write a concise close reading of it as a 
       readingEl.classList.remove("show");
       readingEl.innerHTML = `<span class="pending">reading <span class="breathe">·</span></span>`;
       try {
-        readingText = await chat([
-          { role: "system", content: systemPrompt() },
-          { role: "user", content: `Close-read this finished poem:\n\n${poemText}\n\nProvide only the close reading paragraph. Do not mention the game or how it was made.` },
+        const result = await chat([
+          { role: "system", content: readingPrompt() },
+          { role: "user", content: `Read this finished poem:\n\n${poemText}\n\nProvide the close reading paragraph.` },
         ], 400);
+        readingText = result.content;
         readingEl.textContent = readingText;
         readingEl.classList.add("show");
       } catch (e) {
@@ -769,7 +900,7 @@ When asked to analyze a finished poem, write a concise close reading of it as a 
     el("exportMdBtn").addEventListener("click", () => {
       const md = `# Exquisite Corpse\n\n${poemText}\n\n` +
         (readingText ? `## Close reading\n\n${readingText}\n\n` : "") +
-        `— played ${new Date().toLocaleDateString()} · model \`${CFG.model}\`\n`;
+        `— played ${new Date().toLocaleDateString()} · model \`${activeModel}\`\n`;
       const a = document.createElement("a");
       a.href = URL.createObjectURL(new Blob([md], { type: "text/markdown" }));
       a.download = `exquisite-corpse-${Date.now()}.md`;
