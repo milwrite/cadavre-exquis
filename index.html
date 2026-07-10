@@ -57,6 +57,41 @@
       line-height: 1.08;
     }
 
+    .mixed-title {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      column-gap: 0.22em;
+      letter-spacing: -0.035em;
+      line-height: 0.98;
+    }
+
+    .title-word {
+      display: inline-flex;
+      align-items: baseline;
+      white-space: nowrap;
+    }
+
+    .title-glyph { display: inline-block; line-height: 1; }
+    .title-glyph:nth-of-type(3n) { transform: translateY(0.025em); }
+    .title-glyph:nth-of-type(4n) { transform: translateY(-0.02em); }
+
+    .title-glyph.g1  { font-family: Baskerville, Georgia, serif; }
+    .title-glyph.g2  { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 0.84em; font-weight: 300; }
+    .title-glyph.g3  { font-family: "American Typewriter", "Courier New", monospace; font-size: 0.86em; }
+    .title-glyph.g4  { font-family: Didot, "Times New Roman", serif; }
+    .title-glyph.g5  { font-family: Futura, "Trebuchet MS", sans-serif; font-size: 0.82em; font-weight: 300; }
+    .title-glyph.g6  { font-family: "Iowan Old Style", Palatino, serif; }
+    .title-glyph.g7  { font-family: "Avenir Next", Arial, sans-serif; font-size: 0.84em; font-weight: 300; }
+    .title-glyph.g8  { font-family: Copperplate, Georgia, serif; font-size: 0.74em; }
+    .title-glyph.g9  { font-family: "Hoefler Text", Georgia, serif; }
+    .title-glyph.g10 { font-family: Optima, "Gill Sans", sans-serif; font-size: 0.86em; }
+    .title-glyph.g11 { font-family: Georgia, serif; }
+    .title-glyph.g12 { font-family: Rockwell, "American Typewriter", serif; font-size: 0.84em; }
+    .title-glyph.g13 { font-family: "Gill Sans", "Trebuchet MS", sans-serif; font-size: 0.9em; font-weight: 300; }
+    .title-glyph.g14 { font-family: "Palatino Linotype", Palatino, serif; }
+    .title-glyph.g15 { font-family: "Courier New", monospace; font-size: 0.82em; }
+
     .epigraph {
       margin-top: 0.9rem;
       font-style: italic;
@@ -462,7 +497,14 @@
     <main class="game-shell">
       <div class="game-intro">
         <header>
-          <h1>Exquisite Corpse</h1>
+          <h1 class="mixed-title" aria-label="Exquisite Corpse">
+            <span class="title-word" aria-hidden="true">
+              <span class="title-glyph g1">E</span><span class="title-glyph g2">x</span><span class="title-glyph g3">q</span><span class="title-glyph g4">u</span><span class="title-glyph g5">i</span><span class="title-glyph g6">s</span><span class="title-glyph g7">i</span><span class="title-glyph g8">t</span><span class="title-glyph g9">e</span>
+            </span>
+            <span class="title-word" aria-hidden="true">
+              <span class="title-glyph g10">C</span><span class="title-glyph g11">o</span><span class="title-glyph g12">r</span><span class="title-glyph g13">p</span><span class="title-glyph g14">s</span><span class="title-glyph g15">e</span>
+            </span>
+          </h1>
           <p class="epigraph">“The exquisite corpse will drink the new wine.”
             <span class="attr">the game’s first sentence — Paris, 1925</span>
           </p>
