@@ -34,7 +34,7 @@ MODEL=unsloth/gemma-4-E4B-it .venv/bin/python train/train_qlora.py --max-steps 2
 ./scripts/vllm_serve.sh                             # foreground; nohup ... & for bg
 
 # play UI (local): serve from localhost so Ollama/vLLM CORS allows it
-./ui/serve.sh                                        # -> http://localhost:8800/corpse.html
+./ui/serve.sh                                        # parlor -> :8800/ · open sheet -> :8800/ui/corpse.html
 ```
 
 ## Architecture
@@ -65,6 +65,16 @@ MODEL=unsloth/gemma-4-E4B-it .venv/bin/python train/train_qlora.py --max-steps 2
   404s harmlessly on Pages) < `?endpoint=…&model=…` URL params. The parlor
   builds the revealed poem from its own state — only the close reading needs
   the model.
+- **Both UIs are single self-contained files, no build step.** Each inlines all
+  CSS (one `<style>`) and JS (one `<script>`); no bundler, no shared stylesheet,
+  system-font stacks only. The shared ink/bone design tokens (`:root` custom
+  properties) are **re-declared per file** — the identity is convention, so
+  change both together. `index.html` uses the wine accent (`--wine`, "the
+  model's hand"); `ui/corpse.html` is deliberately monochrome. The reveal renders
+  the poem as per-word `<span>`s and links the close reading to it by parsing the
+  reading's **quoted phrases** and matching them to those words — so the reading
+  prompt's "quote the exact words you point to" is a load-bearing UI contract,
+  not just a style instruction.
 - The corpse system prompt's canonical source is the Open WebUI export
   `exquisite-corpse-*.json` (`params.system`); `deploy/build_ollama_model.py`
   reads it to wrap a GGUF for Ollama.
