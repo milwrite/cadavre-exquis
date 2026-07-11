@@ -19,12 +19,21 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - **Repo:** https://github.com/milwrite/cadavre-exquis (public, branch `master`)
 - **Pages:** https://milwrite.github.io/cadavre-exquis/ (serves `index.html`,
   "the parlor"; minimal solo UI at `/ui/corpse.html`, "the open sheet")
-- Model export PII scrubbed before first push; API key stays in gitignored `ui/config.local.js`.
+- Model export PII scrubbed before first push. Published provider credentials stay
+  in the Inference Arcade Railway environment; `ui/config.local.js` remains the
+  gitignored override for personal endpoints.
 - **2026-07-09 UX audit:** both UIs unified on the ink/bone identity and one
   config contract (defaults → `config.local.js` → URL params); the parlor now
   actually folds contributions out of sight during play, reveals locally, and
   has a viewable wall; error paths all have retry. Verified end-to-end in-browser
   against the live vLLM adapter.
+- **2026-07-11 hosted routing:** GitHub Pages and
+  https://inference-arcade.com/cadavre now use the same canonical interfaces.
+  Both load the server-owned `/api/cadavre/models` catalog and send route ids to
+  `/api/cadavre/chat`; a live check returned 34 Ollama Cloud choices and completed
+  a `gemma3:4b` turn. Railway's `OLLAMA_API_KEY` matches the supplied environment
+  value. The Legion choice stays disabled until Railway can reach its HTTPS vLLM
+  endpoint.
 
 ## Automation
 - [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 12:00 (noon)**.
@@ -76,3 +85,6 @@ Core (surreal/modernist) = poetrydb + gutenberg = **6067** poems; GPC is padding
    if GPC dominates, lower `--gpc-ratio` in build_dataset.
 4. **Surrealist depth** — add PD translations (Rimbaud/Lautréamont/Apollinaire)
    from Wikisource/Archive.org if licensing checks out.
+5. **Legion remote route** — publish the Gemma-4 E4B vLLM host at an HTTPS URL
+   Railway can reach, then set `LEGION_VLLM_URL`. The catalog enables
+   `legion:exquisite-corpse` after `/v1/models` lists the adapter.
