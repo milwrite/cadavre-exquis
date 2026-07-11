@@ -129,6 +129,22 @@
   #panel h2{ font-size:.7rem; letter-spacing:.12em; text-transform:uppercase;
     color:var(--ash); font-weight:400; margin:1.5rem 0 .6rem; }
   #panel h2:first-of-type{ margin-top:0; }
+  .model-field{ display:block; }
+  .model-field > span{
+    display:block; margin-bottom:.35rem; color:var(--reading);
+    font-size:.68rem; letter-spacing:.06em;
+  }
+  #model-route{
+    width:100%; padding:.5rem .55rem;
+    background:#111217; color:var(--bone); border:1px solid #1c1d22;
+    font-family:var(--mono); font-size:.78rem; line-height:1.35; outline:0;
+  }
+  #model-route:focus{ border-color:var(--ash); }
+  #model-route:disabled{ color:var(--reading); opacity:.75; }
+  .model-status{
+    min-height:1.2em; margin-top:.4rem;
+    color:var(--ash); font-size:.66rem; line-height:1.45;
+  }
   #panel textarea{
     width:100%; min-height:4.5rem; resize:vertical;
     background:#111217; color:var(--bone); border:1px solid #1c1d22;
@@ -170,6 +186,15 @@
   <div id="hint">one or two words &nbsp;·&nbsp; enter &nbsp;·&nbsp; “.” to close</div>
   <button id="panel-tab" aria-label="open controls" aria-expanded="false">⋯</button>
   <aside id="panel" aria-label="controls">
+    <h2>Model</h2>
+    <label class="model-field" for="model-route">
+      <span>the other hand</span>
+      <select id="model-route" aria-label="model provider and model" aria-busy="true" disabled>
+        <option value="">loading available models…</option>
+      </select>
+    </label>
+    <p id="model-status" class="model-status" aria-live="polite"></p>
+
     <h2>System steer</h2>
     <textarea id="steer" placeholder="a line of guidance for the other hand…"></textarea>
 
@@ -199,20 +224,40 @@
 <script>
 /* ── config ───────────────────────────────────────────────────────────────
    Layered: defaults < ui/config.local.js (gitignored; 404s harmlessly when
-   absent) < ?endpoint=…&model=… URL params (this visit only). Keys never
-   travel in URLs — they leak via history; put them in config.local.js.    */
-const q = new URLSearchParams(location.search);
-const DEFAULT_ENDPOINT = "http://127.0.0.1:1234/v1/chat/completions";
-const CFG = Object.assign({
-  endpoint: DEFAULT_ENDPOINT,                              // multi-LoRA vLLM host
-  model:    "exquisite-corpse",                            // adapter, per-request
-  apiKey:   "",                                            // only for a hosted endpoint
-}, window.CORPSE_CONFIG || {},
-  q.get("endpoint") && { endpoint: q.get("endpoint") },
-  q.get("model")    && { model: q.get("model") });
+   absent) < ?endpoint=…&model=… URL params (this visit only). Credentials
+   never travel in URLs, browser storage, or the published source.          */
+const LOCAL_PAGE = ["localhost", "127.0.0.1", ""].includes(location.hostname);
+const REMOTE_API = location.hostname === "inference-arcade.com"
+  ? "/api/cadavre"
+  : "https://inference-arcade.com/api/cadavre";
+const DEFAULTS = LOCAL_PAGE ? {
+  endpoint: "http://127.0.0.1:1234/v1/chat/completions",
+  modelsEndpoint: "",
+  model: "exquisite-corpse",
+  apiKey: "",
+} : {
+  endpoint: REMOTE_API + "/chat",
+  modelsEndpoint: REMOTE_API + "/models",
+  model: "ollama:deepseek-v4-flash",
+  apiKey: "",
+};
+const params = new URLSearchParams(location.search);
+const paramConnection = {};
+if(params.get("endpoint")) paramConnection.endpoint = params.get("endpoint");
+if(params.get("model")) paramConnection.model = params.get("model");
+const CFG = Object.assign({}, DEFAULTS, window.CORPSE_CONFIG || {}, paramConnection);
+
+function isHttpEndpoint(value){
+  return /^https?:$/.test(new URL(value, location.href).protocol);
+}
 try {
-  if(!/^https?:$/.test(new URL(CFG.endpoint).protocol)) throw new Error("bad scheme");
-} catch { CFG.endpoint = DEFAULT_ENDPOINT; }               // only parseable http(s) plays
+  if(!isHttpEndpoint(CFG.endpoint)) throw new Error("bad scheme");
+} catch { CFG.endpoint = DEFAULTS.endpoint; }
+if(CFG.modelsEndpoint){
+  try {
+    if(!isHttpEndpoint(CFG.modelsEndpoint)) throw new Error("bad scheme");
+  } catch { CFG.modelsEndpoint = DEFAULTS.modelsEndpoint; }
+}
 const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 /* The game lives in the system prompt, so this works against a base or a tuned
@@ -310,6 +355,110 @@ panelTab.addEventListener("click", () => togglePanel());
 document.addEventListener("keydown", (e) => {
   if(e.key === "Escape" && panel.classList.contains("open")) togglePanel(false);
 });
+
+const modelRouteEl = $("model-route");
+const modelStatusEl = $("model-status");
+
+function routeName(route){
+  return route.label || route.name || route.model || route.id;
+}
+
+function routeGroup(route){
+  const provider = String(route.provider || route.owned_by || route.id.split(":", 1)[0] || "");
+  if(/legion|vllm/i.test(provider)) return { rank:0, label:"Fine-tuned on Legion" };
+  if(/ollama/i.test(provider)) return { rank:1, label:"Ollama Cloud" };
+  return { rank:2, label:"Other models" };
+}
+
+function setSingleModelOption(label, status){
+  modelRouteEl.replaceChildren();
+  const option = document.createElement("option");
+  option.value = CFG.model;
+  option.textContent = label || CFG.model;
+  modelRouteEl.appendChild(option);
+  modelRouteEl.disabled = true;
+  modelRouteEl.setAttribute("aria-busy", "false");
+  modelStatusEl.textContent = status || "";
+}
+
+function renderModelOptions(catalog){
+  const source = Array.isArray(catalog?.models)
+    ? catalog.models
+    : (Array.isArray(catalog?.data) ? catalog.data : []);
+  const seen = new Set();
+  const routes = source
+    .filter(route => route && typeof route.id === "string" && route.id.trim())
+    .map(route => Object.assign({}, route, { id:route.id.trim() }))
+    .filter(route => {
+      if(seen.has(route.id)) return false;
+      seen.add(route.id);
+      return true;
+    })
+    .sort((a, b) => {
+      const groupDifference = routeGroup(a).rank - routeGroup(b).rank;
+      return groupDifference || String(routeName(a)).localeCompare(String(routeName(b)));
+    });
+  const available = routes.filter(route => route.available !== false);
+  if(!available.length){
+    setSingleModelOption(CFG.model, "the model list has no available routes");
+    return;
+  }
+
+  modelRouteEl.replaceChildren();
+  const groups = new Map();
+  routes.forEach(route => {
+    const groupName = routeGroup(route).label;
+    if(!groups.has(groupName)){
+      const group = document.createElement("optgroup");
+      group.label = groupName;
+      groups.set(groupName, group);
+      modelRouteEl.appendChild(group);
+    }
+    const option = document.createElement("option");
+    option.value = route.id;
+    option.textContent = String(routeName(route)) + (route.available === false ? " — unavailable" : "");
+    option.disabled = route.available === false;
+    groups.get(groupName).appendChild(option);
+  });
+
+  const requested = [CFG.model, catalog?.default, catalog?.defaultModel]
+    .find(id => available.some(route => route.id === id));
+  CFG.model = requested || available[0].id;
+  modelRouteEl.value = CFG.model;
+  modelRouteEl.disabled = available.length < 2;
+  modelRouteEl.setAttribute("aria-busy", "false");
+  modelStatusEl.textContent = `${available.length} model${available.length === 1 ? "" : "s"} available`;
+}
+
+async function loadModelOptions(){
+  const customConnection = params.has("endpoint") || params.has("model");
+  if(!CFG.modelsEndpoint || customConnection){
+    const endpointUrl = new URL(CFG.endpoint, location.href);
+    const directLocal = LOCAL_PAGE
+      && ["127.0.0.1", "localhost"].includes(endpointUrl.hostname)
+      && endpointUrl.port === "1234";
+    setSingleModelOption(
+      directLocal ? "Exquisite Corpse — local vLLM" : CFG.model,
+      directLocal ? "direct connection to the local vLLM server" : "using the configured model route"
+    );
+    return;
+  }
+  try {
+    const response = await fetch(CFG.modelsEndpoint, {
+      headers: { Accept:"application/json" },
+      cache: "no-store",
+    });
+    if(!response.ok) throw new Error("model list returned " + response.status);
+    renderModelOptions(await response.json());
+  } catch {
+    setSingleModelOption(CFG.model, "the model list is unavailable; using the configured route");
+  }
+}
+
+modelRouteEl.addEventListener("change", () => {
+  if(modelRouteEl.value) CFG.model = modelRouteEl.value;
+});
+loadModelOptions();
 
 const steerEl = $("steer");
 steerEl.value = state.steer || "";
@@ -543,7 +692,7 @@ entry.addEventListener("keydown", async (e) => {
   if(!text || entry.disabled) return;
   note(HINT_DEFAULT);
 
-  const unreachable = `can’t reach the model at ${esc(new URL(CFG.endpoint).host)} — is it running?`;
+  const unreachable = `can’t reach the model at ${esc(new URL(CFG.endpoint, location.href).host)} — is it running?`;
 
   if(text === "."){
     entry.value = "";

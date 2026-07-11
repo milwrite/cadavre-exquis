@@ -168,6 +168,8 @@
       color: var(--label);
     }
 
+    .setting-field.model-route { grid-column: 1 / -1; }
+
     .setting-field {
       display: flex;
       min-width: 0;
@@ -621,6 +623,12 @@
         <section class="table" id="tableSec" aria-label="table setting">
           <h2 class="eyebrow">The Table</h2>
           <div class="table-setting">
+            <label class="setting-field model-route">
+              <span class="setting-label">the other hand</span>
+              <select id="modelRoute" aria-label="model provider and model">
+                <option value="">loading available models…</option>
+              </select>
+            </label>
             <label class="setting-field">
               <span class="setting-label">players</span>
               <select id="playerCount" aria-label="number of players">
@@ -719,9 +727,19 @@
        never persisted, so a crafted link can't poison future visits; keys
        never travel in URLs, only in config.local.js). On GitHub Pages
        config.local.js 404s harmlessly and defaults apply. ── */
-    const DEFAULTS = {
+    const LOCAL_PAGE = ["localhost", "127.0.0.1", ""].includes(location.hostname);
+    const REMOTE_API = location.hostname === "inference-arcade.com"
+      ? "/api/cadavre"
+      : "https://inference-arcade.com/api/cadavre";
+    const DEFAULTS = LOCAL_PAGE ? {
       endpoint: "http://127.0.0.1:1234/v1/chat/completions",
+      modelsEndpoint: "",
       model: "exquisite-corpse",
+      apiKey: "",
+    } : {
+      endpoint: REMOTE_API + "/chat",
+      modelsEndpoint: REMOTE_API + "/models",
+      model: "ollama:deepseek-v4-flash",
       apiKey: "",
     };
     const params = new URLSearchParams(location.search);
@@ -729,10 +747,18 @@
     if (params.get("endpoint")) paramConn.endpoint = params.get("endpoint");
     if (params.get("model")) paramConn.model = params.get("model");
     const CFG = Object.assign({}, DEFAULTS, window.CORPSE_CONFIG || {}, paramConn);
+    const isHttpEndpoint = (value) => /^https?:$/.test(new URL(value, location.href).protocol);
     try {
-      if (!/^https?:$/.test(new URL(CFG.endpoint).protocol)) throw new Error("bad scheme");
+      if (!isHttpEndpoint(CFG.endpoint)) throw new Error("bad scheme");
     } catch {
       CFG.endpoint = DEFAULTS.endpoint;   // only parseable http(s) endpoints play
+    }
+    if (CFG.modelsEndpoint) {
+      try {
+        if (!isHttpEndpoint(CFG.modelsEndpoint)) throw new Error("bad scheme");
+      } catch {
+        CFG.modelsEndpoint = DEFAULTS.modelsEndpoint;
+      }
     }
     localStorage.removeItem("corpseConn"); // retired: overrides no longer persist
 
@@ -790,7 +816,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     const currentSeat = () => (actorIndex % players) + 1;
     const isModelTurn = () => currentSeat() === Number(modelSeat);
     const round = () => Math.floor(actorIndex / players) + 1;
-    const endpointHost = () => new URL(CFG.endpoint).host;  // always parseable, validated above
+    const endpointHost = () => new URL(CFG.endpoint, location.href).host;  // always parseable, validated above
     const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
     function setStatus(html, isErr) {
@@ -956,6 +982,76 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
 
     /* ── talking to the model ───────────────────────────────────────────── */
     let activeModel = CFG.model;
+
+    function setSingleModelOption(label = CFG.model) {
+      const select = el("modelRoute");
+      select.replaceChildren();
+      const option = document.createElement("option");
+      option.value = CFG.model;
+      option.textContent = label;
+      select.appendChild(option);
+      select.disabled = true;
+      el("connModel").textContent = label;
+    }
+
+    function renderModelOptions(catalog) {
+      const select = el("modelRoute");
+      const routes = Array.isArray(catalog?.models) ? catalog.models : [];
+      if (!routes.length) { setSingleModelOption(); return; }
+
+      select.replaceChildren();
+      const groups = new Map();
+      const groupLabel = (provider) => /legion/i.test(provider)
+        ? "Fine-tuned on Legion"
+        : "Ollama Cloud";
+
+      routes.forEach((route) => {
+        if (!route?.id) return;
+        const provider = route.provider || route.id.split(":", 1)[0] || "models";
+        const label = groupLabel(provider);
+        if (!groups.has(label)) {
+          const group = document.createElement("optgroup");
+          group.label = label;
+          groups.set(label, group);
+          select.appendChild(group);
+        }
+        const option = document.createElement("option");
+        option.value = route.id;
+        option.textContent = route.label || route.name || route.model || route.id;
+        option.disabled = route.available === false;
+        groups.get(label).appendChild(option);
+      });
+
+      const available = routes.filter((route) => route?.id && route.available !== false);
+      if (!available.length) { setSingleModelOption(); return; }
+      const requested = [CFG.model, catalog.default, catalog.defaultModel]
+        .find((id) => available.some((route) => route.id === id));
+      CFG.model = requested || available[0].id;
+      select.value = CFG.model;
+      select.disabled = available.length < 2;
+      const chosen = available.find((route) => route.id === CFG.model);
+      el("connModel").textContent = chosen?.label || chosen?.name || chosen?.model || CFG.model;
+    }
+
+    async function loadModelOptions() {
+      const customConnection = params.has("endpoint") || params.has("model");
+      if (!CFG.modelsEndpoint || customConnection) { setSingleModelOption(); return; }
+      try {
+        const response = await fetch(CFG.modelsEndpoint, { headers: { Accept: "application/json" } });
+        if (!response.ok) throw new Error("model catalog returned " + response.status);
+        renderModelOptions(await response.json());
+      } catch {
+        setSingleModelOption();
+      }
+    }
+
+    el("modelRoute").addEventListener("change", (event) => {
+      if (!event.target.value) return;
+      CFG.model = event.target.value;
+      activeModel = CFG.model;
+      const option = event.target.options[event.target.selectedIndex];
+      el("connModel").textContent = option?.textContent || CFG.model;
+    });
 
     function showRoute(data) {
       if (!data.model) return;
@@ -1231,6 +1327,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     el("connModel").textContent = CFG.model;
     el("connHost").textContent = endpointHost();
 
+    loadModelOptions();
     syncSeats();
     renderWall();
   </script>

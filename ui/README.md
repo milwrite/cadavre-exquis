@@ -1,38 +1,63 @@
 # Play surfaces
 
-Two pages, one contract — both POST to an OpenAI-compatible endpoint and carry
-the game in their system prompt, so they work against a base *or* tuned Gemma.
+Two pages use one OpenAI-compatible chat contract and carry the game in their
+system prompts, so they work with the tuned Gemma or an Ollama Cloud model.
 
-- **`/index.html` — the parlor.** The featured page (GitHub Pages landing).
-  Seats 2–4 players plus the model; contributions are folded out of sight as
-  the sheet passes, the way the game is actually played. Ending the game
-  unfolds the poem, fetches a close reading, and offers export / print /
-  pin-to-the-wall (the wall lives in localStorage).
-- **`/ui/corpse.html` — the open sheet.** Intensely minimal, solo: no
-  container, no buttons — the caret is the poem's growing edge. Type one or
-  two words, enter; `.` closes the game and brings the reading.
+- **`/index.html` — the parlor.** The featured GitHub Pages landing seats 2–4
+  players plus the model. Contributions stay folded until the game ends, when
+  the page reveals the poem, requests a close reading, and offers export,
+  printing, and a local wall.
+- **`/ui/corpse.html` — the open sheet.** The solo page keeps the caret at the
+  poem's growing edge. Type one or two words and press Enter; enter `.` to close
+  the poem and request its reading.
 
-## Run
+## Run locally
+
 ```bash
-cp ui/config.example.js ui/config.local.js   # optional: defaults already fit vLLM on :1234
-./ui/serve.sh                                # -> http://localhost:8800/  (parlor)
-                                             #    http://localhost:8800/ui/corpse.html
+cp ui/config.example.js ui/config.local.js   # optional local override
+./ui/serve.sh                                # http://localhost:8800/
+                                             # http://localhost:8800/ui/corpse.html
 ```
-Serve from `localhost` (not `file://`) so the model host's CORS allows it, and
-make sure a model is up — either the multi-LoRA vLLM host
-(`./scripts/vllm_serve.sh`, adapter `exquisite-corpse`) or Ollama
-(`ollama run exquisite-corpse-tuned`).
 
-## Configuration
-Layered, most specific wins:
+Serve from `localhost`, rather than `file://`, and start the multi-LoRA vLLM
+host with `./scripts/vllm_serve.sh`. The local default connects directly to
+`http://127.0.0.1:1234/v1/chat/completions` with model
+`exquisite-corpse`. Because the local default has no model catalog, each page
+shows one direct local vLLM choice.
 
-1. defaults — vLLM host at `http://127.0.0.1:1234`, model `exquisite-corpse`
-2. `ui/config.local.js` (gitignored; 404s harmlessly on Pages)
-3. URL params: `?endpoint=…&model=…` — handy for pointing the Pages
-   deployment at your own machine. Ephemeral by design: overrides last one
-   visit and are never persisted, so a crafted link can't quietly repoint
-   the app for good. Endpoints must be parseable http(s) URLs.
+## Published routes and model selection
 
-API keys never travel in URLs (they leak via browser history) — put a key in
-`config.local.js` only. A browser-embedded key is fine for personal local
-use; don't ship one.
+Published pages use the inference-arcade.com proxy. GitHub Pages sends chat
+requests to `https://inference-arcade.com/api/cadavre/chat` and loads the model
+catalog from `https://inference-arcade.com/api/cadavre/models`. The mirrored
+inference-arcade.com page uses the same paths on its own origin.
+
+The catalog returns:
+
+```text
+{ default, models: [{ id, label, provider, model, available }] }
+```
+
+The selector places an available fine-tuned Legion route first, groups the
+Ollama Cloud routes together, and disables any route reported as unavailable.
+Each option uses the explicit route `id`; changing the selection updates the
+`model` field sent with later chat requests. The selection remains in memory
+for the current page and never enters browser storage.
+
+The Ollama Cloud credential stays in the server environment used by the proxy.
+The browser receives the model list and chat response, but no provider
+credential. Keep local credentials only in the gitignored `config.local.js`;
+never put them in a URL, committed source, browser storage, or logs.
+
+## Configuration precedence
+
+The most specific setting wins:
+
+1. Environment-aware defaults: direct vLLM on localhost; proxy chat and model
+   catalog on published hosts.
+2. `ui/config.local.js`, when a local or private override is needed.
+3. `?endpoint=…&model=…` for one visit. These values are never persisted.
+
+A URL connection override uses one configured model choice instead of combining
+that endpoint with the published catalog. Endpoints must resolve to HTTP or
+HTTPS. There is no URL parameter for credentials.
