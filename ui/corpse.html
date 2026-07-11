@@ -59,15 +59,41 @@
   }
   @keyframes breathe{ 0%,100%{opacity:.15} 50%{opacity:.7} }
 
-  /* the reveal: reading set apart by air alone */
-  #reading{
-    margin-top:0.9em; font-size:clamp(1.35rem, 1rem + 1.1vw, 2rem); line-height:1.5;
-    color:var(--reading); font-style:italic;
-    opacity:0;
+  /* the other hand writes a shade quieter than yours */
+  .line.other{ color:var(--reading); }
+
+  /* the reveal: the poem settles to one tone; the reading is set as a placard */
+  #reading-seam{
+    display:none; flex-direction:column; align-items:center; gap:.6rem;
+    margin-top:1.3em; opacity:0;
   }
-  #reading.show{ animation:fade 1.2s ease .35s both; }
+  #reading-seam::before{ content:""; width:1px; height:1.5rem; background:#1c1d22; }
+  #reading-seam.show{ display:flex; animation:fade 1s ease .1s both; }
+  .reading-label{
+    font-family:var(--mono); font-size:.6rem; letter-spacing:.22em;
+    text-transform:uppercase; color:var(--ash);
+  }
+  #reading{
+    display:none;
+    margin-top:1em;
+    width:100%; max-width:min(40rem,92vw);
+    padding:1.2rem 1.4rem;
+    border:1px solid #1c1d22;
+    text-align:left;
+    font-size:clamp(1.15rem, .95rem + 1vw, 1.6rem); line-height:1.6;
+    color:var(--reading); font-style:italic;
+    text-wrap:pretty; opacity:0;
+  }
+  #reading.show{ display:block; animation:fade 1.2s ease .35s both; }
   @keyframes fade{ from{opacity:0} to{opacity:1} }
-  .settled{ transition:opacity 1.1s ease; opacity:.86; }
+  .settled{ transition:color 1.1s ease; color:var(--reading); }
+
+  /* the reading's quotes reach back and light the poem words they name */
+  .w{ padding:0 .04em; transition:color .18s ease, background-color .18s ease, box-shadow .18s ease; }
+  .w.lit{ color:var(--bone); background:rgba(231,224,208,.12); box-shadow:0 2px 0 var(--reading); border-radius:1px; }
+  .quote{ border-bottom:1px dotted var(--reading); cursor:default; transition:color .18s ease; }
+  .quote:hover, .quote:focus-visible{ color:var(--bone); }
+  .quote:focus-visible{ outline:1px solid var(--reading); outline-offset:2px; }
 
   /* the only fixed text: how to play, and where things break */
   #hint{
@@ -78,9 +104,10 @@
   #hint .err{ color:var(--bone); opacity:.8; }
 
   @media (prefers-reduced-motion: reduce){
-    .rise,#reading.show,#edge.waiting::before{ animation:none; }
-    .rise{opacity:1; transform:none} #reading.show{opacity:1}
+    .rise,#reading.show,#reading-seam.show,#edge.waiting::before{ animation:none; }
+    .rise{opacity:1; transform:none} #reading.show{opacity:1} #reading-seam.show{opacity:1}
     #edge.waiting::before{opacity:.6}
+    .w,.quote{ transition:none; }
   }
 
   /* control panel — off-screen until summoned; center stage stays minimal */
@@ -137,6 +164,7 @@
       <input id="entry" autocomplete="off" autocapitalize="off" autocorrect="off"
              spellcheck="false" aria-label="your one or two words" placeholder="one or two words">
     </div>
+    <div id="reading-seam" aria-hidden="true"><span class="reading-label">close reading</span></div>
     <div id="reading" aria-live="polite"></div>
   </main>
   <div id="hint">one or two words &nbsp;·&nbsp; enter &nbsp;·&nbsp; “.” to close</div>
@@ -330,6 +358,50 @@ syncPromptView();
 const messages = [{ role: "system", content: composeSystem() }];
 let closed = false;
 let last = null;   // { userText, reply, lineEl, avoided:[] } — the current growing edge
+let poemTokens = [];   // { norm, el } per poem word, collected at close for the reading links
+
+/* ── the poem ↔ reading link ─────────────────────────────────────────────────
+   The close reading quotes the poem's exact words, so its quotes can reach back
+   and light the lines they name. Monochrome here: lit words return to full bone. */
+const normWord = (w) => w.toLowerCase().replace(/’/g, "'").replace(/^[^a-z0-9']+|[^a-z0-9']+$/g, "");
+
+function collectTokens(){
+  return [...poemEl.querySelectorAll(".w")].map(el => ({ norm: normWord(el.textContent), el }));
+}
+
+function matchPhrase(tokens, phrase){
+  const want = phrase.split(/\s+/).map(normWord).filter(Boolean);
+  if(!want.length) return null;
+  for(let i = 0; i + want.length <= tokens.length; i++){
+    let ok = true;
+    for(let k = 0; k < want.length; k++){ if(tokens[i + k].norm !== want[k]){ ok = false; break; } }
+    if(ok) return Array.from({ length: want.length }, (_, k) => i + k);
+  }
+  return null;
+}
+
+function renderReadingLinked(targetEl, text, tokens){
+  targetEl.textContent = "";
+  const rx = /“([^”]+)”|"([^"]+)"|«([^»]+)»/g;
+  let pos = 0, m;
+  while((m = rx.exec(text))){
+    if(m.index > pos) targetEl.appendChild(document.createTextNode(text.slice(pos, m.index)));
+    const refs = matchPhrase(tokens, m[1] ?? m[2] ?? m[3]);
+    if(refs){
+      const s = document.createElement("span");
+      s.className = "quote"; s.tabIndex = 0; s.textContent = m[0];
+      const on = () => refs.forEach(i => tokens[i].el.classList.add("lit"));
+      const off = () => refs.forEach(i => tokens[i].el.classList.remove("lit"));
+      s.addEventListener("mouseenter", on); s.addEventListener("mouseleave", off);
+      s.addEventListener("focus", on); s.addEventListener("blur", off);
+      targetEl.appendChild(s);
+    } else {
+      targetEl.appendChild(document.createTextNode(m[0]));
+    }
+    pos = rx.lastIndex;
+  }
+  if(pos < text.length) targetEl.appendChild(document.createTextNode(text.slice(pos)));
+}
 function setRegenEnabled(on){ $("regen").disabled = !on; }
 function setRereadEnabled(on){ $("reread").disabled = !on; }
 function setKeepEnabled(on){ $("keep").disabled = !on; }
@@ -342,11 +414,17 @@ const keepFocus = (e) => {
 document.addEventListener("click", keepFocus);
 window.addEventListener("load", () => keepFocus());
 
-function addLine(text){
+function addLine(text, isModel){
   entry.placeholder = "";                      // the ghost cue has done its job
   const div = document.createElement("div");
-  div.className = "line rise";
-  div.textContent = text;
+  div.className = "line rise" + (isModel ? " other" : "");   // mark the other hand
+  text.split(/\s+/).filter(Boolean).forEach((w, j) => {      // one word per span, for the reading links
+    if (j) div.appendChild(document.createTextNode(" "));
+    const span = document.createElement("span");
+    span.className = "w";
+    span.textContent = w;
+    div.appendChild(span);
+  });
   poemEl.appendChild(div);
   div.scrollIntoView({ behavior: "smooth", block: "center" });
   return div;
@@ -394,12 +472,14 @@ function parseReading(reply){
   return parts.slice(1).join("\n\n").trim() || parts[0];
 }
 function renderReading(reply){
-  readingEl.textContent = parseReading(reply);
+  renderReadingLinked(readingEl, parseReading(reply), poemTokens);
   readingEl.classList.add("show");
   readingEl.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 function reveal(reply){
   poemEl.querySelectorAll(".line").forEach(l => l.classList.add("settled"));
+  poemTokens = collectTokens();
+  $("reading-seam").classList.add("show");
   renderReading(reply);
   entry.remove();
   closed = true;
@@ -424,10 +504,10 @@ async function regenerate(){
         + `Give a different next line — one or two words only, do not repeat those.` }]);
     const reply = await request(req, 1.0);
     messages.push({ role: "assistant", content: reply });
-    last = { userText: last.userText, reply, lineEl: addLine(reply), avoided: avoid };
+    last = { userText: last.userText, reply, lineEl: addLine(reply, true), avoided: avoid };
   } catch(err){
     messages.push({ role: "assistant", content: rejected });   // restore on failure
-    last = { userText: last.userText, reply: rejected, lineEl: addLine(rejected), avoided: last.avoided };
+    last = { userText: last.userText, reply: rejected, lineEl: addLine(rejected, true), avoided: last.avoided };
     note("can’t reach the model — is it running?", true);
   } finally {
     setWaiting(false); setRegenEnabled(!!last); keepFocus();
@@ -482,7 +562,7 @@ entry.addEventListener("keydown", async (e) => {
     return;
   }
   addLine(text);                          // your contribution
-  const modelEl = addLine(reply);         // the other hand
+  const modelEl = addLine(reply, true);   // the other hand
   last = { userText: text, reply, lineEl: modelEl, avoided: [] };
   setRegenEnabled(true); setKeepEnabled(true);
 });
