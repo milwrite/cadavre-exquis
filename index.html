@@ -5,7 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Exquisite Corpse — Cadavre Exquis</title>
   <meta name="description" content="Play exquisite corpse, the Surrealist parlor game, at a table that seats a small Gemma fine-tuned on public-domain surrealist and modernist poetry." />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230C0D10'/%3E%3Cpath d='M2 5h12M2 8h12M2 11h12' stroke='%23E7E0D0' stroke-width='1.2'/%3E%3C/svg%3E" />
+  <link rel="canonical" href="https://milwrite.github.io/cadavre-exquis/" />
+  <meta name="theme-color" content="#0C0D10" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Cadavre Exquis" />
+  <meta property="og:title" content="Exquisite Corpse — Cadavre Exquis" />
+  <meta property="og:description" content="Play the Surrealist parlor game with a language model at the table." />
+  <meta property="og:url" content="https://milwrite.github.io/cadavre-exquis/" />
+  <meta property="og:image" content="https://milwrite.github.io/cadavre-exquis/assets/share-card.jpg" />
+  <meta property="og:image:width" content="941" />
+  <meta property="og:image:height" content="412" />
+  <meta property="og:image:alt" content="Exquisite Corpse. The exquisite corpse will drink the new wine. The game's first sentence — Paris, 1925." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Exquisite Corpse — Cadavre Exquis" />
+  <meta name="twitter:description" content="Play the Surrealist parlor game with a language model at the table." />
+  <meta name="twitter:image" content="https://milwrite.github.io/cadavre-exquis/assets/share-card.jpg" />
+  <meta name="twitter:image:alt" content="Exquisite Corpse. The exquisite corpse will drink the new wine. The game's first sentence — Paris, 1925." />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
   <style>
     :root {
       color-scheme: dark;
@@ -633,8 +651,8 @@
             <label class="setting-field">
               <span class="setting-label">players</span>
               <select id="playerCount" aria-label="number of players">
-                <option value="2">two</option>
-                <option value="3" selected>three</option>
+                <option value="2" selected>two</option>
+                <option value="3">three</option>
                 <option value="4">four</option>
               </select>
             </label>
@@ -650,8 +668,8 @@
               <span class="setting-label">words per turn</span>
               <select id="maxWords" aria-label="words per turn">
                 <option value="1">one word</option>
-                <option value="2" selected>two words</option>
-                <option value="3">three words</option>
+                <option value="2">two words</option>
+                <option value="3" selected>three words</option>
                 <option value="4">four words</option>
                 <option value="5">five words</option>
               </select>
@@ -803,7 +821,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
 
 Write one paragraph of 2–4 concrete sentences. Quote specific words and describe how syntax, juxtaposition, line breaks, or pronouns shape the poem. Treat the poem as a finished, single-authored work. Focus on what the language does.`;
 
-    let players = 3, modelSeat = 2, maxWords = 2;
+    let players = 2, modelSeat = 2, maxWords = 3;
     let contributions = [];   // { text, isModel, seat }
     let actorIndex = 0;       // total turns taken so far
     let gameId = 0;           // stale in-flight replies must not join a new game
