@@ -72,7 +72,13 @@ Core (surreal/modernist) = poetrydb + gutenberg = **6067** poems; GPC is padding
    list expanded (Millay, Teasdale, Lawrence, McKay, Frost, Owen, Hopkins, +anthologies).
 2. ~~Better segmentation~~ **DONE** — `segment_poems` falls back from 3-blank to
    2-blank split when the coarse split is too few/too-lumpy (fixes Spoon River etc.).
-3. **Genre balance** — after clean, report share of surreal/proto-language tags;
-   if GPC dominates, lower `--gpc-ratio` in build_dataset.
+3. ~~Genre balance~~ **DONE** — `src.report_balance` reports the core-vs-GPC
+   split (the **source family** is the genre proxy; there is no separate tag
+   field). GPC is 70.7% of *poems* but, after the `--gpc-ratio 0.5` cap, only
+   **33.3% of train examples** (core leads 2:1) — the cap already keeps the
+   modernist core ahead, so **no rebalance needed** (and lowering it now would
+   desync `data/processed` from the shipped adapter). Full table +
+   per-ratio preview: `docs/genre-balance.md`. Re-run:
+   `.venv/bin/python -m src.report_balance --write-md`.
 4. **Surrealist depth** — add PD translations (Rimbaud/Lautréamont/Apollinaire)
    from Wikisource/Archive.org if licensing checks out.
