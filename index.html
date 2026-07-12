@@ -278,6 +278,14 @@
       to { transform: scaleY(1); opacity: 1; }
     }
 
+    /* undo: the newest crease lifts back open and the strip leaves the pile */
+    .fold.lifting { animation: liftOut 0.3s cubic-bezier(0.4, 0, 0.7, 0.2) both; }
+
+    @keyframes liftOut {
+      from { transform: scaleY(1); opacity: 1; }
+      to { transform: scaleY(0.1); opacity: 0; }
+    }
+
     /* who is at the table, and whose turn it is — the duet made spatial */
     .seats { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.2rem; min-height: 2px; }
 
@@ -574,7 +582,7 @@
 
     /* ── motion, print ──────────────────────────────────────────────────── */
     @media (prefers-reduced-motion: reduce) {
-      .fold, .cue-words.rise, .cue-words.folding, .poem .line,
+      .fold, .fold.lifting, .cue-words.rise, .cue-words.folding, .poem .line,
       .reading.show, .reading-seam, .breathe { animation: none; }
       .reading.show, .reading-seam { opacity: 1; }
       .w, .quote { transition: none; }
@@ -677,6 +685,7 @@
           </form>
           <p class="status" id="status" role="status" aria-live="polite"></p>
           <div class="sheet-actions">
+            <button id="undoBtn" disabled>unfold last</button>
             <button id="endBtn" disabled>reveal the poem</button>
             <button id="resetBtn">clear the table</button>
           </div>
@@ -711,6 +720,14 @@
       </div>
     </footer>
   </div>
+
+  <dialog id="revealDialog">
+    <p id="revealNote">the reveal unfolds the sheet and ends the game</p>
+    <div class="row">
+      <button id="revealCancel" type="button">keep writing</button>
+      <button id="revealConfirm" class="primary" type="button">reveal the poem</button>
+    </div>
+  </dialog>
 
   <dialog id="pinDialog">
     <p>pin this corpse to the wall</p>
@@ -943,6 +960,8 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
 
     // Fold the previous word out of sight, letting the eye follow it down into
     // the pile before the new cue rises — "folding it to conceal," made visible.
+    let cueSwap = 0;   // an undo cancels any fold-to-cue swap still in flight
+
     function foldPrevThenCue(prev, entry) {
       foldAway(prev);
       updateFoldCount();
@@ -952,14 +971,15 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       void words.offsetWidth;
       words.classList.add("folding");
       let done = false;
-      const swap = () => { if (done) return; done = true; words.classList.remove("folding"); showCue(entry); };
+      const my = ++cueSwap;
+      const swap = () => { if (done || my !== cueSwap) return; done = true; words.classList.remove("folding"); showCue(entry); };
       words.addEventListener("animationend", swap, { once: true });
       setTimeout(swap, 340);   // fallback if animationend is missed
     }
 
     function addContribution(text, isModel) {
       const prev = contributions[contributions.length - 1];
-      const entry = { text, isModel, seat: currentSeat() };
+      const entry = { text, isModel, seat: currentSeat(), turn: actorIndex };
       contributions.push(entry);
       el("endBtn").disabled = false;
       actorIndex++;
@@ -976,6 +996,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       setStatus(`round ${round()} · player ${currentSeat()} writes — ${limit}`);
       el("wordInput").disabled = false;
       el("submitBtn").disabled = false;
+      el("undoBtn").disabled = !contributions.length;
       el("wordInput").placeholder = limit + "…";
       el("wordInput").focus();
     }
@@ -1111,6 +1132,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       setStatus(`round ${round()} · the model writes <span class="breathe">·</span>`);
       el("wordInput").disabled = true;
       el("submitBtn").disabled = true;
+      el("undoBtn").disabled = true;
       const userMsg = turnPrompt();
       let reply;
       try {
@@ -1133,6 +1155,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
         setStatus(`the model isn’t answering at ${esc(endpointHost())} — is it running?
           <button class="linklike" id="retryTurn">try again</button>`, true);
         el("retryTurn").addEventListener("click", modelTurn);
+        el("undoBtn").disabled = !contributions.length;   // unfolding back is the other way out
         return;
       }
       if (id !== gameId || !gameActive) return;
@@ -1162,6 +1185,35 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       addContribution(raw, false);
       promptTurn();
     });
+
+    /* ── undo: lift the newest fold back open ───────────────────────────── */
+    function undoLast() {
+      if (!gameActive || !contributions.length || el("undoBtn").disabled) return;
+      gameId++;   // a straggling model reply must not rejoin the sheet
+      cueSwap++;  // nor may a mid-flight fold animation resurrect the popped words
+      el("cueWords").classList.remove("folding");
+      el("undoBtn").disabled = true;
+      el("wordInput").disabled = true;
+      el("submitBtn").disabled = true;
+      const popped = contributions.pop();
+      actorIndex = popped.turn;   // exact, even across a passed model turn
+      const latest = contributions[contributions.length - 1] || null;
+      el("endBtn").disabled = !contributions.length;
+      const strip = el("folds").lastElementChild;
+      const settle = () => {
+        if (strip) strip.remove();
+        updateFoldCount();
+        showCue(latest);
+        promptTurn();   // the lifted fold's author writes again — the model rewrites its own
+      };
+      if (!strip || REDUCED.matches) { settle(); return; }
+      let done = false;
+      const once = () => { if (done) return; done = true; settle(); };
+      strip.classList.add("lifting");
+      strip.addEventListener("animationend", once, { once: true });
+      setTimeout(once, 380);   // fallback if animationend is missed
+    }
+    el("undoBtn").addEventListener("click", undoLast);
 
     /* ── the reveal: the sheet unfolds ──────────────────────────────────── */
     function reveal() {
@@ -1224,6 +1276,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       updateFoldCount();
       renderSeats();
       el("endBtn").disabled = true;
+      el("undoBtn").disabled = true;
       el("tableSec").hidden = true;
       el("revealSec").hidden = true;
       el("sheetSec").hidden = false;
@@ -1243,8 +1296,25 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
 
     el("startBtn").addEventListener("click", begin);
     el("resetBtn").addEventListener("click", clearTable);
-    el("endBtn").addEventListener("click", reveal);
     el("againBtn").addEventListener("click", clearTable);
+
+    /* the reveal asks once more — the sheet unfolds only one way */
+    el("endBtn").addEventListener("click", () => {
+      if (!contributions.length) return;
+      const n = contributions.length;
+      el("revealNote").textContent =
+        `${n} fold${n === 1 ? "" : "s"} on the sheet — the reveal unfolds it and ends the game`;
+      el("revealDialog").showModal();
+    });
+    el("revealConfirm").addEventListener("click", () => {
+      el("revealDialog").close();
+      reveal();
+    });
+    el("revealCancel").addEventListener("click", () => el("revealDialog").close());
+    el("revealDialog").addEventListener("close", () => {
+      // declined (cancel or Esc): hand the pen back
+      if (gameActive && !isModelTurn()) el("wordInput").focus();
+    });
 
     /* ── keep, print, pin ───────────────────────────────────────────────── */
     el("exportMdBtn").addEventListener("click", () => {
