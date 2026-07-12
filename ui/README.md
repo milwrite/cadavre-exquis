@@ -6,7 +6,7 @@ system prompts, so they work with the tuned Gemma or an Ollama Cloud model.
 - **`/index.html` — the parlor.** The featured GitHub Pages landing seats 2–4
   players plus the model. Contributions stay folded until the game ends, when
   the page reveals the poem, requests a close reading, and offers export,
-  printing, and a local wall.
+  printing, and a shared wall.
 - **`/ui/corpse.html` — the open sheet.** The solo page keeps the caret at the
   poem's growing edge. Type one or two words and press Enter; enter `.` to close
   the poem and request its reading.
@@ -31,6 +31,12 @@ Published pages use the inference-arcade.com proxy. GitHub Pages sends chat
 requests to `https://inference-arcade.com/api/cadavre/chat` and loads the model
 catalog from `https://inference-arcade.com/api/cadavre/models`. The mirrored
 inference-arcade.com page uses the same paths on its own origin.
+
+The parlor loads and pins finished poems through
+`https://inference-arcade.com/api/cadavre/wall` (or the same-origin equivalent
+on Inference Arcade). The wall is shared across browsers. A browser receives a
+private delete capability only when it creates a pin, so it can remove its own
+pin without receiving access to anyone else's.
 
 The catalog returns:
 
