@@ -36,9 +36,9 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - [x] **Source: PoetryDB** — `data/raw/poetrydb.jsonl` (~3k target; check count).
 - [x] **Source: Gutenberg volumes** — `data/raw/gutenberg.jsonl` = **2439 poems**.
 - [x] **Source: Gutenberg Poetry Corpus** — `data/raw/gpc.jsonl` = **15000 pseudo-poems**.
-- [x] **Clean/dedup** — `data/interim/poems.jsonl` = **20,722 unique poems**. RERUN whenever a source changes.
-- [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **190,939 / 7,290 examples**.
-- [x] **≥10,000 unique poems confirmed** — 20,722 (target exceeded).
+- [x] **Clean/dedup** — `data/interim/poems.jsonl` = **21,446 unique poems**. RERUN whenever a source changes.
+- [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **215,577 / 8,106 examples**.
+- [x] **≥10,000 unique poems confirmed** — 21,446 (target exceeded).
 - [x] **Dataset card** — `data/processed/dataset_card.md` written.
 - [x] **Install train deps** — done; verified **torch 2.10.0+cu128, CUDA True, RTX 5090**.
 - [x] **Train QLoRA** — trained on **`unsloth/gemma-4-E4B-it`** (on-stock vLLM base),
@@ -59,12 +59,12 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 | source | raw records | kept after clean |
 |---|---|---|
 | poetrydb | 2526 | 2295 |
-| gutenberg volumes | 4360 | 3772 |
-| gpc (padding) | 15000 | 14655 |
-| **unique poems after clean** | | **20722** |
-| **train / val examples** | | **190939 / 7290** |
+| gutenberg volumes | 5172 | 4499 |
+| gpc (padding) | 15000 | 14652 |
+| **unique poems after clean** | | **21446** |
+| **train / val examples** | | **215577 / 8106** |
 
-Core (surreal/modernist) = poetrydb + gutenberg = **6067** poems; GPC is padding.
+Core (surreal/modernist) = poetrydb + gutenberg = **6794** poems; GPC is padding.
 
 ## Known follow-ups (cron can pick these up to improve quality)
 1. ~~Recover missed volumes~~ **DONE** — `resolve_book` now searches title+author,
@@ -80,5 +80,26 @@ Core (surreal/modernist) = poetrydb + gutenberg = **6067** poems; GPC is padding
    desync `data/processed` from the shipped adapter). Full table +
    per-ratio preview: `docs/genre-balance.md`. Re-run:
    `.venv/bin/python -m src.report_balance --write-md`.
-4. **Surrealist depth** — add PD translations (Rimbaud/Lautréamont/Apollinaire)
-   from Wikisource/Archive.org if licensing checks out.
+4. ~~Surrealist depth~~ **PARTLY DONE (2026-07-12)** — added the English-PD
+   **symbolist → decadent lineage** (the direct ancestors of surrealism) via the
+   existing curated Gutenberg list (licensing-safe: all PG text is US public
+   domain, so no new scraper / no Wikisource copyright audit): Baudelaire
+   *Flowers of Evil* + *Prose and Poetry* [36098/47032], Verlaine [8426], Symons
+   *Symbolist Movement* + *Silhouettes* [53849/29531], Dowson [8497], Swinburne
+   *Poems and Ballads* [18726] → **761** new-lineage poems in the clean corpus
+   (+727 gutenberg kept; +24.6k train examples). Rimbaud/Lautréamont/Apollinaire
+   are **not achievable via Gutenberg** — Maldoror [12005], Alcools [15462] and
+   Calligrammes [55569] exist there only in **French** (the `en`-only filter
+   correctly rejects them); PD *English* translations would need Wikisource/
+   Archive.org vetting, deferred.
+5. **Stale miss-cache** (discovered 2026-07-12) — `data/raw/.volume_cache/resolve.json`
+   caches misses permanently, so several config volumes never landed and won't
+   retry even after the resolver improved: Rimbaud *Illuminations*/*A Season in
+   Hell*, Cummings *Tulips and Chimneys*, Sandburg *Chicago/Cornhuskers/Smoke and
+   Steel*, Bogan, et al. (see `logs/gutenberg_extend.log`). The corpus lacks
+   Rimbaud in English despite the config listing it. Fix: prune known-good titles
+   from the miss cache (or add `gid` pins) and re-run `src.sources.gutenberg`.
+6. **Title-page front-matter** (discovered 2026-07-12) — `segment_poems` keeps the
+   first chunk of a volume even when it's a title page (e.g. "THE FLOWERS OF EVIL
+   / by / CHARLES BAUDELAIRE"); ~1 junk record per volume. Extend the `_JUNK`
+   regex / add an all-caps+short-body guard, then rerun clean+build.

@@ -1,9 +1,9 @@
 {
-  "train_examples": 190939,
-  "val_examples": 7290,
-  "core_train": 127293,
-  "gpc_train_used": 63646,
-  "poems_train": 19706,
-  "poems_val": 1016,
+  "train_examples": 215577,
+  "val_examples": 8106,
+  "core_train": 143718,
+  "gpc_train_used": 71859,
+  "poems_train": 20404,
+  "poems_val": 1042,
   "instruction": "Continue the poem. Given the lines so far, write only the next line \u2014 no title, no commentary, no quotation marks."
 }

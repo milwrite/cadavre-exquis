@@ -62,6 +62,13 @@
     {"title": "Georgian Poetry", "author": null, "tag": "anthology"},
     {"title": "Others for 1919", "author": "Kreymborg", "tag": "avant-anthology"},
     {"title": "Chicago Poems", "author": "Carl Sandburg", "tag": "modernist"},
-    {"title": "Turns and Movies", "author": "Aiken", "tag": "modernist"}
+    {"title": "Turns and Movies", "author": "Aiken", "tag": "modernist"},
+    {"title": "The Flowers of Evil", "author": "Baudelaire", "tag": "symbolist"},
+    {"title": "Baudelaire: His Prose and Poetry", "author": "Baudelaire", "tag": "symbolist"},
+    {"title": "Poems of Paul Verlaine", "author": "Verlaine", "tag": "symbolist"},
+    {"title": "The Symbolist Movement in Literature", "author": "Symons", "tag": "symbolist"},
+    {"title": "Silhouettes", "author": "Arthur Symons", "tag": "symbolist"},
+    {"title": "The Poems and Prose of Ernest Dowson", "author": "Dowson", "tag": "decadent"},
+    {"title": "Poems and Ballads", "author": "Swinburne", "tag": "decadent"}
   ]
 }
