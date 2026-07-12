@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f2eee5"/>
+  <g transform="translate(85 215)" fill="#171513">
+    <g transform="translate(0 0)">
+      <rect x="0" y="-8" width="108" height="170" fill="#e8e1d4" stroke="#cfc5b5"/>
+      <text x="15" y="132" font-family="Baskerville, Georgia, serif" font-size="142" font-weight="600">E</text>
+    </g>
+    <g transform="translate(92 24)">
+      <rect x="0" y="-8" width="66" height="148" fill="#eee8de" stroke="#d8cfc1"/>
+      <text x="8" y="112" font-family="Helvetica Neue, Arial, sans-serif" font-size="94" font-weight="300">x</text>
+    </g>
+    <g transform="translate(146 5)">
+      <rect x="0" y="-8" width="100" height="164" fill="#e2dbcf" stroke="#c8beae"/>
+      <text x="8" y="127" font-family="American Typewriter, Courier New, monospace" font-size="112">q</text>
+    </g>
+    <g transform="translate(231 18)">
+      <rect x="0" y="-8" width="75" height="145" fill="#f0ebe2" stroke="#d6ccbd"/>
+      <text x="9" y="113" font-family="Didot, Times New Roman, serif" font-size="105">u</text>
+    </g>
+    <g transform="translate(294 -1)">
+      <rect x="0" y="-8" width="56" height="163" fill="#e6dfd3" stroke="#cbc1b2"/>
+      <text x="15" y="126" font-family="Futura, Arial, sans-serif" font-size="102">i</text>
+    </g>
+    <g transform="translate(337 10)">
+      <rect x="0" y="-8" width="72" height="148" fill="#eee8dc" stroke="#d5cbbc"/>
+      <text x="11" y="113" font-family="Palatino, Georgia, serif" font-size="103">s</text>
+    </g>
+    <g transform="translate(396 -7)">
+      <rect x="0" y="-8" width="57" height="165" fill="#ddd6ca" stroke="#c5baaa"/>
+      <text x="16" y="129" font-family="Avenir Next, Arial, sans-serif" font-size="101">i</text>
+    </g>
+    <g transform="translate(440 14)">
+      <rect x="0" y="-8" width="61" height="142" fill="#f0ebe2" stroke="#d5ccbf"/>
+      <text x="9" y="111" font-family="Copperplate, Georgia, serif" font-size="91">t</text>
+    </g>
+    <g transform="translate(488 3)">
+      <rect x="0" y="-8" width="86" height="156" fill="#e7dfd2" stroke="#cec3b3"/>
+      <text x="8" y="122" font-family="Hoefler Text, Georgia, serif" font-size="105">e</text>
+    </g>
+    <g transform="translate(603 -3)">
+      <rect x="0" y="-8" width="110" height="166" fill="#eee8dc" stroke="#d2c7b8"/>
+      <text x="9" y="130" font-family="Optima, Gill Sans, sans-serif" font-size="119" font-weight="600">C</text>
+    </g>
+    <g transform="translate(698 17)">
+      <rect x="0" y="-8" width="83" height="145" fill="#e4ddd1" stroke="#cabfaf"/>
+      <text x="7" y="113" font-family="Georgia, serif" font-size="102">o</text>
+    </g>
+    <g transform="translate(767 4)">
+      <rect x="0" y="-8" width="75" height="155" fill="#d8d0c3" stroke="#bfb4a4"/>
+      <text x="9" y="121" font-family="Rockwell, American Typewriter, serif" font-size="102" font-weight="700">r</text>
+    </g>
+    <g transform="translate(827 12)">
+      <rect x="0" y="-8" width="84" height="151" fill="#eee8dd" stroke="#d1c7b7"/>
+      <text x="8" y="114" font-family="Gill Sans, Arial, sans-serif" font-size="105">p</text>
+    </g>
+    <g transform="translate(897 -5)">
+      <rect x="0" y="-8" width="79" height="165" fill="#e0d8cb" stroke="#c3b8a8"/>
+      <text x="9" y="128" font-family="Palatino, Georgia, serif" font-size="105">s</text>
+    </g>
+    <g transform="translate(961 11)">
+      <rect x="0" y="-8" width="82" height="148" fill="#f0ebe1" stroke="#d4cab9"/>
+      <text x="7" y="115" font-family="Courier New, monospace" font-size="99">e</text>
+    </g>
+  </g>
+</svg>
