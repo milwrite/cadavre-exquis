@@ -1,0 +1,10 @@
+{
+  "name": "cadavre-exquis",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Exquisite Corpse game and dependency-free rule tests",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "test:core": "node --test test/cadavre-core.test.js"
+  }
+}
