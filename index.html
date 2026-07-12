@@ -742,6 +742,7 @@
   </dialog>
 
   <script src="ui/config.local.js"></script>
+  <script src="assets/cadavre-core.js"></script>
   <script>
     /* ── connection: defaults < config.local.js < URL params (this visit only —
        never persisted, so a crafted link can't poison future visits; keys
@@ -784,9 +785,10 @@
 
     /* The game lives in the system prompt, so play works against a hosted
        model or a tuned local model. The word cap follows the table setting. */
-    const NUMBER_WORDS = ["zero", "one", "two", "three", "four", "five"];
-    const capPhrase = () => (maxWords === 1 ? "one word" : `one to ${NUMBER_WORDS[maxWords]} words`);
-    const cap0 = () => { const p = capPhrase(); return p[0].toUpperCase() + p.slice(1); };
+    const Core = window.CadavreCore;
+    const NUMBER_WORDS = Core.NUMBER_WORDS;
+    const capPhrase = () => Core.capPhrase(maxWords);
+    const cap0 = () => Core.capitalizedCapPhrase(maxWords);
     const playPrompt = () => `You are one writer in an Exquisite Corpse poem. Each turn adds ${capPhrase()}.
 
 INPUT HANDLING
@@ -796,7 +798,7 @@ INPUT HANDLING
 
 TASK
 
-Continue LATEST FOLD. EARLIER FOLDS provide context.
+Continue the visible fold. You receive only the newest contribution.
 
 Extend grammar first, then deepen an action, object, speaker, or setting already present. Surprise should come from a new relation among existing elements. Introduce a new noun when the syntax calls for an object or complement.
 
@@ -833,9 +835,10 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     const el = (id) => document.getElementById(id);
-    const currentSeat = () => (actorIndex % players) + 1;
-    const isModelTurn = () => currentSeat() === Number(modelSeat);
-    const round = () => Math.floor(actorIndex / players) + 1;
+    const currentTurn = () => Core.turnInfo({ actorIndex, players, modelSeat });
+    const currentSeat = () => currentTurn().currentSeat;
+    const isModelTurn = () => currentTurn().isModelTurn;
+    const round = () => currentTurn().round;
     const endpointHost = () => new URL(CFG.endpoint, location.href).host;  // always parseable, validated above
     const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -847,8 +850,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     /* ── the poem ↔ reading link ─────────────────────────────────────────
        The close reading is instructed to quote the poem's exact words, so a
        quoted phrase can be matched to the poem's own tokens and lit on hover. */
-    const normWord = (w) =>
-      w.toLowerCase().replace(/’/g, "'").replace(/^[^a-z0-9']+|[^a-z0-9']+$/g, "");
+    const normWord = Core.normalizeWord;
 
     // Fill `container` with the poem, one word per <span class="w">.
     // Returns the token list [{ norm, el }] in reading order.
@@ -873,18 +875,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     }
 
     // Find a quoted phrase as a consecutive run of poem tokens; null if absent.
-    function matchPhrase(tokens, phrase) {
-      const want = phrase.split(/\s+/).map(normWord).filter(Boolean);
-      if (!want.length) return null;
-      for (let i = 0; i + want.length <= tokens.length; i++) {
-        let ok = true;
-        for (let k = 0; k < want.length; k++) {
-          if (tokens[i + k].norm !== want[k]) { ok = false; break; }
-        }
-        if (ok) return Array.from({ length: want.length }, (_, k) => i + k);
-      }
-      return null;
-    }
+    const matchPhrase = Core.matchPhrase;
 
     // Render `text` into `targetEl`, wrapping quotes that name poem words as
     // hoverable/focusable links; unmatched quotes stay plain text.
@@ -1044,12 +1035,10 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
 
       const available = routes.filter((route) => route?.id && route.available !== false);
       if (!available.length) { setSingleModelOption(); return; }
-      const requested = [CFG.model, catalog.default, catalog.defaultModel]
-        .find((id) => available.some((route) => route.id === id));
-      CFG.model = requested || available[0].id;
+      const chosen = Core.chooseModel(catalog, [CFG.model]);
+      CFG.model = chosen.id;
       select.value = CFG.model;
       select.disabled = available.length < 2;
-      const chosen = available.find((route) => route.id === CFG.model);
       el("connModel").textContent = chosen?.label || chosen?.name || chosen?.model || CFG.model;
     }
 
@@ -1106,23 +1095,12 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       }
     }
 
-    const isCorrective = (t) => /^one (word|to (two|three|four|five) words)\.?$/i.test(t.trim());
-
     function validContribution(raw) {
-      const text = raw.trim().replace(/[.,;:!?]+$/, "").trim();
-      const words = text ? text.split(/\s+/) : [];
-      const hasFormatting = /[\n\r`*_]/.test(text);
-      return {
-        text,
-        valid: words.length > 0 && words.length <= maxWords && !hasFormatting && !isCorrective(text),
-      };
+      return Core.validateContribution(raw, maxWords);
     }
 
     function turnPrompt() {
-      const latest = contributions[contributions.length - 1];
-      if (!latest) return `Begin the poem with ${capPhrase()}.`;
-      const earlier = contributions.slice(-7, -1).map((c) => c.text).join("\n") || "(none)";
-      return `EARLIER FOLDS:\n${earlier}\n\nLATEST FOLD:\n${latest.text}\n\nWrite the next ${capPhrase()}.`;
+      return Core.buildTurnPrompt(contributions, maxWords);
     }
 
     async function modelTurn() {

@@ -42,6 +42,16 @@ python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt
 MODEL=unsloth/gemma-3-4b-it .venv/bin/python train/train_qlora.py --epochs 2
 ```
 
+## Game tests
+
+The browser game rules live in `assets/cadavre-core.js` so the page and the
+dependency-free Node test kit use the same contribution, turn, prompt, reveal,
+and model-selection behavior.
+
+```bash
+npm test
+```
+
 ## Current numbers
 20,722 unique poems · 190,939 train / 7,290 val next-line examples. See
 `data/processed/dataset_card.md`. Everything is public-domain or openly licensed.

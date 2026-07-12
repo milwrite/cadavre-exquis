@@ -1,0 +1,30 @@
+{
+  "validation": [
+    { "raw": "moon", "maxWords": 1, "valid": true, "text": "moon", "wordCount": 1 },
+    { "raw": "salt-blue moon", "maxWords": 2, "valid": true, "text": "salt-blue moon", "wordCount": 2 },
+    { "raw": "through a glass,", "maxWords": 3, "valid": true, "text": "through a glass", "wordCount": 3 },
+    { "raw": "we enter the orchard slowly", "maxWords": 5, "valid": true, "text": "we enter the orchard slowly", "wordCount": 5 },
+    { "raw": "six pale birds cross the harbor", "maxWords": 5, "valid": false, "text": "six pale birds cross the harbor", "wordCount": 6 },
+    { "raw": "One word.", "maxWords": 3, "valid": false, "text": "One word", "wordCount": 2 },
+    { "raw": "one to five words", "maxWords": 5, "valid": false, "text": "one to five words", "wordCount": 4 },
+    { "raw": "*paper moon*", "maxWords": 3, "valid": false, "text": "*paper moon*", "wordCount": 2 },
+    { "raw": "_paper moon_", "maxWords": 3, "valid": false, "text": "_paper moon_", "wordCount": 2 },
+    { "raw": "`paper moon`", "maxWords": 3, "valid": false, "text": "`paper moon`", "wordCount": 2 },
+    { "raw": "paper\nmoon", "maxWords": 3, "valid": false, "text": "paper\nmoon", "wordCount": 2 },
+    { "raw": "   ", "maxWords": 1, "valid": false, "text": "", "wordCount": 0 }
+  ],
+  "turns": [
+    { "actorIndex": 0, "players": 2, "modelSeat": 2, "currentSeat": 1, "round": 1, "isModelTurn": false },
+    { "actorIndex": 1, "players": 2, "modelSeat": 2, "currentSeat": 2, "round": 1, "isModelTurn": true },
+    { "actorIndex": 2, "players": 2, "modelSeat": 2, "currentSeat": 1, "round": 2, "isModelTurn": false },
+    { "actorIndex": 5, "players": 4, "modelSeat": 2, "currentSeat": 2, "round": 2, "isModelTurn": true }
+  ],
+  "catalog": {
+    "default": "ollama:new",
+    "models": [
+      { "id": "ollama:old", "label": "Old", "available": false },
+      { "id": "ollama:new", "label": "New", "available": true },
+      { "id": "legion:small", "label": "Small", "available": true }
+    ]
+  }
+}
