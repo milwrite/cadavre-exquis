@@ -36,9 +36,9 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - [x] **Source: PoetryDB** — `data/raw/poetrydb.jsonl` (~3k target; check count).
 - [x] **Source: Gutenberg volumes** — `data/raw/gutenberg.jsonl` = **2439 poems**.
 - [x] **Source: Gutenberg Poetry Corpus** — `data/raw/gpc.jsonl` = **15000 pseudo-poems**.
-- [x] **Clean/dedup** — `data/interim/poems.jsonl` = **21,446 unique poems**. RERUN whenever a source changes.
-- [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **215,577 / 8,106 examples**.
-- [x] **≥10,000 unique poems confirmed** — 21,446 (target exceeded).
+- [x] **Clean/dedup** — `data/interim/poems.jsonl` = **21,437 unique poems**. RERUN whenever a source changes.
+- [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **215,533 / 8,104 examples**.
+- [x] **≥10,000 unique poems confirmed** — 21,437 (target exceeded).
 - [x] **Dataset card** — `data/processed/dataset_card.md` written.
 - [x] **Install train deps** — done; verified **torch 2.10.0+cu128, CUDA True, RTX 5090**.
 - [x] **Train QLoRA** — trained on **`unsloth/gemma-4-E4B-it`** (on-stock vLLM base),
@@ -59,12 +59,12 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 | source | raw records | kept after clean |
 |---|---|---|
 | poetrydb | 2526 | 2295 |
-| gutenberg volumes | 5172 | 4499 |
+| gutenberg volumes | 5172 | 4490 |
 | gpc (padding) | 15000 | 14652 |
-| **unique poems after clean** | | **21446** |
-| **train / val examples** | | **215577 / 8106** |
+| **unique poems after clean** | | **21437** |
+| **train / val examples** | | **215533 / 8104** |
 
-Core (surreal/modernist) = poetrydb + gutenberg = **6794** poems; GPC is padding.
+Core (surreal/modernist) = poetrydb + gutenberg = **6785** poems; GPC is padding.
 
 ## Known follow-ups (cron can pick these up to improve quality)
 1. ~~Recover missed volumes~~ **DONE** — `resolve_book` now searches title+author,
@@ -99,7 +99,19 @@ Core (surreal/modernist) = poetrydb + gutenberg = **6794** poems; GPC is padding
    Steel*, Bogan, et al. (see `logs/gutenberg_extend.log`). The corpus lacks
    Rimbaud in English despite the config listing it. Fix: prune known-good titles
    from the miss cache (or add `gid` pins) and re-run `src.sources.gutenberg`.
-6. **Title-page front-matter** (discovered 2026-07-12) — `segment_poems` keeps the
-   first chunk of a volume even when it's a title page (e.g. "THE FLOWERS OF EVIL
-   / by / CHARLES BAUDELAIRE"); ~1 junk record per volume. Extend the `_JUNK`
-   regex / add an all-caps+short-body guard, then rerun clean+build.
+6. ~~Title-page front-matter~~ **DONE (2026-07-13)** — added `is_front_matter()`
+   to `src/common.py`, wired into `src.clean` (drops at merge, so it catches every
+   source and needs no network re-fetch). It flags a chunk of ≤8 non-blank lines
+   carrying **≥2 distinct publisher/printer imprint signals** (imprint place /
+   publisher name / bare year / street address) — high precision so real short
+   all-caps poems survive (validated: Stein's *Tender Buttons*, Pound's chess poem
+   kept). Removed **9** colophon/imprint records (Boni, Houghton Mifflin ×2,
+   Four Seas, Egoist Press, Dutton, Riverside Press, a Lawrence bibliography, the
+   Baudelaire title page): 21,446 → **21,437** poems, 215,577 → **215,533** train
+   examples. Chose the clean stage over `segment_poems` because the pattern is
+   source-agnostic and `_JUNK` (which keys on CONTENTS/PREFACE/etc.) can't see
+   imprints. Regex note: each alternative carries its own `\b` — a group-level
+   `\b(…|&\s?CO|…)\b` silently kills every `&`-prefixed alternative.
+   Not addressed: bare title-page fragments with no imprint signal (e.g. "CANZONI
+   / TO / OLIVIA…" dedications) are left in — erring toward keeping avoids eating
+   real poems; extend the signal set later if they prove noisy.

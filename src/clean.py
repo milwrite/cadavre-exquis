@@ -21,6 +21,7 @@ from src.common import (  # noqa: E402
     clean_line,
     content_hash,
     detect_lang,
+    is_front_matter,
     is_probably_prose,
     is_section_label,
 )
@@ -73,6 +74,9 @@ def main() -> None:
                 continue
             if is_probably_prose(lines):
                 stats["drop::prose"] += 1
+                continue
+            if is_front_matter(lines):
+                stats["drop::frontmatter"] += 1
                 continue
             lang = detect_lang(joined)
             if lang not in ("en", "unknown"):

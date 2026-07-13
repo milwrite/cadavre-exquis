@@ -150,3 +150,53 @@ def is_probably_prose(lines: list[str]) -> bool:
     avg_len = sum(len(l) for l in body) / len(body)
     long_frac = sum(1 for l in body if len(l) > 88) / len(body)
     return avg_len > 78 and long_frac > 0.5
+
+
+# ---------------------------------------------------------------- front-matter
+# Publisher/printer title-page colophons ("NEW YORK / HOUGHTON MIFFLIN COMPANY /
+# 1915") slip past the segmenter's _JUNK filter (they carry none of CONTENTS/
+# PREFACE/etc.) and become bogus 3–6 line "poems". They share a narrow signature
+# of *imprint signals*: an imprint place, a publisher/printer name, a bare year,
+# a street address. Keying on >=2 *distinct* signals in a short chunk is precise
+# enough to spare real short all-caps poems (Stein's Tender Buttons, Pound).
+# NOTE: each alternative carries its own boundary; do NOT wrap the whole group in
+# \b(...)\b — a leading \b can never anchor the &-prefixed alternatives.
+_FM_YEAR = re.compile(r"^[\(\[]?\s*(1[6-9]\d\d|20[0-2]\d)\s*[\)\].,]?$")
+_FM_PUB = re.compile(
+    r"(?:\bPUBLISHERS?\b|\bPUBLISHING\b|\bCOMPANY\b|&\s?CO\.?\b|\bINCORPORATED\b|"
+    r"&\s?SONS\b|&\s?BRO(?:THERS)?\b|\bLTD\b|\bLIMITED\b|\bMIFFLIN\b|\bHOUGHTON\b|"
+    r"\bMACMILLAN\b|\bSCRIBNER\b|\bHARCOURT\b|\b\w+\s+PRESS\b|\bPRINTED\s+(?:BY|IN|AT)\b)",
+    re.I,
+)
+_FM_PLACE = re.compile(
+    r"^\s*(NEW YORK|BOSTON|LONDON|CHICAGO|PHILADELPHIA|CAMBRIDGE|EDINBURGH|"
+    r"BOSTON AND NEW YORK|NEW YORK AND LONDON)"
+    r"(\s*[.,]\s*(MASS(ACHUSETTS)?|N\.?Y\.?|ENGLAND|U\.?\s?S\.?\s?A\.?))?\s*$",
+    re.I,
+)
+_FM_ADDR = re.compile(r"\b\d{1,4}\b.*\b(AVENUE|AVE|STREET|\bST\b|ROAD|SQUARE|PLACE)\b", re.I)
+
+
+def is_front_matter(lines: list[str]) -> bool:
+    """True for a short publisher/printer title-page colophon (not a poem).
+
+    Fires only when a chunk of <=8 non-blank lines carries >=2 *distinct* imprint
+    signal kinds (place / publisher / bare year / street address). See the note
+    above; validated to flag 9 imprint records in the corpus with zero false
+    positives against real short poems."""
+    body = [l.strip() for l in lines if l.strip()]
+    if not body or len(body) > 8:
+        return False
+    kinds = set()
+    for l in body:
+        if _FM_YEAR.match(l):
+            kinds.add("year")
+        if _FM_PLACE.match(l):
+            kinds.add("place")
+        if _FM_PUB.search(l):
+            kinds.add("pub")
+        if _FM_ADDR.search(l):
+            kinds.add("addr")
+        if len(kinds) >= 2:
+            return True
+    return False
