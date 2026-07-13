@@ -676,8 +676,8 @@
               </select>
             </label>
             <label class="setting-field">
-              <span class="setting-label">words per turn</span>
-              <select id="maxWords" aria-label="words per turn">
+              <span class="setting-label">per turn</span>
+              <select id="maxWords" aria-label="per turn">
                 <option value="1">one word</option>
                 <option value="2">two words</option>
                 <option value="3" selected>three words</option>
@@ -1105,7 +1105,8 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
         }
         const option = document.createElement("option");
         option.value = route.id;
-        option.textContent = route.label || route.name || route.model || route.id;
+        option.textContent = String(route.label || route.name || route.model || route.id)
+          .replace(" (OpenRouter; Ollama Fallback)", "");
         option.disabled = route.available === false;
         groups.get(label).appendChild(option);
       });
