@@ -32,6 +32,12 @@ requests to `https://inference-arcade.com/api/cadavre/chat` and loads the model
 catalog from `https://inference-arcade.com/api/cadavre/models`. The mirrored
 inference-arcade.com page uses the same paths on its own origin.
 
+Before accepting the first turn, each published surface calls
+`https://inference-arcade.com/api/cadavre/ready`. That endpoint performs a real,
+cached generation check, keeps the chosen logical model warm, and returns a
+verified standby route when the selected providers are unavailable. The parlor
+keeps its Begin action disabled until this check succeeds.
+
 The parlor loads and pins finished poems through
 `https://inference-arcade.com/api/cadavre/wall` (or the same-origin equivalent
 on Inference Arcade). The wall is shared across browsers. A browser receives a
@@ -44,11 +50,12 @@ The catalog returns:
 { default, models: [{ id, label, provider, model, available }] }
 ```
 
-The selector places an available fine-tuned Legion route first, groups the
-Ollama Cloud routes together, and disables any route reported as unavailable.
-Each option uses the explicit route `id`; changing the selection updates the
-`model` field sent with later chat requests. The selection remains in memory
-for the current page and never enters browser storage.
+The open-sheet selector places an available fine-tuned Legion route first,
+groups the Cloud routes together, and disables any route reported as
+unavailable. The parlor shows one clean, server-managed model choice. Every
+chat response reports the effective route, so either surface follows a
+verified standby without repeating a failed provider. Selection state remains
+in memory for the current page and never enters browser storage.
 
 The Ollama Cloud credential stays in the server environment used by the proxy.
 The browser receives the model list and chat response, but no provider

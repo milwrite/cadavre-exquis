@@ -214,6 +214,15 @@
 
     .table-setting select:hover { border-bottom-color: var(--wine-bright); }
 
+    .model-readiness {
+      min-height: 1.2em;
+      margin-top: 0.45rem;
+      font-family: var(--mono);
+      font-size: 0.66rem;
+      letter-spacing: 0.04em;
+      color: var(--label);
+    }
+
     .table-actions {
       display: flex;
       justify-content: center;
@@ -717,6 +726,7 @@
               <select id="modelRoute" aria-label="model">
                 <option value="">loading available models…</option>
               </select>
+              <span id="modelReadiness" class="model-readiness" role="status" aria-live="polite">warming the other hand…</span>
             </label>
             <label class="setting-field">
               <span class="setting-label">players</span>
@@ -746,7 +756,7 @@
             </label>
           </div>
           <div class="table-actions">
-            <button id="startBtn" class="primary">begin</button>
+            <button id="startBtn" class="primary" disabled>warming…</button>
           </div>
         </section>
 
@@ -834,13 +844,15 @@
       : "https://inference-arcade.com/api/cadavre";
     const DEFAULTS = LOCAL_PAGE ? {
       endpoint: "http://127.0.0.1:1234/v1/chat/completions",
+      readyEndpoint: "",
       modelsEndpoint: "",
       model: "exquisite-corpse",
       apiKey: "",
     } : {
       endpoint: REMOTE_API + "/chat",
+      readyEndpoint: REMOTE_API + "/ready",
       modelsEndpoint: REMOTE_API + "/models",
-      model: "ollama:deepseek-v4-flash",
+      model: "ollama:gemma3:4b",
       apiKey: "",
     };
     const params = new URLSearchParams(location.search);
@@ -860,6 +872,13 @@
         if (!isHttpEndpoint(CFG.modelsEndpoint)) throw new Error("bad scheme");
       } catch {
         CFG.modelsEndpoint = DEFAULTS.modelsEndpoint;
+      }
+    }
+    if (CFG.readyEndpoint) {
+      try {
+        if (!isHttpEndpoint(CFG.readyEndpoint)) throw new Error("bad scheme");
+      } catch {
+        CFG.readyEndpoint = DEFAULTS.readyEndpoint;
       }
     }
     try {
@@ -1177,6 +1196,10 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
 
     /* ── talking to the model ───────────────────────────────────────────── */
     let activeModel = CFG.model;
+    let modelReadyFor = "";
+    let modelReadyPromise = null;
+    let modelReadyRetry = null;
+    let modelReadyAttempt = 0;
 
     function modelLabel(model) {
       return String(model || "").replace(/^(?:ollama|openrouter|legion):/, "");
@@ -1193,10 +1216,76 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       el("connModel").textContent = label;
     }
 
+    function setModelReadiness(message, ready) {
+      el("modelReadiness").textContent = message;
+      const start = el("startBtn");
+      start.disabled = !ready;
+      start.textContent = ready ? "begin" : "warming…";
+    }
+
+    function acceptReadyModel(data, message = "ready before the first fold") {
+      if (data?.model) CFG.model = data.model;
+      activeModel = CFG.model;
+      modelReadyFor = CFG.model;
+      modelReadyAttempt = 0;
+      setSingleModelOption(modelLabel(CFG.model));
+      setModelReadiness(message, true);
+      return data || { ready: true, model: CFG.model, provider: "direct" };
+    }
+
+    async function warmSelectedModel({ force = false } = {}) {
+      const directConnection = params.has("endpoint") || !CFG.readyEndpoint;
+      if (directConnection) return acceptReadyModel(null, "configured route ready");
+      if (!force && modelReadyFor === CFG.model) {
+        return { ready: true, model: CFG.model, cached: true };
+      }
+      if (!force && modelReadyPromise) return modelReadyPromise;
+
+      clearTimeout(modelReadyRetry);
+      setModelReadiness("warming and verifying the other hand…", false);
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 32000);
+      const check = (async () => {
+        try {
+          const response = await fetch(CFG.readyEndpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model: CFG.model }),
+            cache: "no-store",
+            signal: ctrl.signal,
+          });
+          if (!response.ok) throw new Error("readiness returned " + response.status);
+          const data = await response.json();
+          if (!data.ready || !data.model) throw new Error("no model route is ready");
+          return acceptReadyModel(
+            data,
+            data.failover ? "ready on a verified standby route" : "ready before the first fold"
+          );
+        } catch {
+          modelReadyFor = "";
+          modelReadyAttempt++;
+          const delay = Math.min(15000, 1000 * (2 ** Math.min(modelReadyAttempt, 4)));
+          setModelReadiness("finding an available model route…", false);
+          modelReadyRetry = setTimeout(() => warmSelectedModel({ force: true }), delay);
+          return null;
+        } finally {
+          clearTimeout(timer);
+        }
+      })();
+      modelReadyPromise = check;
+      try {
+        return await check;
+      } finally {
+        if (modelReadyPromise === check) modelReadyPromise = null;
+      }
+    }
+
     function showRoute(data) {
       if (!data.model) return;
-      activeModel = data.model;
-      el("connModel").textContent = modelLabel(data.model);
+      acceptReadyModel(
+        data,
+        data.failover ? "continued on a verified standby route" : "model route ready"
+      );
     }
 
     async function chat(messages, maxTokens) {
@@ -1234,7 +1323,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       return Core.buildTurnPrompt(contributions, maxWords);
     }
 
-    async function modelTurn() {
+    async function modelTurn(retryAttempt = 0) {
       const id = gameId;
       renderSeats();
       setStatus(`round ${round()} · the model writes <span class="breathe">·</span>`);
@@ -1260,9 +1349,15 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
         }
       } catch (e) {
         if (id !== gameId || !gameActive) return;
-        setStatus(`the model isn’t answering at ${esc(endpointHost())} — is it running?
-          <button class="linklike" id="retryTurn">try again</button>`, true);
-        el("retryTurn").addEventListener("click", modelTurn);
+        if (retryAttempt < 3) {
+          const delay = 750 * (2 ** retryAttempt);
+          setStatus(`the other hand is reconnecting <span class="breathe">·</span>`);
+          setTimeout(() => modelTurn(retryAttempt + 1), delay);
+          return;
+        }
+        setStatus(`the other hand is still reconnecting
+          <button class="linklike" id="retryTurn">try now</button>`, true);
+        el("retryTurn").addEventListener("click", () => modelTurn(0));
         el("undoBtn").disabled = !contributions.length;   // unfolding back is the other way out
         return;
       }
@@ -1371,7 +1466,11 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     }
     el("playerCount").addEventListener("change", syncSeats);
 
-    function begin() {
+    async function begin() {
+      if (modelReadyFor !== CFG.model) {
+        const ready = await warmSelectedModel({ force: true });
+        if (!ready) return;
+      }
       players = Number(el("playerCount").value);
       modelSeat = Number(el("modelSlot").value);
       maxWords = Number(el("maxWords").value);
@@ -1754,6 +1853,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     el("connHost").textContent = endpointHost();
 
     setSingleModelOption();
+    warmSelectedModel();
     syncSeats();
     rebuildWall();
     el("loadWallMore").addEventListener("click", () => loadWall(wallCursor));

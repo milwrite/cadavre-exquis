@@ -2,7 +2,8 @@
 
 **Owner:** Zach Muhlbauer (CUNY GC) · **Goal:** fine-tune a small Gemma to write
 surreal next-line continuations, feeding the "Exquisite Corpse" game bot
-(deployed on `deepseek-v4-flash`). Spec: `docs/superpowers/specs/2026-07-08-surrealist-corpus-gemma-qlora-design.md`.
+(served through a readiness-checked, multi-provider model pool). Spec:
+`docs/superpowers/specs/2026-07-08-surrealist-corpus-gemma-qlora-design.md`.
 
 This file is the **single source of truth for what is done and what is next.**
 The cron agent (see `CONTINUE.md`) reads it, advances the next unchecked item,
@@ -39,6 +40,13 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   the application API. A 45-line live test covered three pages, vote changes,
   reload persistence, and clearing a vote. The temporary post was removed, and
   both public pages returned to the three real entries without console errors.
+- **2026-07-13 model readiness and failover:** published play now waits for a
+  real generated readiness response before accepting the first turn. The server
+  warms `gemma3:4b` at startup and every three minutes, keeps a four-minute
+  readiness cache, and moves a request through verified `gemma3:4b`,
+  `gemini-3-flash-preview`, and `gpt-oss:20b` standbys when the chosen route's
+  OpenRouter and Ollama paths are unavailable. Both UIs retry transient turns
+  automatically and adopt the effective route returned by the server.
 
 ## Automation
 - [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 12:00 (noon)**.

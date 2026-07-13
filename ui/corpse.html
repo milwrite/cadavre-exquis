@@ -181,7 +181,7 @@
     <div id="poem" aria-live="polite"></div>
     <div id="edge">
       <input id="entry" autocomplete="off" autocapitalize="off" autocorrect="off"
-             spellcheck="false" aria-label="your one or two words" placeholder="one or two words">
+             spellcheck="false" aria-label="your one or two words" placeholder="warming the other hand…" disabled>
     </div>
     <div id="reading-seam" aria-hidden="true"><span class="reading-label">close reading</span></div>
     <div id="reading" aria-live="polite"></div>
@@ -235,13 +235,15 @@ const REMOTE_API = location.hostname === "inference-arcade.com"
   : "https://inference-arcade.com/api/cadavre";
 const DEFAULTS = LOCAL_PAGE ? {
   endpoint: "http://127.0.0.1:1234/v1/chat/completions",
+  readyEndpoint: "",
   modelsEndpoint: "",
   model: "exquisite-corpse",
   apiKey: "",
 } : {
   endpoint: REMOTE_API + "/chat",
+  readyEndpoint: REMOTE_API + "/ready",
   modelsEndpoint: REMOTE_API + "/models",
-  model: "ollama:deepseek-v4-flash",
+  model: "ollama:gemma3:4b",
   apiKey: "",
 };
 const params = new URLSearchParams(location.search);
@@ -260,6 +262,11 @@ if(CFG.modelsEndpoint){
   try {
     if(!isHttpEndpoint(CFG.modelsEndpoint)) throw new Error("bad scheme");
   } catch { CFG.modelsEndpoint = DEFAULTS.modelsEndpoint; }
+}
+if(CFG.readyEndpoint){
+  try {
+    if(!isHttpEndpoint(CFG.readyEndpoint)) throw new Error("bad scheme");
+  } catch { CFG.readyEndpoint = DEFAULTS.readyEndpoint; }
 }
 const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
@@ -361,6 +368,10 @@ document.addEventListener("keydown", (e) => {
 
 const modelRouteEl = $("model-route");
 const modelStatusEl = $("model-status");
+let modelReadyFor = "";
+let modelReadyPromise = null;
+let modelReadyRetry = null;
+let modelReadyAttempt = 0;
 
 function routeName(route){
   return route.label || route.name || route.model || route.id;
@@ -382,6 +393,71 @@ function setSingleModelOption(label, status){
   modelRouteEl.disabled = true;
   modelRouteEl.setAttribute("aria-busy", "false");
   modelStatusEl.textContent = status || "";
+}
+
+function acceptReadyModel(data, status){
+  if(data?.model) CFG.model = data.model;
+  modelReadyFor = CFG.model;
+  modelReadyAttempt = 0;
+  const option = Array.from(modelRouteEl.options).find(item => item.value === CFG.model);
+  if(option) modelRouteEl.value = CFG.model;
+  else setSingleModelOption(CFG.model, status);
+  modelRouteEl.setAttribute("aria-busy", "false");
+  modelStatusEl.textContent = status || "ready";
+  entry.disabled = false;
+  entry.placeholder = "one or two words";
+  note(HINT_DEFAULT);
+  keepFocus();
+  return data || { ready:true, model:CFG.model, provider:"direct" };
+}
+
+async function warmSelectedModel({ force = false } = {}){
+  const directConnection = params.has("endpoint") || !CFG.readyEndpoint;
+  if(directConnection) return acceptReadyModel(null, "configured route ready");
+  if(!force && modelReadyFor === CFG.model) return { ready:true, model:CFG.model, cached:true };
+  if(!force && modelReadyPromise) return modelReadyPromise;
+
+  clearTimeout(modelReadyRetry);
+  entry.disabled = true;
+  modelRouteEl.setAttribute("aria-busy", "true");
+  modelStatusEl.textContent = "warming and verifying…";
+  note("warming the other hand <span class=\"breathe\">·</span>");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 32000);
+  const check = (async () => {
+    try {
+      const response = await fetch(CFG.readyEndpoint, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ model:CFG.model }),
+        cache:"no-store",
+        signal:controller.signal,
+      });
+      if(!response.ok) throw new Error("readiness returned " + response.status);
+      const data = await response.json();
+      if(!data.ready || !data.model) throw new Error("no model route is ready");
+      return acceptReadyModel(
+        data,
+        data.failover ? "ready on a verified standby route" : "ready"
+      );
+    } catch {
+      modelReadyFor = "";
+      modelReadyAttempt++;
+      const delay = Math.min(15000, 1000 * (2 ** Math.min(modelReadyAttempt, 4)));
+      modelStatusEl.textContent = "finding an available model route…";
+      note("the other hand is reconnecting <span class=\"breathe\">·</span>");
+      modelReadyRetry = setTimeout(() => warmSelectedModel({ force:true }), delay);
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  })();
+  modelReadyPromise = check;
+  try {
+    return await check;
+  } finally {
+    if(modelReadyPromise === check) modelReadyPromise = null;
+  }
 }
 
 function renderModelOptions(catalog){
@@ -444,6 +520,7 @@ async function loadModelOptions(){
       directLocal ? "Exquisite Corpse — local vLLM" : CFG.model,
       directLocal ? "direct connection to the local vLLM server" : "using the configured model route"
     );
+    await warmSelectedModel();
     return;
   }
   try {
@@ -456,10 +533,14 @@ async function loadModelOptions(){
   } catch {
     setSingleModelOption(CFG.model, "the model list is unavailable; using the configured route");
   }
+  await warmSelectedModel();
 }
 
-modelRouteEl.addEventListener("change", () => {
-  if(modelRouteEl.value) CFG.model = modelRouteEl.value;
+modelRouteEl.addEventListener("change", async () => {
+  if(!modelRouteEl.value) return;
+  CFG.model = modelRouteEl.value;
+  modelReadyFor = "";
+  await warmSelectedModel({ force:true });
 });
 loadModelOptions();
 
@@ -603,6 +684,14 @@ async function request(msgs, temperature = 0.9){
   });
   if(!res.ok) throw new Error("model returned " + res.status);
   const data = await res.json();
+  if(data.model){
+    CFG.model = data.model;
+    modelReadyFor = data.model;
+    const option = Array.from(modelRouteEl.options).find(item => item.value === data.model);
+    if(option) modelRouteEl.value = data.model;
+    else setSingleModelOption(data.model, "continued on a verified standby route");
+    modelStatusEl.textContent = data.failover ? "continued on a verified standby route" : "ready";
+  }
   return (data.choices?.[0]?.message?.content ?? "").trim();
 }
 
@@ -615,9 +704,21 @@ async function send(text){
   messages.push({ role: "user", content: text });
   setWaiting(true);
   try {
-    const reply = await request(messages, 0.9);
-    messages.push({ role: "assistant", content: reply });
-    return reply;
+    for(let attempt = 0; attempt < 3; attempt++){
+      try {
+        const reply = await request(messages, 0.9);
+        messages.push({ role: "assistant", content: reply });
+        return reply;
+      } catch(err){
+        if(attempt === 2) throw err;
+        note("the other hand is reconnecting <span class=\"breathe\">·</span>");
+        await new Promise(resolve => setTimeout(resolve, 750 * (2 ** attempt)));
+      }
+    }
+    throw new Error("model routes exhausted");
+  } catch(err){
+    if(messages[messages.length - 1]?.role === "user") messages.pop();
+    throw err;
   } finally {
     setWaiting(false);
     keepFocus();
@@ -665,7 +766,7 @@ async function regenerate(){
   } catch(err){
     messages.push({ role: "assistant", content: rejected });   // restore on failure
     last = { userText: last.userText, reply: rejected, lineEl: addLine(rejected, true), avoided: last.avoided };
-    note("can’t reach the model — is it running?", true);
+    note("the other hand is still reconnecting — try again shortly", true);
   } finally {
     setWaiting(false); setRegenEnabled(!!last); keepFocus();
   }
@@ -682,7 +783,7 @@ async function reread(){
     renderReading(reply);
   } catch(err){
     if(prev != null) messages.push({ role: "assistant", content: prev });   // restore on failure
-    note("can’t reach the model — is it running?", true);
+    note("the other hand is still reconnecting — try again shortly", true);
   } finally {
     setWaiting(false); setRereadEnabled(true);
   }
@@ -695,12 +796,11 @@ entry.addEventListener("keydown", async (e) => {
   if(!text || entry.disabled) return;
   note(HINT_DEFAULT);
 
-  const unreachable = `can’t reach the model at ${esc(new URL(CFG.endpoint, location.href).host)} — is it running?`;
-
   if(text === "."){
     entry.value = "";
     let reply;
-    try { reply = await send("."); } catch(err){ return note(unreachable, true); }
+    try { reply = await send("."); }
+    catch(err){ entry.value = "."; return note("the other hand is still reconnecting — press enter to try again", true); }
     reveal(reply);
     return;
   }
@@ -709,7 +809,7 @@ entry.addEventListener("keydown", async (e) => {
   last = null; setRegenEnabled(false);
   let reply;
   try { reply = await send(text); }
-  catch(err){ return note(unreachable, true); }
+  catch(err){ entry.value = text; return note("the other hand is still reconnecting — press enter to try again", true); }
 
   if(isCorrective(reply)){
     // don't advance the poem; surface the correction quietly

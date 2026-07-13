@@ -4,6 +4,7 @@
 window.CORPSE_CONFIG = {
   // Direct multi-LoRA vLLM connection for local play.
   endpoint: "http://127.0.0.1:1234/v1/chat/completions",
+  readyEndpoint: "",
   model: "exquisite-corpse",
 
   // Leave this blank for one direct local vLLM choice. A configured catalog
@@ -22,6 +23,7 @@ window.CORPSE_CONFIG = {
 
 // Leave config.local.js absent on published sites. Their built-in defaults are:
 //   chat:   https://inference-arcade.com/api/cadavre/chat
+//   ready:  https://inference-arcade.com/api/cadavre/ready
 //   models: https://inference-arcade.com/api/cadavre/models
 // Provider credentials belong to that server-side proxy. They never belong in
 // page source, URLs, browser storage, console output, or this example.

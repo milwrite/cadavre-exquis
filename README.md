@@ -1,15 +1,18 @@
 # Exquisite Corpse — surrealist corpus → Gemma QLoRA
 
 Fine-tune a small Gemma to write surreal, modernist **next-line continuations**,
-to feed the *Exquisite Corpse* game bot (deployed on `deepseek-v4-flash`).
+to feed the *Exquisite Corpse* game bot through a readiness-checked,
+multi-provider model pool.
 
 **Live:** https://milwrite.github.io/cadavre-exquis/ is the canonical Pages
-build, mirrored at https://inference-arcade.com/cadavre. The featured parlor and
-the minimal [`/ui/corpse.html`](ui/corpse.html) surface offer the tuned Legion
-adapter when it is reachable, followed by the models available to the Ollama
-Cloud account. Remote play goes through the Inference Arcade proxy, which keeps
-provider credentials on the server. `ui/config.local.js` remains the local
-override for a direct vLLM or Ollama endpoint.
+build, mirrored at https://inference-arcade.com/cadavre. The featured parlor
+uses a server-managed `gemma3:4b` route; the minimal
+[`/ui/corpse.html`](ui/corpse.html) surface also exposes the available model
+catalog. Remote play goes through the Inference Arcade proxy, which verifies a
+real generation before play, keeps the active route warm, and fails over across
+OpenRouter, Ollama Cloud, and healthy standby models without exposing provider
+credentials. `ui/config.local.js` remains the local override for a direct vLLM
+or Ollama endpoint.
 
 Pipeline: scrape public-domain modernist/imagist/surrealist verse → clean &
 dedup → reshape into next-line chat examples → QLoRA a small Gemma with Unsloth.

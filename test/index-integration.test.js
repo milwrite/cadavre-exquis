@@ -20,6 +20,16 @@ test("the canonical page presents one clean model setting", () => {
   assert.doesNotMatch(html, /OpenRouter|Ollama Cloud|Ollama Fallback/);
 });
 
+test("the table stays closed until a generated readiness check succeeds", () => {
+  assert.match(html, /readyEndpoint: REMOTE_API \+ "\/ready"/);
+  assert.match(html, /model: "ollama:gemma3:4b"/);
+  assert.match(html, /id="startBtn" class="primary" disabled>warming…<\/button>/);
+  assert.match(html, /async function warmSelectedModel/);
+  assert.match(html, /if \(!data\.ready \|\| !data\.model\)/);
+  assert.match(html, /data\.failover \? "ready on a verified standby route"/);
+  assert.doesNotMatch(html, /the model isn’t answering|is it running\?/);
+});
+
 test("the canonical page never sends hidden folds to the model", () => {
   assert.doesNotMatch(html, /EARLIER FOLDS/);
   assert.doesNotMatch(html, /contributions\.slice\(-7, -1\)/);
