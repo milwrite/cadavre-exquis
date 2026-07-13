@@ -214,8 +214,18 @@
 
     .table-setting select:hover { border-bottom-color: var(--wine-bright); }
 
-    .table-actions { margin-top: 1rem; }
-    .table-actions .primary { width: 100%; padding-block: 0.9em; }
+    .table-actions {
+      display: flex;
+      justify-content: center;
+      margin-top: clamp(1.25rem, 3vh, 2rem);
+    }
+
+    .table-actions .primary {
+      width: auto;
+      min-width: 9rem;
+      padding: 0.75em 2.5em;
+      background: var(--wine-wash);
+    }
 
     /* ── buttons: quiet catalog chrome ──────────────────────────────────── */
     button {
@@ -704,7 +714,7 @@
           <div class="table-setting">
             <label class="setting-field model-route">
               <span class="setting-label">the other hand</span>
-              <select id="modelRoute" aria-label="model provider and model">
+              <select id="modelRoute" aria-label="model">
                 <option value="">loading available models…</option>
               </select>
             </label>
@@ -1168,7 +1178,11 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     /* ── talking to the model ───────────────────────────────────────────── */
     let activeModel = CFG.model;
 
-    function setSingleModelOption(label = CFG.model) {
+    function modelLabel(model) {
+      return String(model || "").replace(/^(?:ollama|openrouter|legion):/, "");
+    }
+
+    function setSingleModelOption(label = modelLabel(CFG.model)) {
       const select = el("modelRoute");
       select.replaceChildren();
       const option = document.createElement("option");
@@ -1179,68 +1193,10 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       el("connModel").textContent = label;
     }
 
-    function renderModelOptions(catalog) {
-      const select = el("modelRoute");
-      const routes = Array.isArray(catalog?.models) ? catalog.models : [];
-      if (!routes.length) { setSingleModelOption(); return; }
-
-      select.replaceChildren();
-      const groups = new Map();
-      const groupLabel = (provider) => /legion/i.test(provider)
-        ? "Fine-tuned on Legion"
-        : "Ollama Cloud";
-
-      routes.forEach((route) => {
-        if (!route?.id) return;
-        const provider = route.provider || route.id.split(":", 1)[0] || "models";
-        const label = groupLabel(provider);
-        if (!groups.has(label)) {
-          const group = document.createElement("optgroup");
-          group.label = label;
-          groups.set(label, group);
-          select.appendChild(group);
-        }
-        const option = document.createElement("option");
-        option.value = route.id;
-        option.textContent = String(route.label || route.name || route.model || route.id)
-          .replace(" (OpenRouter; Ollama Fallback)", "");
-        option.disabled = route.available === false;
-        groups.get(label).appendChild(option);
-      });
-
-      const available = routes.filter((route) => route?.id && route.available !== false);
-      if (!available.length) { setSingleModelOption(); return; }
-      const chosen = Core.chooseModel(catalog, [CFG.model]);
-      CFG.model = chosen.id;
-      select.value = CFG.model;
-      select.disabled = available.length < 2;
-      el("connModel").textContent = chosen?.label || chosen?.name || chosen?.model || CFG.model;
-    }
-
-    async function loadModelOptions() {
-      const customConnection = params.has("endpoint") || params.has("model");
-      if (!CFG.modelsEndpoint || customConnection) { setSingleModelOption(); return; }
-      try {
-        const response = await fetch(CFG.modelsEndpoint, { headers: { Accept: "application/json" } });
-        if (!response.ok) throw new Error("model catalog returned " + response.status);
-        renderModelOptions(await response.json());
-      } catch {
-        setSingleModelOption();
-      }
-    }
-
-    el("modelRoute").addEventListener("change", (event) => {
-      if (!event.target.value) return;
-      CFG.model = event.target.value;
-      activeModel = CFG.model;
-      const option = event.target.options[event.target.selectedIndex];
-      el("connModel").textContent = option?.textContent || CFG.model;
-    });
-
     function showRoute(data) {
       if (!data.model) return;
       activeModel = data.model;
-      el("connModel").textContent = data.model + (data.provider ? ` via ${data.provider}` : "");
+      el("connModel").textContent = modelLabel(data.model);
     }
 
     async function chat(messages, maxTokens) {
@@ -1794,10 +1750,10 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     }
 
     /* ── footer connection line ─────────────────────────────────────────── */
-    el("connModel").textContent = CFG.model;
+    el("connModel").textContent = modelLabel(CFG.model);
     el("connHost").textContent = endpointHost();
 
-    loadModelOptions();
+    setSingleModelOption();
     syncSeats();
     rebuildWall();
     el("loadWallMore").addEventListener("click", () => loadWall(wallCursor));

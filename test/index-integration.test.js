@@ -10,8 +10,14 @@ test("the canonical page loads the tested game core", () => {
   assert.match(html, /<script src="assets\/cadavre-core\.js"><\/script>/);
   assert.match(html, /Core\.buildTurnPrompt/);
   assert.match(html, /Core\.validateContribution/);
-  assert.match(html, /Core\.chooseModel/);
   assert.match(html, /Core\.matchPhrase/);
+});
+
+test("the canonical page presents one clean model setting", () => {
+  assert.match(html, /function modelLabel\(model\)/);
+  assert.match(html, /setSingleModelOption\(\);/);
+  assert.doesNotMatch(html, /renderModelOptions/);
+  assert.doesNotMatch(html, /OpenRouter|Ollama Cloud|Ollama Fallback/);
 });
 
 test("the canonical page never sends hidden folds to the model", () => {
