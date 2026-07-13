@@ -34,6 +34,11 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   a `gemma3:4b` turn. Railway's `OLLAMA_API_KEY` matches the supplied environment
   value. The Legion choice stays disabled until Railway can reach its HTTPS vLLM
   endpoint.
+- **2026-07-13 shared wall pages and voting:** wall poems show 20 lines per
+  numbered page, and upvotes and downvotes persist in Railway Postgres through
+  the application API. A 45-line live test covered three pages, vote changes,
+  reload persistence, and clearing a vote. The temporary post was removed, and
+  both public pages returned to the three real entries without console errors.
 
 ## Automation
 - [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 12:00 (noon)**.
