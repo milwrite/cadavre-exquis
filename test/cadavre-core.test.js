@@ -105,8 +105,40 @@ test("quote matching is consecutive, case-insensitive, and punctuation-tolerant"
   assert.equal(Core.matchPhrase(tokens, "..."), null);
 });
 
+test("wall poems paginate every twenty lines without dropping blank lines", () => {
+  const twenty = Array.from({ length: 20 }, (_, index) => `line ${index + 1}`);
+  const twentyOne = [...twenty, "line 21"];
+  const eighty = Array.from({ length: 80 }, (_, index) => `line ${index + 1}`);
+  const eightyOne = [...eighty, "line 81"];
+
+  assert.deepEqual(Core.paginateLines(twenty), [twenty]);
+  assert.deepEqual(Core.paginateLines(twentyOne), [twenty, ["line 21"]]);
+  assert.deepEqual(Core.paginateLines(eighty).map((page) => page.length), [20, 20, 20, 20]);
+  assert.deepEqual(Core.paginateLines(eightyOne).map((page) => page.length), [20, 20, 20, 20, 1]);
+
+  const withBlankLine = [...twenty.slice(0, 10), "", ...twenty.slice(10)];
+  const pages = Core.paginateLines(withBlankLine);
+  assert.equal(pages.length, 2);
+  assert.equal(pages[0][10], "");
+  assert.equal(pages[1][0], "line 20");
+
+  const windowsText = twentyOne.join("\r\n");
+  assert.deepEqual(Core.paginateLines(windowsText), [twenty, ["line 21"]]);
+  assert.deepEqual(Core.paginateLines("first\n\nthird", 2), [["first", ""], ["third"]]);
+  assert.deepEqual(Core.paginateLines("last line\n", 20), [["last line", ""]]);
+});
+
+test("wall vote choices switch and toggle clear", () => {
+  assert.equal(Core.nextWallVote(0, 1), 1);
+  assert.equal(Core.nextWallVote(1, 1), 0);
+  assert.equal(Core.nextWallVote(1, -1), -1);
+  assert.equal(Core.nextWallVote(-1, -1), 0);
+  assert.throws(() => Core.nextWallVote(0, 0), /wall vote/);
+});
+
 test("invalid table settings fail before a game starts", () => {
   assert.throws(() => Core.createGameState({ players: 1 }), /players/);
   assert.throws(() => Core.createGameState({ players: 2, modelSeat: 3 }), /modelSeat/);
   assert.throws(() => Core.validateContribution("moon", 6), /maxWords/);
+  assert.throws(() => Core.paginateLines(["moon"], 0), /pageSize/);
 });

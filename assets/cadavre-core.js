@@ -115,6 +115,33 @@
     return null;
   }
 
+  function paginateLines(text, pageSize = 20) {
+    const size = Number(pageSize);
+    if (!Number.isInteger(size) || size < 1) {
+      throw new RangeError("pageSize must be a positive integer");
+    }
+
+    const list = Array.isArray(text)
+      ? text.map((line) => String(line ?? ""))
+      : String(text ?? "").split(/\r?\n/);
+    if (!list.length) return [[]];
+
+    const pages = [];
+    for (let index = 0; index < list.length; index += size) {
+      pages.push(list.slice(index, index + size));
+    }
+    return pages;
+  }
+
+  function nextWallVote(current, requested) {
+    const selected = Number(current);
+    const choice = Number(requested);
+    if (choice !== -1 && choice !== 1) {
+      throw new RangeError("requested wall vote must be -1 or 1");
+    }
+    return selected === choice ? 0 : choice;
+  }
+
   function createGameState({ players = 2, modelSeat = 2, maxWords = 3 } = {}) {
     turnInfo({ actorIndex: 0, players, modelSeat });
     checkWordLimit(maxWords);
@@ -210,6 +237,8 @@
     chooseModel,
     normalizeWord,
     matchPhrase,
+    paginateLines,
+    nextWallVote,
     createGameState,
     addContribution,
     passTurn,
