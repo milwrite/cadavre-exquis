@@ -36,9 +36,9 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - [x] **Source: PoetryDB** — `data/raw/poetrydb.jsonl` (~3k target; check count).
 - [x] **Source: Gutenberg volumes** — `data/raw/gutenberg.jsonl` = **2439 poems**.
 - [x] **Source: Gutenberg Poetry Corpus** — `data/raw/gpc.jsonl` = **15000 pseudo-poems**.
-- [x] **Clean/dedup** — `data/interim/poems.jsonl` = **21,437 unique poems**. RERUN whenever a source changes.
-- [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **215,533 / 8,104 examples**.
-- [x] **≥10,000 unique poems confirmed** — 21,437 (target exceeded).
+- [x] **Clean/dedup** — `data/interim/poems.jsonl` = **21,744 unique poems**. RERUN whenever a source changes.
+- [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **228,876 / 8,294 examples**.
+- [x] **≥10,000 unique poems confirmed** — 21,744 (target exceeded).
 - [x] **Dataset card** — `data/processed/dataset_card.md` written.
 - [x] **Install train deps** — done; verified **torch 2.10.0+cu128, CUDA True, RTX 5090**.
 - [x] **Train QLoRA** — trained on **`unsloth/gemma-4-E4B-it`** (on-stock vLLM base),
@@ -59,12 +59,12 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 | source | raw records | kept after clean |
 |---|---|---|
 | poetrydb | 2526 | 2295 |
-| gutenberg volumes | 5172 | 4490 |
+| gutenberg volumes | 5489 | 4797 |
 | gpc (padding) | 15000 | 14652 |
-| **unique poems after clean** | | **21437** |
-| **train / val examples** | | **215533 / 8104** |
+| **unique poems after clean** | | **21744** |
+| **train / val examples** | | **228876 / 8294** |
 
-Core (surreal/modernist) = poetrydb + gutenberg = **6785** poems; GPC is padding.
+Core (surreal/modernist) = poetrydb + gutenberg = **7092** poems; GPC is padding.
 
 ## Known follow-ups (cron can pick these up to improve quality)
 1. ~~Recover missed volumes~~ **DONE** — `resolve_book` now searches title+author,
@@ -92,13 +92,28 @@ Core (surreal/modernist) = poetrydb + gutenberg = **6785** poems; GPC is padding
    Calligrammes [55569] exist there only in **French** (the `en`-only filter
    correctly rejects them); PD *English* translations would need Wikisource/
    Archive.org vetting, deferred.
-5. **Stale miss-cache** (discovered 2026-07-12) — `data/raw/.volume_cache/resolve.json`
-   caches misses permanently, so several config volumes never landed and won't
-   retry even after the resolver improved: Rimbaud *Illuminations*/*A Season in
-   Hell*, Cummings *Tulips and Chimneys*, Sandburg *Chicago/Cornhuskers/Smoke and
-   Steel*, Bogan, et al. (see `logs/gutenberg_extend.log`). The corpus lacks
-   Rimbaud in English despite the config listing it. Fix: prune known-good titles
-   from the miss cache (or add `gid` pins) and re-run `src.sources.gutenberg`.
+5. ~~Stale miss-cache~~ **DONE (2026-07-15)** — root-caused and fixed. Two bugs
+   compounded: (a) the resolver cached `None` misses permanently
+   (`if key in resolve_cache` short-circuited before any retry), and (b) Gutendex's
+   `search=` endpoint is intermittently flaky here (some queries hang to timeout,
+   others return `count=0`), so many "misses" were **false**. Fix: a pinned `gid`
+   now **bypasses the cache** and resolves via the reliable `ids=` short-circuit
+   (`src/sources/gutenberg.py`), making recovery deterministic regardless of search
+   flakiness. **Evidence corrects the original premise** — most listed titles are
+   *genuinely absent* from Project Gutenberg: Sandburg (only *Rootabaga* children's
+   prose is there), E. E. Cummings (every "Cummings" hit is *Ray* Cummings pulp SF),
+   Aiken's three requested titles, and the Untermeyer/Monroe anthologies (resolve to
+   different same-named authors), plus Rimbaud in English. **Recovered 4 verified,
+   gid-pinned volumes (+307 poems → 21,744; +13.3k train → 228,876):** *The Book of
+   American Negro Poetry* [11986] (James Weldon Johnson, ed. — flagship
+   Harlem-Renaissance anthology; had *also* failed the resolver's last-name filter
+   because PG lists no author for it), Aiken *The House of Dust* [1246], Untermeyer
+   *Challenge* [34001], Amy Lowell *A Dome of Many-Coloured Glass* [261] — the latter
+   three fulfil the config's Aiken/Untermeyer/Lowell curatorial intent whose
+   *requested* titles are absent. Minor: a couple of bare title-page fragments leaked
+   in (no imprint signal for `is_front_matter()`; see #6's accepted limitation).
+   Left cached as misses (fast-skip, avoids the flaky search): Sandburg, Cummings,
+   Rimbaud EN, Rilke *Book of Images*, the Untermeyer/Monroe/Kreymborg anthologies.
 6. ~~Title-page front-matter~~ **DONE (2026-07-13)** — added `is_front_matter()`
    to `src/common.py`, wired into `src.clean` (drops at merge, so it catches every
    source and needs no network re-fetch). It flags a chunk of ≤8 non-blank lines

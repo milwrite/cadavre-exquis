@@ -199,7 +199,13 @@ def main() -> None:
         if args.limit and processed >= args.limit:
             break
         key = f"{q['title']}||{q.get('author')}"
-        if key in resolve_cache:
+        # A pinned `gid` is authoritative: always re-resolve it via the reliable
+        # ids= short-circuit, bypassing the cache. Otherwise a stale `None` miss
+        # (Gutendex's search endpoint is flaky, so misses get cached wrongly)
+        # would permanently shadow the pin. Un-pinned queries keep the cache-first
+        # behaviour (a cached hit or known miss short-circuits the flaky search).
+        pinned = bool(q.get("gid"))
+        if not pinned and key in resolve_cache:
             hit = resolve_cache[key]  # {gid,title,author,text_url} or None (known miss)
         else:
             resolved = resolve_book(q)
