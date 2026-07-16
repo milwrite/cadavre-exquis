@@ -53,7 +53,15 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - [ ] **(opt) GGUF export** — `GGUF=1 .venv/bin/python train/train_qlora.py`.
 - [ ] **(opt) Ollama model** — `.venv/bin/python deploy/build_ollama_model.py --create`
       (wraps GGUF with the real Exquisite Corpse system prompt).
-- [ ] **(opt) Push private HF dataset** under `milwright/`.
+- [x] **(opt) Push private HF dataset** (2026-07-16) — **private** repo
+      https://huggingface.co/datasets/milwright/exquisite-corpse-next-line
+      (`next_line.{train,val}.jsonl` byte-exact, `dataset_stats.json`, and the
+      card as `README.md` with viewer-config frontmatter → train/validation
+      splits). Reproducible via `deploy/push_hf_dataset.sh` (idempotent, re-asserts
+      private). Refreshed `data/processed/dataset_card.md` counts first — they
+      were stale from before follow-up #5 (21,446→**21,744** poems,
+      215,577→**228,876** train, +the 4 recovered volumes). Verified
+      `private: true` + file sizes via `hf datasets info`.
 
 ## Counts (update each run)
 | source | raw records | kept after clean |
