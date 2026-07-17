@@ -50,9 +50,27 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
       host, no GPU reload) → `docs/eval-e4b.md`, 12 held-out prefixes.
 - [x] **Pushed adapter to HF** — https://huggingface.co/milwright/exquisite-corpse-gemma-4-e4b-lora
       (public); uncommented in `../cloze-reader-monorepo/finetune/deploy/serve_gemma.sh`.
-- [ ] **(opt) GGUF export** — `GGUF=1 .venv/bin/python train/train_qlora.py`.
-- [ ] **(opt) Ollama model** — `.venv/bin/python deploy/build_ollama_model.py --create`
-      (wraps GGUF with the real Exquisite Corpse system prompt).
+- [x] **(opt) GGUF export** (2026-07-17) — exported the **shipped** adapter
+      (`outputs/lora`, the 2500-step one on HF/vLLM) to a GGUF **LoRA adapter**
+      → `outputs/gguf/exquisite-corpse-lora-bf16.gguf` (gitignored, 73.4 MB, 588
+      tensors) via new `deploy/export_gguf.py`. Verified with `GGUFReader`:
+      `general.type=adapter`, `adapter.type=lora`, `general.architecture=gemma4`,
+      **`adapter.lora.alpha=16`** (matches the trained config → byte-consistent
+      with production). Reproduce: `.venv/bin/python deploy/export_gguf.py`.
+      **Not** `GGUF=1 train_qlora.py`: that path `trainer.train()`s first, so it
+      retrains from scratch (`--epochs 2` ≈ 28k steps) and would ship a *different*
+      adapter than production. Why an *adapter* GGUF, not a merged model: the E4B
+      base's projections are `Gemma4ClippableLinear` (elastic-MatFormer) — `peft`
+      refuses to merge a LoRA onto that custom class, the reliable Unsloth merge
+      needs exclusive GPU (held by the live vLLM host, ~3 GB free), and no
+      `llama-export-lora` binary / base GGUF is on hand to merge at the GGUF level.
+      llama.cpp's `convert_lora_to_gguf.py` reads the adapter safetensors and
+      remaps names by string, so it converts cleanly on **CPU** with vLLM still up.
+- [ ] **(opt) Ollama model** — `deploy/build_ollama_model.py` is now
+      **adapter-aware** (emits `FROM <base>` + `ADAPTER ./…lora.gguf`; errors if
+      no `--base`/`BASE_GGUF` given). Still needs a gemma-4-E4B **base GGUF**
+      present (or an Ollama model name, e.g. `hf.co/unsloth/gemma-4-E4B-it-GGUF`)
+      **and** Ollama installed to run `--create` — deferred to a run that has both.
 - [x] **(opt) Push private HF dataset** (2026-07-16) — **private** repo
       https://huggingface.co/datasets/milwright/exquisite-corpse-next-line
       (`next_line.{train,val}.jsonl` byte-exact, `dataset_stats.json`, and the
