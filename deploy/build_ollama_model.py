@@ -65,7 +65,10 @@ def main() -> None:
 
     system = find_system_prompt()
     gguf, is_adapter = find_gguf()
-    rel = pathlib.Path(gguf).relative_to(ROOT) if str(gguf).startswith(str(ROOT)) else gguf
+    # Ollama resolves ADAPTER/FROM paths relative to the *Modelfile's* directory
+    # (deploy/), NOT the cwd — so reference the GGUF from there. The Modelfile and
+    # the GGUF (outputs/gguf/) are siblings under ROOT, so this is ../outputs/…
+    rel = os.path.relpath(gguf, MODELFILE.parent)
 
     if is_adapter:
         if not args.base:
@@ -75,9 +78,9 @@ def main() -> None:
                 "model to apply the adapter to. Set BASE_GGUF to skip the flag.")
         # `--base` is used verbatim: a GGUF path (e.g. ./base.gguf) or an Ollama
         # model name (e.g. hf.co/unsloth/gemma-4-E4B-it-GGUF) both work in FROM.
-        head = f"FROM {args.base}\nADAPTER ./{rel}\n"
+        head = f"FROM {args.base}\nADAPTER {rel}\n"
     else:
-        head = f"FROM ./{rel}\n"
+        head = f"FROM {rel}\n"
 
     # Gemma GGUFs carry their own chat template; we only set SYSTEM, stop token,
     # and low-randomness params suited to the one/two-word corpse turns.

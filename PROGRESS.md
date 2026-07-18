@@ -66,11 +66,34 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
       `llama-export-lora` binary / base GGUF is on hand to merge at the GGUF level.
       llama.cpp's `convert_lora_to_gguf.py` reads the adapter safetensors and
       remaps names by string, so it converts cleanly on **CPU** with vLLM still up.
-- [ ] **(opt) Ollama model** — `deploy/build_ollama_model.py` is now
-      **adapter-aware** (emits `FROM <base>` + `ADAPTER ./…lora.gguf`; errors if
-      no `--base`/`BASE_GGUF` given). Still needs a gemma-4-E4B **base GGUF**
-      present (or an Ollama model name, e.g. `hf.co/unsloth/gemma-4-E4B-it-GGUF`)
-      **and** Ollama installed to run `--create` — deferred to a run that has both.
+- [ ] **(opt) Ollama model** — **BLOCKED at the Ollama runtime (2026-07-18).**
+      Prereqs the earlier note asked for are now *both present*: Ollama **0.24.0**
+      is installed and the base is already pulled as the Ollama model **`gemma4:e4b`**
+      (9.6 GB) — no `hf.co/…` download needed. `build_ollama_model.py --base gemma4:e4b
+      --create` now writes a correct Modelfile (`FROM gemma4:e4b` + `ADAPTER
+      ../outputs/gguf/…lora.gguf`) and `ollama create` **succeeds** (copies + parses
+      the adapter GGUF). But `ollama run` fails at model init:
+      **`500 … failed to initialize model: loras are not yet implemented`.**
+      Root cause: gemma-4 E4B runs on Ollama's **new native engine** (not the legacy
+      llama.cpp runner), and that engine does **not** implement LoRA `ADAPTER` layers
+      yet. `ollama create` only writes a manifest, so the failure is deferred to run.
+      Removed the non-functional `exquisite-corpse-tuned` model (a create-but-can't-run
+      trap); it's regenerable in seconds via the command above once a path below clears.
+      **Fixed en route:** the script emitted `ADAPTER ./outputs/…`, but Ollama resolves
+      ADAPTER paths relative to the **Modelfile's** dir (`deploy/`), so it looked for
+      `deploy/outputs/…` (file-not-found). Now uses `os.path.relpath(gguf,
+      Modelfile.parent)` → `../outputs/…` (portable). `deploy/Modelfile` is now
+      gitignored (generated; points at the gitignored `outputs/` GGUF).
+      **Paths forward** (all out of scope for a single verified step): (a) merge the
+      LoRA into a single model GGUF (`FROM ./merged.gguf`, no ADAPTER — the native
+      engine runs merged models fine) — needs a **gemma4-aware, working**
+      `llama-export-lora` + a base gemma4 GGUF; the sibling `Quimbot/…/llama.cpp` b7968
+      build knows `GEMMA3N` but **not `GEMMA4`**, and its binary can't load
+      (`libllama.so.0` missing), so this needs a rebuild/newer llama.cpp first;
+      (b) wait for Ollama's native engine to add LoRA support (upgrade past 0.24.0);
+      (c) **already solved for local use**: the tuned adapter is served by the
+      multi-LoRA **vLLM** host on :1234 (`exquisite-corpse`), which the UIs point at —
+      Ollama is only a convenience alternative.
 - [x] **(opt) Push private HF dataset** (2026-07-16) — **private** repo
       https://huggingface.co/datasets/milwright/exquisite-corpse-next-line
       (`next_line.{train,val}.jsonl` byte-exact, `dataset_stats.json`, and the
