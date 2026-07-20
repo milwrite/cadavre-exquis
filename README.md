@@ -6,7 +6,9 @@ to feed the *Exquisite Corpse* game bot (deployed on `deepseek-v4-flash`).
 **Live:** https://milwrite.github.io/cadavre-exquis/ — `index.html` (featured) is
 the landing page; the minimal surface is at [`/ui/corpse.html`](ui/corpse.html).
 Note: playing needs a model backend — set one in `ui/config.local.js` (gitignored),
-so the public page is a showcase until you point it at your own Ollama.
+so the public page is a showcase until you point it at your own endpoint. The
+default is a local multi-LoRA **vLLM** host serving the tuned `exquisite-corpse`
+adapter (`127.0.0.1:1234`); any OpenAI-compatible endpoint (Ollama, hosted) works.
 
 Pipeline: scrape public-domain modernist/imagist/surrealist verse → clean &
 dedup → reshape into next-line chat examples → QLoRA a small Gemma with Unsloth.
@@ -40,8 +42,15 @@ MODEL=unsloth/gemma-3-4b-it .venv/bin/python train/train_qlora.py --epochs 2
 ```
 
 ## Current numbers
-19,061 unique poems · 156k train / 6.1k val next-line examples. See
-`data/processed/dataset_card.md`. Everything is public-domain or openly licensed.
+21,744 unique poems · 228,876 train / 8,294 val next-line examples, split **by
+poem** (95/5). See `data/processed/dataset_card.md`. Everything is public-domain
+or openly licensed.
+
+The QLoRA adapter is trained (on `unsloth/gemma-4-E4B-it`, the multi-LoRA vLLM
+base), published to the Hub
+([`milwright/exquisite-corpse-gemma-4-e4b-lora`](https://huggingface.co/milwright/exquisite-corpse-gemma-4-e4b-lora)),
+and served by the repo's multi-LoRA vLLM host (`scripts/vllm_serve.sh`) alongside
+its sibling adapters. See `PROGRESS.md` for the full status ledger.
 
 ## Design decisions
 Aesthetic-first PD-heavy corpus; chat next-line objective with loss on the

@@ -25,6 +25,13 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   actually folds contributions out of sight during play, reveals locally, and
   has a viewable wall; error paths all have retry. Verified end-to-end in-browser
   against the live vLLM adapter.
+- **2026-07-20 README resync:** the public `README.md` "Current numbers" were
+  stale from an early run (19,061 poems · 156k/6.1k) — corrected to ground truth
+  (**21,744 poems · 228,876/8,294**, verified via `wc -l` on `data/`), added the
+  shipped-adapter status + HF link, and fixed the backend description (default is
+  the local multi-LoRA **vLLM** host, not "your own Ollama"). Also fixed a stale
+  inline count in this file (gutenberg volumes checkbox said 2439 → **5489** raw,
+  matching the Counts table). No data/pipeline change — docs only.
 
 ## Automation
 - [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 12:00 (noon)**.
@@ -34,7 +41,7 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 ## Pipeline status
 - [x] **Scaffold + venv + git** — `.venv` (py3.12), package `src/`.
 - [x] **Source: PoetryDB** — `data/raw/poetrydb.jsonl` (~3k target; check count).
-- [x] **Source: Gutenberg volumes** — `data/raw/gutenberg.jsonl` = **2439 poems**.
+- [x] **Source: Gutenberg volumes** — `data/raw/gutenberg.jsonl` = **5489 poems**.
 - [x] **Source: Gutenberg Poetry Corpus** — `data/raw/gpc.jsonl` = **15000 pseudo-poems**.
 - [x] **Clean/dedup** — `data/interim/poems.jsonl` = **21,744 unique poems**. RERUN whenever a source changes.
 - [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **228,876 / 8,294 examples**.
