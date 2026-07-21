@@ -38,6 +38,22 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   Runs headless Claude Code against `CONTINUE.md`, advances one step, commits.
   Disable: `crontab -e` → delete the `exquisite-corpse` lines. Log: `logs/cron.log`.
 
+## Tests
+- [x] **Regression suite for pure pipeline logic** (2026-07-21) —
+  `tests/test_pipeline.py`, **30 tests, stdlib `unittest` only** (no new dep;
+  runs on the cron box as-is). Run: `.venv/bin/python -m unittest discover -s tests`.
+  It's a safety net for the *silent* transforms an autonomous daily cron could
+  regress without ever crashing — each test cites the follow-up it guards:
+  `is_front_matter` (**#6**, incl. the `&`-prefixed-publisher `\b` gotcha —
+  verified the group-level-`\b` mistake actually flips the test red, so it's a
+  real net not a tautology), `segment_poems` coarse→1-blank fallback (**#2**,
+  Spoon-River lumping), plus `content_hash` dedup collapse, `examples_for`
+  next-line slicing (stanza breaks never a target, context bounding, message
+  shape), `poem_split` determinism, `is_section_label` bare-`I` edge case,
+  `lines_to_stanza_lines`, `clean_line`, `is_probably_prose`,
+  `strip_gutenberg_boilerplate`. **No data touched** — unit tests over the
+  functions; the shipped corpus/adapter are unchanged.
+
 ## Pipeline status
 - [x] **Scaffold + venv + git** — `.venv` (py3.12), package `src/`.
 - [x] **Source: PoetryDB** — `data/raw/poetrydb.jsonl` (~3k target; check count).
