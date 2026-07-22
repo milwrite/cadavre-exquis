@@ -28,7 +28,12 @@ from src.common import (  # noqa: E402
     lines_to_stanza_lines,
     strip_gutenberg_boilerplate,
 )
-from src.build_dataset import INSTRUCTION, examples_for, poem_split  # noqa: E402
+from src.build_dataset import (  # noqa: E402
+    INSTRUCTION,
+    assemble_examples,
+    examples_for,
+    poem_split,
+)
 from src.sources.gutenberg import segment_poems  # noqa: E402
 
 
@@ -199,6 +204,70 @@ class TestSegmentPoems(unittest.TestCase):
         epitaphs = ["\n".join([f"epitaph {i} one", f"epitaph {i} two", f"epitaph {i} three"]) for i in range(6)]
         body = "\n\n".join(epitaphs)  # single blank line (2 newlines) between poems
         self.assertEqual(len(segment_poems(body)), 6)
+
+
+class TestAssembleExamples(unittest.TestCase):
+    """follow-up #3 (genre balance) — the load-bearing GPC-padding transform,
+    extracted from build_dataset.main() as a pure function so it can be tested.
+
+    Two invariants keep the modernist core dominant and the eval set honest:
+      * GPC padding is subsampled to at most `gpc_ratio` x the core-train count.
+      * GPC never enters val (val must measure the real target genre).
+    A silent regression here (cap dropped, or GPC leaking into val) would swamp
+    the corpus with padding or contaminate held-out eval — no crash, no signal.
+    The shipped run: core_train=152584, gpc_train_used=int(152584*0.5)=76292.
+    """
+
+    def _poem(self, pid, source, n_lines):
+        # n_lines lines -> examples_for yields n_lines-1 next-line examples
+        return {"id": pid, "source": source, "lines": [f"{pid}-{i}" for i in range(n_lines)]}
+
+    def test_gpc_capped_to_ratio_of_core_train(self):
+        # val_frac=0 -> every poem lands in train. 2 core poems x 3 lines = 4
+        # core-train examples; cap = int(4 * 0.5) = 2. The gpc poem yields 5
+        # examples (6 lines), so it MUST be subsampled down to the cap of 2.
+        poems = [
+            self._poem("c1", "poetrydb", 3),
+            self._poem("c2", "gutenberg:1", 3),
+            self._poem("g1", "gpc", 6),
+        ]
+        train, val, summary = assemble_examples(poems, val_frac=0.0, gpc_ratio=0.5, max_ctx_lines=24)
+        self.assertEqual(summary["core_train"], 4)
+        self.assertEqual(summary["gpc_train_used"], 2)          # capped, not 5
+        self.assertEqual(summary["train_examples"], 6)          # 4 core + 2 gpc
+        self.assertEqual(len(train), 6)
+        self.assertEqual(val, [])
+
+    def test_gpc_never_enters_val(self):
+        # val_frac=1.0 -> all poems route to val. Core examples become val;
+        # gpc examples on a val poem are DROPPED (never val, never train).
+        poems = [
+            self._poem("c1", "poetrydb", 4),
+            self._poem("g1", "gpc", 6),
+        ]
+        train, val, summary = assemble_examples(poems, val_frac=1.0, gpc_ratio=0.5, max_ctx_lines=24)
+        self.assertTrue(all(not str(e["meta"]["source"]).startswith("gpc") for e in val))
+        self.assertEqual(summary["gpc_train_used"], 0)
+        self.assertEqual(train, [])
+        self.assertEqual(len(val), 3)                           # c1: 4 lines -> 3 examples
+
+    def test_gpc_kept_whole_when_under_cap(self):
+        # gpc under the cap is NOT subsampled: 2 core poems (4 core-train, cap=2)
+        # plus a 2-line gpc poem (1 example, <= 2) -> that lone gpc example stays.
+        poems = [
+            self._poem("c1", "poetrydb", 3),
+            self._poem("c2", "gutenberg:1", 3),
+            self._poem("g1", "gpc", 2),
+        ]
+        _, _, summary = assemble_examples(poems, val_frac=0.0, gpc_ratio=0.5, max_ctx_lines=24)
+        self.assertEqual(summary["gpc_train_used"], 1)
+
+    def test_deterministic_ordering(self):
+        # The sha1 sort is a deterministic shuffle: same input -> same order.
+        poems = [self._poem(f"p{i}", "poetrydb" if i % 2 else "gpc", 4) for i in range(6)]
+        a, _, _ = assemble_examples(poems, val_frac=0.0, gpc_ratio=0.5, max_ctx_lines=24)
+        b, _, _ = assemble_examples(poems, val_frac=0.0, gpc_ratio=0.5, max_ctx_lines=24)
+        self.assertEqual(a, b)
 
 
 if __name__ == "__main__":

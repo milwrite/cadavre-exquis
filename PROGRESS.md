@@ -39,8 +39,8 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   Disable: `crontab -e` → delete the `exquisite-corpse` lines. Log: `logs/cron.log`.
 
 ## Tests
-- [x] **Regression suite for pure pipeline logic** (2026-07-21) —
-  `tests/test_pipeline.py`, **30 tests, stdlib `unittest` only** (no new dep;
+- [x] **Regression suite for pure pipeline logic** (2026-07-21, extended 2026-07-22) —
+  `tests/test_pipeline.py`, **34 tests, stdlib `unittest` only** (no new dep;
   runs on the cron box as-is). Run: `.venv/bin/python -m unittest discover -s tests`.
   It's a safety net for the *silent* transforms an autonomous daily cron could
   regress without ever crashing — each test cites the follow-up it guards:
@@ -53,6 +53,18 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   `lines_to_stanza_lines`, `clean_line`, `is_probably_prose`,
   `strip_gutenberg_boilerplate`. **No data touched** — unit tests over the
   functions; the shipped corpus/adapter are unchanged.
+- [x] **GPC-balance transform now covered** (2026-07-22) — the load-bearing
+  padding cap (**follow-up #3**) lived inside `build_dataset.main()`'s file I/O,
+  so it was the biggest *untested* silent transform. Extracted it verbatim into a
+  pure `assemble_examples(poems, val_frac, gpc_ratio, max_ctx_lines) →
+  (train, val, summary)` seam; `main()` now just reads/writes around it. Added
+  **4 tests** (`TestAssembleExamples`) locking the two invariants that keep the
+  modernist core dominant: GPC train subsampled to ≤ `gpc_ratio`×core-train (the
+  `cap`), and GPC *never* in val. **Refactor proven behavior-preserving:**
+  regenerated `data/processed` with default args and confirmed **byte-identical**
+  to the shipped adapter's data (sha256 match on `next_line.{train,val}.jsonl`
+  + `dataset_stats.json`; 228,876/8,294 reproduced exactly, `git diff` clean) —
+  no corpus/adapter desync.
 
 ## Pipeline status
 - [x] **Scaffold + venv + git** — `.venv` (py3.12), package `src/`.
