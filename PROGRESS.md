@@ -66,6 +66,13 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   + `dataset_stats.json`; 228,876/8,294 reproduced exactly, `git diff` clean) —
   no corpus/adapter desync.
 
+- [x] **Eval span-slicing covered** (2026-07-25) — `tests/test_eval_nll.py`,
+      **4 tests** (TDD, red-first) over `train/eval_nll.py`'s pure scoring seam
+      (`sum_target_logprobs`, `summarize`). The character-offset slicing is that
+      script's silent-failure surface: a fencepost bug would score chat-template
+      markers or the generated token as poem tokens and shift every number in
+      `docs/eval-nll.md` while exiting 0. Suite total: **38** (still stdlib-only).
+
 ## Pipeline status
 - [x] **Scaffold + venv + git** — `.venv` (py3.12), package `src/`.
 - [x] **Source: PoetryDB** — `data/raw/poetrydb.jsonl` (~3k target; check count).
@@ -83,6 +90,17 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
       UI (`ui/config.local.js`) points at it. Needs `VLLM_USE_FLASHINFER_SAMPLER=0`.
 - [x] **Qualitative eval** — `train/eval_vllm.py` (base vs tuned via the live vLLM
       host, no GPU reload) → `docs/eval-e4b.md`, 12 held-out prefixes.
+- [x] **Quantitative eval** (2026-07-25) — `train/eval_nll.py` measures what each
+      model *expects* (vs. what it *writes*): token-level NLL of the **gold**
+      held-out next lines, teacher-forced through the live vLLM host
+      (`/v1/completions` echo+logprobs; `add_special_tokens: false` so the chat
+      template's `<bos>` isn't doubled — verified single-`<bos>` in the echoed
+      tokens). Base and adapter share one tokenizer, so both score the identical
+      token sequence and the gap is purely the LoRA weights. 400 val examples /
+      4,115 gold-line tokens, seed 11: base **5.5106 NLL/tok (ppl 247.3)** vs
+      tuned **3.4485 (ppl 31.5)** — Δ 2.06 nats ≈ **×7.9 per-token likelihood**,
+      tuned wins **98.8%** of examples. Report: `docs/eval-nll.md`; complements
+      the qualitative sheet `docs/eval-e4b.md`. No GPU reload, no `data/` change.
 - [x] **Pushed adapter to HF** — https://huggingface.co/milwright/exquisite-corpse-gemma-4-e4b-lora
       (public); uncommented in `../cloze-reader-monorepo/finetune/deploy/serve_gemma.sh`.
 - [x] **(opt) GGUF export** (2026-07-17) — exported the **shipped** adapter
