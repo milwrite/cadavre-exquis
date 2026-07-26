@@ -32,7 +32,16 @@ fi
 
 echo "===== $(date -Is) continue run start =====" >> logs/cron.log
 
-PROMPT='Read CONTINUE.md and PROGRESS.md in this repository, then advance the project by exactly ONE verified step following that runbook. Prefer the first unchecked box in PROGRESS.md. Long jobs (installing training deps, training) must be started in the background so you can exit promptly. When done, update PROGRESS.md and commit with a descriptive message. Do not restart from scratch, do not delete data/, do not add scrapers for copyright-restricted sites.'
+# Pre-flight: the regression suite (tests/, stdlib-only, ~0.1s) guards the
+# pipeline's silent transforms. Red suite -> yesterday's commit broke something;
+# today's step becomes fixing it, not building on top of it.
+if .venv/bin/python -m unittest discover -s tests >> logs/cron.log 2>&1; then
+  echo "$(date -Is) pre-flight tests OK" >> logs/cron.log
+  PROMPT='Read CONTINUE.md and PROGRESS.md in this repository, then advance the project by exactly ONE verified step following that runbook. Prefer the first unchecked box in PROGRESS.md. Long jobs (installing training deps, training) must be started in the background so you can exit promptly. When done, update PROGRESS.md and commit with a descriptive message. Do not restart from scratch, do not delete data/, do not add scrapers for copyright-restricted sites.'
+else
+  echo "$(date -Is) pre-flight tests FAILED -> repair mode" >> logs/cron.log
+  PROMPT='The regression suite is FAILING: .venv/bin/python -m unittest discover -s tests. Read CONTINUE.md and PROGRESS.md, then make this run'\''s ONE step diagnosing and fixing that failure (root cause, not test deletion or assertion loosening — the tests encode load-bearing pipeline invariants; see PROGRESS.md "Tests"). Verify the suite is green, note the cause in PROGRESS.md, and commit. Do not restart from scratch, do not delete data/, do not add scrapers for copyright-restricted sites.'
+fi
 
 # 45-minute ceiling: enough to complete a step or kick off a background job.
 timeout 45m claude -p "$PROMPT" \
@@ -40,6 +49,15 @@ timeout 45m claude -p "$PROMPT" \
   --add-dir "$PROJ" \
   >> logs/cron.log 2>&1
 code=$?
+
+# Post-run: record whether today's step left the tree green. Can't un-commit
+# from here, but a FAILED line makes the regression loud in the log, and the
+# next run's pre-flight will enter repair mode.
+if .venv/bin/python -m unittest discover -s tests >> logs/cron.log 2>&1; then
+  echo "$(date -Is) post-run tests OK" >> logs/cron.log
+else
+  echo "$(date -Is) post-run tests FAILED — next run will enter repair mode" >> logs/cron.log
+fi
 
 echo "===== $(date -Is) continue run end (exit $code) =====" >> logs/cron.log
 exit 0

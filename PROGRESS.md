@@ -37,6 +37,17 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 12:00 (noon)**.
   Runs headless Claude Code against `CONTINUE.md`, advances one step, commits.
   Disable: `crontab -e` → delete the `exquisite-corpse` lines. Log: `logs/cron.log`.
+- [x] **Cron now enforces the regression suite** (2026-07-26) — the 38-test suite
+  existed as the safety net against silent cron regressions, but *nothing in the
+  autonomous loop ran it*. `scripts/continue.sh` now (a) runs it **pre-flight**:
+  green → normal prompt; red → the day's prompt becomes *diagnose & fix the
+  failure* (root cause, no test deletion) so a broken tree self-heals instead of
+  compounding; (b) runs it **post-run** and logs OK/FAILED to `logs/cron.log`
+  (loud evidence per run; a red post-run triggers next-day repair mode).
+  `CONTINUE.md` §5 also now requires a green suite before commit. Verified both
+  branches with the script's exact gate condition (green → "normal prompt"; an
+  injected failing test → "repair prompt"; cleaned up, suite back to 38/38 OK);
+  `bash -n` clean. No data/pipeline change — automation hardening only.
 
 ## Tests
 - [x] **Regression suite for pure pipeline logic** (2026-07-21, extended 2026-07-22) —

@@ -42,10 +42,15 @@ are checked, pick the highest-value item from "Known follow-ups".
   scheduled run checks the result.
 
 ## 5. Finish every run
-1. Update `PROGRESS.md`: tick completed boxes, update the counts table, note
+1. Run the regression suite: `.venv/bin/python -m unittest discover -s tests`
+   (stdlib-only, ~0.1s). It must be **green before you commit** — it encodes
+   load-bearing pipeline invariants (see PROGRESS.md "Tests"). If your change
+   turns it red, fix the change, not the test. (`scripts/continue.sh` also runs
+   it before and after each cron run; a red pre-flight flips the run to repair mode.)
+2. Update `PROGRESS.md`: tick completed boxes, update the counts table, note
    anything you changed or discovered.
-2. `git add -A && git commit -m "continue: <what you did>"`.
-3. Stop. One solid, verified step per run beats a sprawling half-finished one.
+3. `git add -A && git commit -m "continue: <what you did>"`.
+4. Stop. One solid, verified step per run beats a sprawling half-finished one.
 
 ## Guardrails
 - Only public-domain / openly-licensed text. Don't add scrapers for
