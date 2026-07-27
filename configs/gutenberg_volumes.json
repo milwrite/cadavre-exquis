@@ -1,5 +1,6 @@
 {
-  "_comment": "Curated public-domain modernist / imagist / proto-surrealist volumes. Each entry is a Gutendex search resolved at runtime (no hand-typed ebook IDs). 'author' filters matches; 'tag' labels genre lean. Misses are logged, not fatal — the cron can extend this list.",
+  "_comment": "Curated public-domain modernist / imagist / proto-surrealist volumes. Each entry is a Gutendex search resolved at runtime (no hand-typed ebook IDs). 'author' filters matches; 'tag' labels genre lean. Misses are logged, not fatal — the cron can extend this list. NOTE: every element of 'queries' must be a real query object — the fetcher does q['title'], so a comment object placed in the array is a KeyError, not a comment.",
+  "_lineage_note": "The final block is surrealism's English-language ancestry (follow-up #4). Rimbaud / Lautréamont / Apollinaire are on Project Gutenberg only in French, so the lineage is reached instead through the members of Breton's own genealogy that are English-PD: the 'Anthologie de l'humour noir' canon (Poe, Carroll), the nonsense line (Lear), and the visionary / dream-vision line (Blake, Coleridge, Thomson, Rossetti, Yeats). All gid-pinned per follow-up #5 — Gutendex's search endpoint is flaky here, its ids= endpoint is not.",
   "queries": [
     {"title": "Des Imagistes", "author": null, "tag": "imagist-anthology"},
     {"title": "Some Imagist Poets", "author": null, "tag": "imagist-anthology"},
@@ -72,6 +73,19 @@
     {"title": "The Symbolist Movement in Literature", "author": "Symons", "tag": "symbolist"},
     {"title": "Silhouettes", "author": "Arthur Symons", "tag": "symbolist"},
     {"title": "The Poems and Prose of Ernest Dowson", "author": "Dowson", "tag": "decadent"},
-    {"title": "Poems and Ballads", "author": "Swinburne", "tag": "decadent"}
+    {"title": "Poems and Ballads", "author": "Swinburne", "tag": "decadent"},
+
+    {"title": "Songs of Innocence and of Experience", "author": "Blake", "gid": 1934, "tag": "visionary"},
+    {"title": "Poems of William Blake", "author": "Blake", "gid": 574, "tag": "visionary"},
+    {"title": "The Marriage of Heaven and Hell", "author": "Blake", "gid": 45315, "tag": "visionary"},
+    {"title": "Poems of Coleridge", "author": "Coleridge", "gid": 8208, "tag": "dream-vision"},
+    {"title": "The Complete Poetical Works of Edgar Allan Poe", "author": "Poe", "gid": 10031, "tag": "black-humour-ancestor"},
+    {"title": "Phantasmagoria and Other Poems", "author": "Carroll", "gid": 651, "tag": "black-humour-ancestor"},
+    {"title": "The Hunting of the Snark", "author": "Carroll", "gid": 13, "tag": "black-humour-ancestor"},
+    {"title": "A Book of Nonsense", "author": "Lear", "gid": 13646, "tag": "nonsense"},
+    {"title": "Nonsense Songs", "author": "Lear", "gid": 13647, "tag": "nonsense"},
+    {"title": "The City of Dreadful Night", "author": "James Thomson", "gid": 1238, "tag": "dream-vision"},
+    {"title": "Goblin Market, The Prince's Progress, and Other Poems", "author": "Christina Rossetti", "gid": 16950, "tag": "dream-vision"},
+    {"title": "The Wind Among the Reeds", "author": "Yeats", "gid": 32233, "tag": "symbolist"}
   ]
 }

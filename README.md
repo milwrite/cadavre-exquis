@@ -42,12 +42,14 @@ MODEL=unsloth/gemma-3-4b-it .venv/bin/python train/train_qlora.py --epochs 2
 ```
 
 ## Current numbers
-21,744 unique poems · 228,876 train / 8,294 val next-line examples, split **by
+22,564 unique poems · 257,862 train / 9,661 val next-line examples, split **by
 poem** (95/5). See `data/processed/dataset_card.md`. Everything is public-domain
 or openly licensed.
 
 The QLoRA adapter is trained (on `unsloth/gemma-4-E4B-it`, the multi-LoRA vLLM
-base), published to the Hub
+base) on an earlier snapshot of this corpus (21,744 poems / 228,876 train — the
+corpus has since grown; a retrain would pick up the difference), published to the
+Hub
 ([`milwright/exquisite-corpse-gemma-4-e4b-lora`](https://huggingface.co/milwright/exquisite-corpse-gemma-4-e4b-lora)),
 and served by the repo's multi-LoRA vLLM host (`scripts/vllm_serve.sh`) alongside
 its sibling adapters. See `PROGRESS.md` for the full status ledger.

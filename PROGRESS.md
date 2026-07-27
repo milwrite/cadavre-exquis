@@ -87,11 +87,11 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 ## Pipeline status
 - [x] **Scaffold + venv + git** — `.venv` (py3.12), package `src/`.
 - [x] **Source: PoetryDB** — `data/raw/poetrydb.jsonl` (~3k target; check count).
-- [x] **Source: Gutenberg volumes** — `data/raw/gutenberg.jsonl` = **5489 poems**.
+- [x] **Source: Gutenberg volumes** — `data/raw/gutenberg.jsonl` = **6532 poems**.
 - [x] **Source: Gutenberg Poetry Corpus** — `data/raw/gpc.jsonl` = **15000 pseudo-poems**.
-- [x] **Clean/dedup** — `data/interim/poems.jsonl` = **21,744 unique poems**. RERUN whenever a source changes.
-- [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **228,876 / 8,294 examples**.
-- [x] **≥10,000 unique poems confirmed** — 21,744 (target exceeded).
+- [x] **Clean/dedup** — `data/interim/poems.jsonl` = **22,564 unique poems**. RERUN whenever a source changes.
+- [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **257,862 / 9,661 examples**.
+- [x] **≥10,000 unique poems confirmed** — 22,564 (target exceeded).
 - [x] **Dataset card** — `data/processed/dataset_card.md` written.
 - [x] **Install train deps** — done; verified **torch 2.10.0+cu128, CUDA True, RTX 5090**.
 - [x] **Train QLoRA** — trained on **`unsloth/gemma-4-E4B-it`** (on-stock vLLM base),
@@ -177,12 +177,18 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 | source | raw records | kept after clean |
 |---|---|---|
 | poetrydb | 2526 | 2295 |
-| gutenberg volumes | 5489 | 4797 |
+| gutenberg volumes | 6532 | 5617 |
 | gpc (padding) | 15000 | 14652 |
-| **unique poems after clean** | | **21744** |
-| **train / val examples** | | **228876 / 8294** |
+| **unique poems after clean** | | **22564** |
+| **train / val examples** | | **257862 / 9661** |
 
-Core (surreal/modernist) = poetrydb + gutenberg = **7092** poems; GPC is padding.
+Core (surreal/modernist) = poetrydb + gutenberg = **7912** poems; GPC is padding.
+
+⚠ **Corpus > adapter.** The shipped adapter was trained on the 2026-07-15 snapshot
+(21,744 poems / 228,876 train). The corpus has grown since (follow-up #4, below);
+`data/processed` no longer matches the adapter's training data. Not a defect —
+just don't read the current counts as the adapter's provenance. A retrain needs
+the GPU, which the live vLLM host holds.
 
 ## Known follow-ups (cron can pick these up to improve quality)
 1. ~~Recover missed volumes~~ **DONE** — `resolve_book` now searches title+author,
@@ -198,7 +204,34 @@ Core (surreal/modernist) = poetrydb + gutenberg = **7092** poems; GPC is padding
    desync `data/processed` from the shipped adapter). Full table +
    per-ratio preview: `docs/genre-balance.md`. Re-run:
    `.venv/bin/python -m src.report_balance --write-md`.
-4. ~~Surrealist depth~~ **PARTLY DONE (2026-07-12)** — added the English-PD
+4. ~~Surrealist depth~~ **DONE (2026-07-27)** — the 07-12 pass added the
+   symbolist→decadent lineage but stalled on a real wall: Rimbaud, Lautréamont and
+   Apollinaire are on Project Gutenberg **only in French**, so the `en`-only filter
+   correctly rejects them and PD *English* translations would need Wikisource/
+   Archive.org copyright vetting (out of scope). **Reframed the target instead of
+   forcing that door:** surrealism's English-language ancestry is reachable, and
+   Breton named it himself. Added **12 gid-pinned volumes** along his own
+   genealogy — the *Anthologie de l'humour noir* canon (Poe *Complete Poetical
+   Works* [10031], Carroll *Phantasmagoria* [651] + *The Hunting of the Snark*
+   [13]), the nonsense line (Lear *A Book of Nonsense* [13646], *Nonsense Songs*
+   [13647]), and the visionary / dream-vision line (Blake *Songs of Innocence and
+   of Experience* [1934], *Poems* [574], *The Marriage of Heaven and Hell* [45315];
+   Coleridge *Poems* [8208]; James Thomson *The City of Dreadful Night* [1238];
+   Christina Rossetti *Goblin Market* [16950]; Yeats *The Wind Among the Reeds*
+   [32233]). All 12 resolved and downloaded (**+1043 raw → 6532**); **+820 kept**
+   after dedup/length/lang → **22,564 poems**, **+28,986 train → 257,862** and
+   **+1,367 val → 9,661**. Verified: every volume contributed (Lear 171, Poe 165,
+   Coleridge 140, Rossetti 135, Blake 99, Yeats 50, Carroll 38, Thomson 22) and a
+   spot-checked Lear limerick reaches `next_line.train.jsonl` as a real pair. The
+   GPC cap held on its own — core train 171,908 vs GPC 85,954 = exactly 0.5×, GPC
+   still **33.3%** of train, core still leads 2:1 (`docs/genre-balance.md`
+   regenerated). Method note: every entry is **gid-pinned** per #5, and the volumes
+   were **dry-run segmented before the config was touched** (counts predicted the
+   real run exactly), so the corpus was never the place where a bad volume got
+   discovered. Config gotcha now recorded in the file's own `_comment`: elements of
+   `queries` must be real query objects — the fetcher does `q['title']`, so a
+   comment object in that array is a `KeyError`, not a comment.
+   Still standing from the 07-12 pass — the English-PD
    **symbolist → decadent lineage** (the direct ancestors of surrealism) via the
    existing curated Gutenberg list (licensing-safe: all PG text is US public
    domain, so no new scraper / no Wikisource copyright audit): Baudelaire
@@ -248,3 +281,21 @@ Core (surreal/modernist) = poetrydb + gutenberg = **7092** poems; GPC is padding
    Not addressed: bare title-page fragments with no imprint signal (e.g. "CANZONI
    / TO / OLIVIA…" dedications) are left in — erring toward keeping avoids eating
    real poems; extend the signal set later if they prove noisy.
+7. **Prose filter is blind to wrapped prose** — **OPEN, found 2026-07-27** while
+   vetting #4's volumes. `is_probably_prose()` (`src/common.py`) fires on
+   `avg_line_len > 78 and long_frac > 0.5`, but Project Gutenberg **hard-wraps its
+   text at ~72 columns** — so PG prose *structurally cannot* reach that threshold.
+   The filter catches unwrapped prose and misses the only kind this pipeline
+   ingests, which is why editorial prefaces and critical endnotes survive as
+   "poems" (Poe [10031] bundles essays; Coleridge [8208] bundles notes). Measured
+   with a wrap-robust probe — wrapped prose is *uniformly* near the wrap width
+   (relative stdev of line length < 0.18 at mean > 55 chars) while verse varies
+   widely: **959/21,744 = 4.4%** of the pre-existing corpus, **44/1,043 = 4.2%** of
+   the material added in #4. **The rate is flat, so #4 didn't degrade anything** —
+   this is a standing background limitation, now recorded in
+   `data/processed/dataset_card.md` too. Fixing it is a *separate* step because it
+   is not additive: re-running `src.clean` with a tighter test would **drop ~950
+   existing records**, changing every downstream count, so it wants its own run
+   with its own before/after evidence and a red-first test (the variance rule
+   above is the candidate; validate it doesn't eat prose-poems — WCW's *Kora in
+   Hell* and Stein are the obvious things it could wrongly eat).
