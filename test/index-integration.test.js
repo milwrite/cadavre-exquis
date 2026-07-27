@@ -22,7 +22,7 @@ test("the canonical page presents one clean model setting", () => {
 
 test("the table stays closed until a generated readiness check succeeds", () => {
   assert.match(html, /readyEndpoint: REMOTE_API \+ "\/ready"/);
-  assert.match(html, /model: "ollama:gemma3:4b"/);
+  assert.match(html, /model: "ollama:kimi-k2\.5"/);
   assert.match(html, /id="startBtn" class="primary" disabled>warming…<\/button>/);
   assert.match(html, /async function warmSelectedModel/);
   assert.match(html, /if \(!data\.ready \|\| !data\.model\)/);

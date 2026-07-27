@@ -40,13 +40,15 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   the application API. A 45-line live test covered three pages, vote changes,
   reload persistence, and clearing a vote. The temporary post was removed, and
   both public pages returned to the three real entries without console errors.
-- **2026-07-13 model readiness and failover:** published play now waits for a
-  real generated readiness response before accepting the first turn. The server
-  warms `gemma3:4b` at startup and every three minutes, keeps a four-minute
-  readiness cache, and moves a request through verified `gemma3:4b`,
-  `gemini-3-flash-preview`, and `gpt-oss:20b` standbys when the chosen route's
-  OpenRouter and Ollama paths are unavailable. Both UIs retry transient turns
-  automatically and adopt the effective route returned by the server.
+- **2026-07-13 model readiness and failover (refreshed 2026-07-27):** published
+  play waits for a real generated readiness response before accepting the first
+  turn. The server now defaults to the currently listed `kimi-k2.5`, adopts
+  catalog replacements for retired model ids, and moves through verified
+  `minimax-m3`, `deepseek-v4-flash`, and `gpt-oss:20b` standbys. OpenRouter is
+  removed from the advertised pool while its key has no remaining capacity,
+  and a bounded Cadavre-only Ollama reserve cannot be consumed by tournaments
+  or background warmups. Both UIs retry transient turns automatically and
+  adopt the effective route returned by the server.
 
 ## Automation
 - [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 12:00 (noon)**.
