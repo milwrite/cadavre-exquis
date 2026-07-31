@@ -25,6 +25,7 @@ from src.common import (  # noqa: E402
     is_front_matter,
     is_probably_prose,
     is_section_label,
+    is_wrapped_prose,
     lines_to_stanza_lines,
     strip_gutenberg_boilerplate,
 )
@@ -130,6 +131,85 @@ class TestProse(unittest.TestCase):
 
     def test_empty_is_prose(self):
         self.assertTrue(is_probably_prose([]))
+
+
+class TestWrappedProse(unittest.TestCase):
+    """follow-up #7 — prose hard-wrapped to a fixed column.
+
+    Project Gutenberg wraps at ~72 chars, so its prose *structurally cannot*
+    trip `is_probably_prose`'s `avg_len > 78` test: editorial prefaces and
+    critical endnotes survived as "poems". The fix keys on wrap *geometry*
+    (long + unnaturally uniform lines) AND mid-sentence line starts.
+
+    That third condition is the load-bearing one. Line-length variance alone
+    cannot work: regular long meter (fourteeners, anapestic heptameter) is
+    uniform *by design*, so a variance-only rule deletes Blake and Swinburne
+    along with the prose. Verse capitalises its line starts; wrapped prose
+    breaks mid-sentence. All fixtures below are real corpus excerpts.
+    """
+
+    # gutenberg:10031 — Poe editorial endnote (rel stdev 0.013, mean 70.7)
+    POE_ENDNOTE = [
+        '"The Conqueror Worm," then contained in Poe\'s favorite tale of "Ligeia,"',
+        "was first published in the 'American Museum' for September, 1838. As a",
+        "separate poem, it reappeared in 'Graham's Magazine' for January, 1843.",
+    ]
+    # gpc — literary criticism swept up by the Gutenberg Poetry Corpus
+    GPC_CRITICISM = [
+        "picture the screen of dust and cobwebs which, for the English",
+        "people in these days, the crude forms of the infant language",
+        "have practically become. Shakespeare has not suffered by",
+    ]
+    # poetrydb — Blake, "The Book of Thel" (fourteeners; rel stdev 0.054)
+    BLAKE_THEL = [
+        "The daughters of Mne Seraphim led round their sunny flocks,",
+        "All but the youngest: she in paleness sought the secret air.",
+        "To fade away like morning beauty from her mortal day:",
+    ]
+    # poetrydb — Swinburne, "Hymn of Man" (anapestic long line; rel stdev 0.009)
+    SWINBURNE_HYMN = [
+        "In the grey beginning of years, in the twilight of things that began,",
+        "The word of the earth in the ears of the world, was it God? was it man?",
+        "The word of the earth to the spheres her sisters, the note of her song,",
+    ]
+    # gpc — a first-line index padded with dot leaders (uniform, but mean 51)
+    INDEX_TABLE = [
+        "Spirit of song, life's golden ray . . . . . . . . .",
+        "Sunshine, O soul, is not a mood . . . . . . . . . .",
+        "Superbest power with sweetness wed . . . . . . . . .",
+    ]
+
+    def test_gutenberg_wrapped_editorial_prose_flagged(self):
+        self.assertTrue(is_wrapped_prose(self.POE_ENDNOTE))
+
+    def test_gpc_wrapped_criticism_flagged(self):
+        self.assertTrue(is_wrapped_prose(self.GPC_CRITICISM))
+
+    def test_long_line_metrical_verse_not_flagged(self):
+        # Blake's fourteeners are as uniform as a wrap; capitalised line starts
+        # are what save them. A variance-only rule would eat this poem.
+        self.assertFalse(is_wrapped_prose(self.BLAKE_THEL))
+
+    def test_long_meter_with_capitalised_starts_not_flagged(self):
+        self.assertFalse(is_wrapped_prose(self.SWINBURNE_HYMN))
+
+    def test_index_table_below_mean_length_not_flagged(self):
+        # dot leaders make these *perfectly* uniform (rel stdev ~0.01) — only
+        # the mean-length floor keeps them out of the wrapped-prose bucket.
+        self.assertFalse(is_wrapped_prose(self.INDEX_TABLE))
+
+    def test_short_verse_not_flagged(self):
+        self.assertFalse(is_wrapped_prose(["the moon", "a bone", "the sea"]))
+
+    def test_too_few_lines_to_judge(self):
+        self.assertFalse(is_wrapped_prose(["a single wrapped-looking line of prose text here"]))
+
+    def test_is_probably_prose_now_catches_wrapped_prose(self):
+        # the integration that matters: src.clean calls is_probably_prose
+        self.assertTrue(is_probably_prose(self.POE_ENDNOTE))
+
+    def test_is_probably_prose_still_spares_long_meter(self):
+        self.assertFalse(is_probably_prose(self.SWINBURNE_HYMN))
 
 
 class TestGutenbergBoilerplate(unittest.TestCase):

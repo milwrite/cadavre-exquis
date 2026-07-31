@@ -141,15 +141,55 @@ def strip_gutenberg_boilerplate(text: str) -> str:
     return text.strip("\n")
 
 
+# Project Gutenberg hard-wraps its text at ~72 columns, so PG prose can never
+# reach the `avg_len > 78` test below — the filter caught unwrapped prose and
+# missed the only kind this pipeline actually ingests (follow-up #7). Detect the
+# *wrap* instead, via three conditions that must all hold:
+_WRAP_MIN_MEAN_LEN = 55  # long lines; below this sit normal verse and the
+#                          dot-leader first-line indexes (mean ~51)
+_WRAP_MAX_REL_STDEV = 0.18  # a wrap column pins every line to the same width
+_WRAP_MIN_LOWER_START = 0.30  # ...and prose breaks mid-sentence
+# The third condition is load-bearing, not a refinement. Geometry alone cannot
+# do this job: regular long meter (Blake's fourteeners, Swinburne's anapestic
+# heptameter) is uniform *by design* and scores lower variance than the prose
+# does, so a variance-only rule deletes the canon along with the endnotes. What
+# actually separates them is that verse capitalises the start of every line.
+
+
+def is_wrapped_prose(lines: list[str]) -> bool:
+    """True for prose that was hard-wrapped to a fixed column width.
+
+    Long + unnaturally uniform line lengths + a high share of lines starting
+    mid-sentence (lowercase). See the note above for why all three are needed.
+    """
+    body = [l.strip() for l in lines if l.strip()]
+    if len(body) < 3:  # too short to read a wrap width off
+        return False
+    lens = [len(l) for l in body]
+    mean = sum(lens) / len(lens)
+    if mean <= _WRAP_MIN_MEAN_LEN:
+        return False
+    stdev = (sum((n - mean) ** 2 for n in lens) / len(lens)) ** 0.5
+    if stdev / mean >= _WRAP_MAX_REL_STDEV:
+        return False
+    alpha = [l for l in body if l[:1].isalpha()]
+    if not alpha:
+        return False
+    return sum(1 for l in alpha if l[0].islower()) / len(alpha) >= _WRAP_MIN_LOWER_START
+
+
 def is_probably_prose(lines: list[str]) -> bool:
     """Heuristic: prose has long lines and ends with sentence punctuation often.
-    Verse tends to have shorter, irregularly-broken lines."""
+    Verse tends to have shorter, irregularly-broken lines. Unwrapped prose trips
+    the length test; hard-wrapped prose needs `is_wrapped_prose` (follow-up #7)."""
     body = [l for l in lines if l.strip()]
     if not body:
         return True
     avg_len = sum(len(l) for l in body) / len(body)
     long_frac = sum(1 for l in body if len(l) > 88) / len(body)
-    return avg_len > 78 and long_frac > 0.5
+    if avg_len > 78 and long_frac > 0.5:
+        return True
+    return is_wrapped_prose(lines)
 
 
 # ---------------------------------------------------------------- front-matter

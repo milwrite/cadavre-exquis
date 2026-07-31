@@ -42,7 +42,7 @@ MODEL=unsloth/gemma-3-4b-it .venv/bin/python train/train_qlora.py --epochs 2
 ```
 
 ## Current numbers
-22,564 unique poems · 257,862 train / 9,661 val next-line examples, split **by
+21,834 unique poems · 247,038 train / 9,377 val next-line examples, split **by
 poem** (95/5). See `data/processed/dataset_card.md`. Everything is public-domain
 or openly licensed.
 

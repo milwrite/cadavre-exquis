@@ -77,6 +77,13 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   + `dataset_stats.json`; 228,876/8,294 reproduced exactly, `git diff` clean) —
   no corpus/adapter desync.
 
+- [x] **Wrapped-prose rule covered** (2026-07-31) — `TestWrappedProse`, **9 tests**
+      (TDD, red-first) over `is_wrapped_prose` (follow-up #7). Fixtures are real
+      corpus excerpts, not invented strings. Two of them are *guard* tests that
+      lock the near-miss: **Blake's fourteeners and Swinburne's anapestic long
+      line must NOT be flagged.** Verified they are not tautologies by swapping
+      #7's originally-proposed variance-only rule into the test module — it flips
+      exactly those two red and nothing else. Suite total: **47** (stdlib-only).
 - [x] **Eval span-slicing covered** (2026-07-25) — `tests/test_eval_nll.py`,
       **4 tests** (TDD, red-first) over `train/eval_nll.py`'s pure scoring seam
       (`sum_target_logprobs`, `summarize`). The character-offset slicing is that
@@ -89,9 +96,9 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - [x] **Source: PoetryDB** — `data/raw/poetrydb.jsonl` (~3k target; check count).
 - [x] **Source: Gutenberg volumes** — `data/raw/gutenberg.jsonl` = **6532 poems**.
 - [x] **Source: Gutenberg Poetry Corpus** — `data/raw/gpc.jsonl` = **15000 pseudo-poems**.
-- [x] **Clean/dedup** — `data/interim/poems.jsonl` = **22,564 unique poems**. RERUN whenever a source changes.
-- [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **257,862 / 9,661 examples**.
-- [x] **≥10,000 unique poems confirmed** — 22,564 (target exceeded).
+- [x] **Clean/dedup** — `data/interim/poems.jsonl` = **21,834 unique poems**. RERUN whenever a source changes.
+- [x] **Build dataset** — `data/processed/next_line.{train,val}.jsonl` = **247,038 / 9,377 examples**.
+- [x] **≥10,000 unique poems confirmed** — 21,834 (target exceeded).
 - [x] **Dataset card** — `data/processed/dataset_card.md` written.
 - [x] **Install train deps** — done; verified **torch 2.10.0+cu128, CUDA True, RTX 5090**.
 - [x] **Train QLoRA** — trained on **`unsloth/gemma-4-E4B-it`** (on-stock vLLM base),
@@ -176,19 +183,21 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 ## Counts (update each run)
 | source | raw records | kept after clean |
 |---|---|---|
-| poetrydb | 2526 | 2295 |
-| gutenberg volumes | 6532 | 5617 |
-| gpc (padding) | 15000 | 14652 |
-| **unique poems after clean** | | **22564** |
-| **train / val examples** | | **257862 / 9661** |
+| poetrydb | 2526 | 2293 |
+| gutenberg volumes | 6532 | 5405 |
+| gpc (padding) | 15000 | 14136 |
+| **unique poems after clean** | | **21834** |
+| **train / val examples** | | **247038 / 9377** |
 
-Core (surreal/modernist) = poetrydb + gutenberg = **7912** poems; GPC is padding.
+Core (surreal/modernist) = poetrydb + gutenberg = **7698** poems; GPC is padding.
 
-⚠ **Corpus > adapter.** The shipped adapter was trained on the 2026-07-15 snapshot
-(21,744 poems / 228,876 train). The corpus has grown since (follow-up #4, below);
+⚠ **Corpus ≠ adapter.** The shipped adapter was trained on the 2026-07-15 snapshot
+(21,744 poems / 228,876 train). The corpus has both grown (follow-up #4) and been
+*cleaned* since (follow-up #7 removed 733 wrapped-prose records), so
 `data/processed` no longer matches the adapter's training data. Not a defect —
 just don't read the current counts as the adapter's provenance. A retrain needs
-the GPU, which the live vLLM host holds.
+the GPU, which the live vLLM host holds; it should now train on cleaner data than
+the shipped adapter saw.
 
 ## Known follow-ups (cron can pick these up to improve quality)
 1. ~~Recover missed volumes~~ **DONE** — `resolve_book` now searches title+author,
@@ -281,21 +290,65 @@ the GPU, which the live vLLM host holds.
    Not addressed: bare title-page fragments with no imprint signal (e.g. "CANZONI
    / TO / OLIVIA…" dedications) are left in — erring toward keeping avoids eating
    real poems; extend the signal set later if they prove noisy.
-7. **Prose filter is blind to wrapped prose** — **OPEN, found 2026-07-27** while
-   vetting #4's volumes. `is_probably_prose()` (`src/common.py`) fires on
-   `avg_line_len > 78 and long_frac > 0.5`, but Project Gutenberg **hard-wraps its
-   text at ~72 columns** — so PG prose *structurally cannot* reach that threshold.
-   The filter catches unwrapped prose and misses the only kind this pipeline
-   ingests, which is why editorial prefaces and critical endnotes survive as
-   "poems" (Poe [10031] bundles essays; Coleridge [8208] bundles notes). Measured
-   with a wrap-robust probe — wrapped prose is *uniformly* near the wrap width
-   (relative stdev of line length < 0.18 at mean > 55 chars) while verse varies
-   widely: **959/21,744 = 4.4%** of the pre-existing corpus, **44/1,043 = 4.2%** of
-   the material added in #4. **The rate is flat, so #4 didn't degrade anything** —
-   this is a standing background limitation, now recorded in
-   `data/processed/dataset_card.md` too. Fixing it is a *separate* step because it
-   is not additive: re-running `src.clean` with a tighter test would **drop ~950
-   existing records**, changing every downstream count, so it wants its own run
-   with its own before/after evidence and a red-first test (the variance rule
-   above is the candidate; validate it doesn't eat prose-poems — WCW's *Kora in
-   Hell* and Stein are the obvious things it could wrongly eat).
+7. ~~Prose filter is blind to wrapped prose~~ **DONE (2026-07-31)** — fixed, and
+   **the rule this entry proposed turned out to be unsafe as specified.** Writing
+   the red-first test it asked for is what caught that.
+   *The original diagnosis (2026-07-27, found while vetting #4's volumes) stands:*
+   `is_probably_prose()` fires on `avg_line_len > 78 and long_frac > 0.5`, but
+   Project Gutenberg **hard-wraps its text at ~72 columns**, so PG prose
+   *structurally cannot* reach that threshold. The filter caught unwrapped prose
+   and missed the only kind this pipeline ingests — which is why editorial
+   prefaces and critical endnotes survived as "poems" (Poe [10031] bundles essays;
+   Coleridge [8208] bundles notes). Also still true: the rate was **flat** across
+   the material #4 added (4.2% vs 4.4%), so **#4 did not degrade the corpus** —
+   this was a standing limitation, not a drift.
+   *The trap:* the proposed discriminator was line-length variance alone (relative
+   stdev < 0.18 at mean > 55). Wrapped prose is uniform because the wrap column
+   pins it — but **regular long meter is uniform by design, and scores even lower
+   variance than the prose does.** Measured on the corpus, the variance-only rule
+   would have deleted **Blake's *The Book of Thel*** (rel stdev 0.054–0.084),
+   **Blake's *Holy Thursday*** (0.053), **Swinburne's *Hymn of Man*** (0.087) and
+   ***Hymn to Proserpine*** (0.127) — i.e. the fourteeners and anapestic long
+   lines of the visionary/symbolist material follow-up #4 had *just* added.
+   *The fix:* a third condition that geometry can't supply — **verse capitalises
+   the start of every line; wrapped prose breaks mid-sentence.** Measured
+   separation is total: every metrically-caught verse record scores a
+   lowercase-line-start fraction of **0.00**, while wrapped prose runs 0.33–1.00
+   (Poe endnotes median 0.86, Coleridge notes 0.88). `is_wrapped_prose()` in
+   `src/common.py` therefore requires **all three**: mean line length > 55,
+   relative stdev < 0.18, and ≥30% of lines starting lowercase. `is_probably_prose`
+   delegates to it, so both call sites (`src.clean`, `src.sources.gutenberg`)
+   inherit the fix and **no re-fetch was needed**.
+   *Before → after:* **22,564 → 21,834 poems** (−730 net; 733 caught, the
+   difference is dedup interaction), **257,862 → 247,038 train**, **9,661 → 9,377
+   val**. By family: gpc 517, gutenberg 214, poetrydb 2. The GPC cap held on its
+   own — core train 164,692 vs GPC 82,346 = exactly 0.5×, still **33.3%** of train
+   (`docs/genre-balance.md` regenerated). Top volumes cleaned are exactly the
+   expected apparatus: Baudelaire *Prose and Poetry* [47032] 31 (Symons'
+   introduction), Poe [10031] 30 (editorial endnotes), [841] 19, Coleridge [8208]
+   6 (notes).
+   *Accepted cost, recorded not buried:* the filter also removes **~95 genuine
+   prose-poems** — Amy Lowell's polyphonic prose (*Can Grande's Castle* [68156],
+   64), Symons' Mallarmé translations ([53849], 18), **WCW's *Kora in Hell*
+   improvisations (12)** and one Stein piece. This entry originally named Kora and
+   Stein as things the fix must not eat; Stein is effectively spared (1 of 263)
+   and WCW keeps 216/228, but Kora's improvisations are genuinely wrapped prose
+   and no structural signal separates them from Poe's endnotes (a
+   critical-apparatus lexicon was tried and rejected — it scored zero on half the
+   editorial prose). **Dropping them is the right trade for *this* objective:** in
+   wrapped prose the line break is a typesetting artifact, not a poetic choice, so
+   those pairs teach a next-line model to break mid-sentence at column 72. The
+   thresholds are named constants (`_WRAP_*`) so the call is revisitable.
+   *Superseded framing:* the original 4.4%/4.2% "stable background rate" figures
+   came from the variance-only probe, which over-counts by including that metrical
+   verse; the corrected rate is **733/22,564 = 3.2%**.
+8. **Retrain on the cleaned corpus** — **OPEN, added 2026-07-31.** The shipped
+   adapter was trained on the 2026-07-15 snapshot, which predates both #4's +820
+   poems and #7's −733 wrapped-prose records; `data/processed` is now materially
+   different (and cleaner) than what it saw. A retrain is the natural next
+   milestone and would let `train/eval_nll.py` re-measure gold-line NLL against
+   the current 3.4485 baseline to test whether removing wrapped prose actually
+   improves next-line behaviour. **Blocked on the GPU**, which the live vLLM host
+   holds at `--gpu-memory-utilization 0.90` — stopping it takes the other adapters
+   (`cloze-reader`, `jeopardylm`) offline, so this is an operator decision, not an
+   autonomous cron step.
