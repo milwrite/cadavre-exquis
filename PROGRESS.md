@@ -179,6 +179,18 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
       were stale from before follow-up #5 (21,446→**21,744** poems,
       215,577→**228,876** train, +the 4 recovered volumes). Verified
       `private: true` + file sizes via `hf datasets info`.
+      **Refreshed 2026-08-01** — the mirror had gone two revisions stale (still
+      the 2026-07-15 adapter snapshot; predates #4's +820 poems and #7's −733
+      wrapped-prose records). Re-ran `deploy/push_hf_dataset.sh`: `main` now
+      carries the current corpus (**21,834 poems · 247,038/9,377**), verified
+      **byte-exact** against `data/processed` (remote vs `wc -c` on both splits
+      + stats) and still `private: true`. The adapter snapshot is *not* lost —
+      HF datasets are git repos, so it survives byte-exact at revision
+      **`bf655c1`**, and the card gained an **"Adapter provenance"** section
+      pinning that sha (verified the pin resolves: it returns the adapter-era
+      stats 228,876/8,294 while `main` returns 247,038/9,377). Anyone can
+      reproduce the adapter's exact inputs via
+      `load_dataset(..., revision="bf655c1cf3349d6afba9ad25d659956ea0096367")`.
 
 ## Counts (update each run)
 | source | raw records | kept after clean |
@@ -195,7 +207,9 @@ Core (surreal/modernist) = poetrydb + gutenberg = **7698** poems; GPC is padding
 (21,744 poems / 228,876 train). The corpus has both grown (follow-up #4) and been
 *cleaned* since (follow-up #7 removed 733 wrapped-prose records), so
 `data/processed` no longer matches the adapter's training data. Not a defect —
-just don't read the current counts as the adapter's provenance. A retrain needs
+just don't read the current counts as the adapter's provenance. The adapter's
+actual training data is pinned byte-exact at HF dataset revision **`bf655c1`**
+(see the card's "Adapter provenance" section, added 2026-08-01). A retrain needs
 the GPU, which the live vLLM host holds; it should now train on cleaner data than
 the shipped adapter saw.
 

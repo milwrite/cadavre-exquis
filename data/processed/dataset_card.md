@@ -66,3 +66,14 @@ image-juxtaposing *sound* the game needs.
 Cleaning preserves original punctuation, diacritics, lineation, and stanza
 breaks; strips Gutenberg boilerplate, footnote markers, and section labels;
 NFC-normalizes encoding; dedups on normalized content across sources.
+
+### Adapter provenance (corpus ≠ adapter)
+The shipped LoRA adapter
+([milwright/exquisite-corpse-gemma-4-e4b-lora](https://huggingface.co/milwright/exquisite-corpse-gemma-4-e4b-lora))
+was trained on the **2026-07-15 snapshot** of this dataset — **21,744 poems ·
+228,876 train · 8,294 val** — which is preserved byte-exact at revision
+[`bf655c1`](https://huggingface.co/datasets/milwright/exquisite-corpse-next-line/tree/bf655c1cf3349d6afba9ad25d659956ea0096367)
+of this repo (`revision="bf655c1cf3349d6afba9ad25d659956ea0096367"` in
+`load_dataset`). The current revision is the corpus as it stands *after* the
+English-ancestry expansion (+820 poems) and the wrapped-prose cleanup (−733
+records); no adapter has been trained on it yet.
