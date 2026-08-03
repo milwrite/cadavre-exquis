@@ -84,6 +84,14 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
       line must NOT be flagged.** Verified they are not tautologies by swapping
       #7's originally-proposed variance-only rule into the test module — it flips
       exactly those two red and nothing else. Suite total: **47** (stdlib-only).
+- [x] **Eval reports now pin their val set** (2026-08-03) — `val_fingerprint()`
+      in `train/eval_nll.py` (+2 tests, TDD red-first; one guards the
+      missing-trailing-newline record count against a naive `count(b"\n")`).
+      `docs/eval-nll.md` is a regenerated-in-place artifact and the val set moves
+      between runs (#4/#7 both changed it), so a report that doesn't say *which*
+      val it measured invites cross-snapshot comparisons that look valid and
+      aren't. Every report now embeds `<n> examples, sha256 <12-hex>` of the
+      exact bytes scored. Suite total: **49** (stdlib-only).
 - [x] **Eval span-slicing covered** (2026-07-25) — `tests/test_eval_nll.py`,
       **4 tests** (TDD, red-first) over `train/eval_nll.py`'s pure scoring seam
       (`sum_target_logprobs`, `summarize`). The character-offset slicing is that
@@ -119,6 +127,9 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
       tuned **3.4485 (ppl 31.5)** — Δ 2.06 nats ≈ **×7.9 per-token likelihood**,
       tuned wins **98.8%** of examples. Report: `docs/eval-nll.md`; complements
       the qualitative sheet `docs/eval-e4b.md`. No GPU reload, no `data/` change.
+      *(Those figures were measured on the adapter-era val; re-baselined
+      2026-08-03 on the current cleaned val — see follow-up #8. The live report
+      now pins its val fingerprint.)*
 - [x] **Pushed adapter to HF** — https://huggingface.co/milwright/exquisite-corpse-gemma-4-e4b-lora
       (public); uncommented in `../cloze-reader-monorepo/finetune/deploy/serve_gemma.sh`.
 - [x] **(opt) GGUF export** (2026-07-17) — exported the **shipped** adapter
@@ -366,3 +377,17 @@ the shipped adapter saw.
    holds at `--gpu-memory-utilization 0.90` — stopping it takes the other adapters
    (`cloze-reader`, `jeopardylm`) offline, so this is an operator decision, not an
    autonomous cron step.
+   **Pre-retrain baseline pinned (2026-08-03)** — the measurement half of this
+   item didn't need the GPU. The published NLL figures (5.5106/3.4485) were
+   measured on the *adapter-era* val (8,294 examples), which no longer exists on
+   disk — comparing a retrain against them would be apples-to-oranges. Re-ran
+   `train/eval_nll.py --n 400 --seed 11` via the live vLLM host against the
+   **current cleaned val** (fingerprint `9377 examples, sha256 481b0a3dd556`,
+   now embedded in the report): base **5.9244** NLL/tok (ppl 374.1) vs shipped
+   adapter **3.6581** (ppl 38.8) over 3,950 gold-line tokens — Δ 2.2663 nats
+   ≈ **×9.6 per-token**, win rate **99.0%**. Both models score worse than on the
+   old val, as expected: #7 removed wrapped prose whose column-72 breaks are
+   mechanically predictable, so the cleaned val is a purely-poetic, harder exam;
+   the adapter's *gap* actually widened (2.06 → 2.27 nats). **The retrain's
+   target to beat: tuned NLL/tok < 3.6581 on val sha256 `481b0a3dd556`** (same
+   command, same seed → identical 400 examples).

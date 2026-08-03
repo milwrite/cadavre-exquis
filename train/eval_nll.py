@@ -20,6 +20,7 @@ Writes docs/eval-nll.md.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import pathlib
@@ -50,6 +51,17 @@ def sum_target_logprobs(logprobs: dict, lo: int, hi: int) -> tuple[float, int]:
     return total, n
 
 
+def val_fingerprint(raw: bytes) -> str:
+    """Pin the exact val file a report measured: record count + content hash.
+
+    The val set changes as the corpus evolves (follow-ups #4/#7 both moved it),
+    and this report is regenerated in place — without a fingerprint, NLL
+    numbers from different val snapshots look comparable but aren't.
+    """
+    n = len(raw.splitlines())
+    return f"{n} examples, sha256 {hashlib.sha256(raw).hexdigest()[:12]}"
+
+
 def summarize(pairs: list[tuple[float, float, int]]) -> dict:
     """Aggregate (base_logprob_sum, tuned_logprob_sum, n_tokens) per example."""
     ntok = sum(n for _, _, n in pairs)
@@ -78,7 +90,9 @@ def main() -> None:
     from transformers import AutoTokenizer
 
     tk = AutoTokenizer.from_pretrained(BASE)
-    rows = [json.loads(l) for l in VAL.open()]
+    raw = VAL.read_bytes()
+    val_id = val_fingerprint(raw)
+    rows = [json.loads(l) for l in raw.splitlines()]
     rng = random.Random(args.seed)
     rng.shuffle(rows)
     rows = rows[: args.n]
@@ -119,6 +133,9 @@ def main() -> None:
         f"{s['n']} held-out val examples · {s['tokens']} gold-line tokens · "
         f"seed {args.seed} · scored via the live vLLM host (echo+logprobs, "
         "teacher-forced on the gold next line).\n",
+        f"Val set: `data/processed/next_line.val.jsonl` ({val_id}). Reports "
+        "against different fingerprints are **not comparable** — the corpus "
+        "moves between runs.\n",
         "| model | NLL/token | perplexity |",
         "|---|---|---|",
         f"| base `{BASE}` | {s['base_nll']:.4f} | {s['base_ppl']:.2f} |",

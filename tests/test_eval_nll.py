@@ -18,7 +18,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from train.eval_nll import sum_target_logprobs, summarize  # noqa: E402
+from train.eval_nll import sum_target_logprobs, summarize, val_fingerprint  # noqa: E402
 
 
 class TestSumTargetLogprobs(unittest.TestCase):
@@ -73,6 +73,25 @@ class TestSummarize(unittest.TestCase):
         self.assertAlmostEqual(s["base_ppl"], math.exp(7.0 / 3))
         self.assertAlmostEqual(s["tuned_ppl"], math.exp(5.5 / 3))
         self.assertAlmostEqual(s["win_rate"], 0.5)
+
+
+class TestValFingerprint(unittest.TestCase):
+    def test_counts_records_and_hashes_content(self):
+        # The report must pin exactly which val file it measured: the val set
+        # changed between eval runs (follow-ups #4/#7), and without this the
+        # regenerated report silently compares numbers from different exams.
+        import hashlib
+
+        raw = b'{"a": 1}\n{"a": 2}\n'
+        fp = val_fingerprint(raw)
+        self.assertIn("2 examples", fp)
+        self.assertIn(hashlib.sha256(raw).hexdigest()[:12], fp)
+
+    def test_missing_trailing_newline_still_counts_last_record(self):
+        # Guards the naive raw.count(b"\n") implementation: a JSONL file whose
+        # final record lacks a trailing newline still contains that record.
+        fp = val_fingerprint(b'{"a": 1}\n{"a": 2}')
+        self.assertIn("2 examples", fp)
 
 
 if __name__ == "__main__":
