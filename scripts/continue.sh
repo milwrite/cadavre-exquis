@@ -5,7 +5,7 @@
 # timeout (a run finishes a step or backgrounds a long job and exits).
 #
 # Remove from schedule:  crontab -e   (delete the exquisite-corpse line)
-# Watch it:              tail -f /home/milwrite/exquisite-corpse/logs/cron.log
+# Watch it:              tail -f /home/milwrite/inference-arcade/exquisite-corpse/logs/cron.log
 #
 # SECURITY (acknowledged, user-authorized 2026-07-08): this launches an
 # unattended agent with `--permission-mode bypassPermissions` — no per-action
@@ -18,7 +18,7 @@
 # user with no ssh keys. See docs/superpowers/specs for rationale.
 set -uo pipefail
 
-PROJ="/home/milwrite/exquisite-corpse"
+PROJ="/home/milwrite/inference-arcade/exquisite-corpse"
 cd "$PROJ" || exit 1
 mkdir -p logs
 export PATH="/home/milwrite/.local/bin:$PATH"
