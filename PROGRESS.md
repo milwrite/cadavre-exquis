@@ -150,6 +150,15 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - Verified locally with Playwright against a stubbed wall (`/api/cadavre/wall` with three pins,
   one without a reading, one with a long wrapping line) at 1280 and 600 wide; `npm test` green
   (28 page, 7 relay, 11 Worker tests).
+- Afternoon fix: the open sheet died after about six lines with "the other hand is still
+  reconnecting" because it sends its whole transcript, one message a line, and the Worker
+  capped a turn at 12 messages (HTTP 400 "at most 12 messages per turn"). `LIMITS.maxMessages`
+  is now 120 (`maxChars` 12000 still bounds cost). The sheet now sends `max_tokens` (80 a fold,
+  400 for the reading, which the 120-token default had been truncating), gained a Keep section
+  (save as markdown, print, pin to the wall with the parlor's dialog and shared delete-token
+  store, linking `../wall.html#pin-<id>`), and `keepFocus` became a hoisted function so the
+  synchronous local warm-up path (no models endpoint) no longer throws. Verified with a stubbed
+  Playwright flow (play, close, save, pin) and a 16-message live chat; Worker version `16d3b8ea`.
 
 ### Next session — review, then push where relevant
 - [ ] Open `index.html` and `wall.html` locally (`python3 -m http.server`, or `cd worker &&
