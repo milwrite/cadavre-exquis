@@ -26,6 +26,7 @@
       --wine: #A44856;
       --wine-bright: #C57080;
       --wine-wash: rgba(197, 112, 128, 0.14);
+      --sheet-wash: rgba(231, 224, 208, 0.05);   /* each poem on a faintly lit sheet */
       --sans: system-ui, -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
       --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "URW Palladio L", "P052", "Liberation Serif", "Noto Serif", Georgia, serif;
       --t-small: 0.875rem;
@@ -110,7 +111,22 @@
     /* ── the wall ───────────────────────────────────────────────────────── */
     .wall { padding-top: clamp(1.6rem, 4vh, 2.6rem); }
     .wall-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.6rem 1.5rem; }
-    .wall-head a { font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); padding-bottom: 0.3rem; }
+    .wall-head a { padding-bottom: 0.15rem; }
+    /* a way back, styled as a control rather than a footnote */
+    .nav-link {
+      display: inline-block;
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--bone);
+      text-decoration: none;
+      border: 1px solid var(--edge);
+      border-radius: 2px;
+      padding: 0.6em 1.1em;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover { border-color: var(--bone); color: var(--bone); }
     /* "The Wall" set in the same cut-out print as the title, at the title's scale */
     .wall-title { width: min(100%, 11rem); font-size: 0; line-height: 1; }
     .wall-title img { display: block; width: 100%; height: auto; aspect-ratio: 678 / 168; }
@@ -121,7 +137,7 @@
     .wall-list { display: grid; gap: 1.4rem; margin-top: 1.6rem; }
     .wall-more { margin-top: 1.6rem; }
 
-    /* ── one card per corpse: the poem on the left, its reading on the right ── */
+    /* ── one card per corpse: the reading on the left, the whole poem to its right ── */
     .pin {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
@@ -131,12 +147,13 @@
     }
 
     .pin:target { border-color: var(--wine); }
-    .pin-poem-pane { display: flex; justify-content: center; }
-    .pin-poem { width: fit-content; max-width: 100%; font-size: 1.1rem; line-height: 1.55; overflow-wrap: break-word; }
+    /* the poem flush left in its pane, every line kept */
+    .pin-poem-pane { min-width: 0; }
+    .pin-poem { font-size: 1.1rem; line-height: 1.55; overflow-wrap: break-word; padding: 1rem 1.2rem; background: var(--sheet-wash); border-radius: 2px; }
     .pin-poem .line:empty::before { content: "\00a0"; }
 
     .pin-reading-pane { min-width: 0; }
-    .pin-reading-head { font-size: var(--t-small); font-style: italic; font-weight: 400; color: var(--dim); margin-bottom: 0.45rem; }
+    .pin-reading-head { font-size: 1.2rem; font-style: italic; font-weight: 400; color: var(--bone-soft); margin-bottom: 0.5rem; }
     .pin-reading { font-size: 1rem; line-height: 1.65; color: var(--reading); text-wrap: pretty; }
     .pin-reading.none { color: var(--faint); font-style: italic; }
 
@@ -165,8 +182,11 @@
     .pin-vote-status { flex-basis: 100%; color: var(--wine-bright); }
 
     @media (min-width: 56rem) {
-      .pin { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); column-gap: clamp(1.5rem, 4vw, 3rem); align-items: start; }
-      .pin-reading-pane { border-left: 1px solid var(--crease-soft); padding-left: clamp(1.5rem, 4vw, 3rem); }
+      /* the reading leads and the poem sits to its right: the reveal's two columns, staggered */
+      .pin { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); grid-template-areas: "reading poem" "meta meta"; column-gap: clamp(1.5rem, 4vw, 3rem); align-items: start; }
+      .pin-reading-pane { grid-area: reading; }
+      .pin-poem-pane { grid-area: poem; border-left: 1px solid var(--crease-soft); padding-left: clamp(1.5rem, 4vw, 3rem); }
+      .pin-meta { grid-area: meta; }
     }
 
     /* ── dialogs ────────────────────────────────────────────────────────── */
@@ -202,13 +222,15 @@
 
     footer {
       margin-top: clamp(2.5rem, 6vh, 4rem);
-      padding-top: 1rem;
+      padding-top: 1.4rem;
       border-top: 1px solid var(--crease);
       font-family: var(--sans);
       font-size: 0.8125rem;
       line-height: 1.7;
       color: var(--dim);
     }
+
+    footer p + p { margin-top: 0.9rem; }
 
     @media (max-width: 47.99rem) {
       .masthead { flex-direction: column; align-items: flex-start; gap: 0.9rem; }
@@ -240,7 +262,7 @@
     <main class="wall" aria-label="The Wall">
       <div class="wall-head">
         <h2 class="wall-title"><img src="assets/title-wall-1.png" alt="The Wall" width="678" height="168"></h2>
-        <a href="./">back to the table</a>
+        <a class="nav-link" href="./">back to the table</a>
       </div>
       <p class="wall-note" id="wallNote">pinned from any table, newest first</p>
       <p class="wall-status" id="wallStatus" role="status" aria-live="polite">loading the wall…</p>
@@ -250,7 +272,10 @@
       </div>
     </main>
 
-    <footer><p>Pins are shared across browsers. A vote is remembered in this browser; the hand that pinned a corpse can unpin it from the same browser.</p></footer>
+    <footer>
+      <p><a class="nav-link" href="./">back to the table</a></p>
+      <p>The hand that pinned a corpse can unpin it from the same browser.</p>
+    </footer>
   </div>
 
   <dialog id="renameDialog">
@@ -534,7 +559,7 @@
       pin.dataset.wallKey = wallItemKey(item);
       if (item.id) pin.id = `pin-${item.id}`;
 
-      // the whole poem, never paged, centred in its third of the card
+      // the whole poem, never paged, flush left in its third of the card
       const poemPane = document.createElement("div");
       poemPane.className = "pin-poem-pane";
       const poem = document.createElement("div");

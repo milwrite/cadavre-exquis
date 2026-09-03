@@ -45,6 +45,7 @@
       --wine: #A44856;       /* the model's hand; le vin nouveau */
       --wine-bright: #C57080;
       --wine-wash: rgba(197, 112, 128, 0.14);
+      --sheet-wash: rgba(231, 224, 208, 0.05);   /* the finished poem, on a faintly lit sheet */
       --sans: system-ui, -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
       --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "URW Palladio L", "P052", "Liberation Serif", "Noto Serif", Georgia, serif;
       --mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
@@ -335,11 +336,11 @@
     /* ── the reveal: verse flush left, the reading beside it once there is room ── */
     .revealed { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 1.6rem; margin-top: 0.4rem; }
 
-    .poem { font-size: var(--t-verse); line-height: 1.55; max-width: 36rem; }
+    .poem { font-size: var(--t-verse); line-height: 1.55; max-width: 36rem; padding: 1rem 1.2rem; background: var(--sheet-wash); border-radius: 2px; }
     .poem .line { overflow-wrap: break-word; animation: rise 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
 
     .reading-col { max-width: 40rem; }
-    .reading-head { font-size: var(--t-small); font-style: italic; font-weight: 400; color: var(--dim); margin-bottom: 0.45rem; }
+    .reading-head { font-size: var(--t-lead); font-style: italic; font-weight: 400; color: var(--bone-soft); margin-bottom: 0.5rem; }
 
     .reading {
       font-size: 1rem;
@@ -373,7 +374,7 @@
       }
 
       .poem { grid-area: poem; }
-      .reading-col { grid-area: reading; max-width: none; padding-top: 0.15rem; }
+      .reading-col { grid-area: reading; max-width: none; padding-top: 0.55rem; }
       .reveal-foot { grid-area: foot; padding-top: 0.4rem; border-top: 1px solid var(--crease-soft); }
     }
 
@@ -407,7 +408,8 @@
 
     .solo-link:hover { border-color: var(--bone); color: var(--bone); }
 
-    /* ── the wall: the newest pins, five lines each, the rest on their own page ── */
+    /* ── the wall: the newest three pins, each set as on wall.html — the
+       reading on the left, the whole poem to its right, never cut ── */
     .wall {
       margin-top: clamp(3.5rem, 8vh, 6rem);
       padding-top: 2rem;
@@ -415,27 +417,70 @@
     }
 
     .wall-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.6rem 1.5rem; }
-    .wall-head a { font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); padding-bottom: 0.15rem; }
+    .wall-head a { padding-bottom: 0.15rem; }
+    /* a way back, styled as a control rather than a footnote */
+    .nav-link {
+      display: inline-block;
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--bone);
+      text-decoration: none;
+      border: 1px solid var(--edge);
+      border-radius: 2px;
+      padding: 0.6em 1.1em;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover { border-color: var(--bone); color: var(--bone); }
     /* "The Wall" set in the same cut-out print as the title, at the title's scale */
     .wall-title { width: min(100%, 9.5rem); font-size: 0; line-height: 1; }
     .wall-title img { display: block; width: 100%; height: auto; aspect-ratio: 678 / 168; }
     .wall-note { margin-top: 0.6rem; font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
 
-    .wall-grid {
+    .wall-grid { display: grid; gap: 1.4rem; margin-top: 1.5rem; }
+
+    .pin {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
-      gap: 1.6rem 2.5rem;
-      margin-top: 1.5rem;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.4rem;
+      padding: clamp(1.2rem, 3vw, 1.8rem) clamp(1.1rem, 3vw, 2rem);
+      border: 1px solid var(--crease);
     }
 
-    .pin { display: flex; flex-direction: column; gap: 0.6rem; padding-top: 0.9rem; border-top: 1px solid var(--crease-soft); }
-    .pin-poem { font-size: 1rem; line-height: 1.5; overflow-wrap: break-word; }
+    /* the poem flush left in its pane, every line kept */
+    .pin-poem-pane { min-width: 0; }
+    .pin-poem { font-size: 1.1rem; line-height: 1.55; overflow-wrap: break-word; padding: 1rem 1.2rem; background: var(--sheet-wash); border-radius: 2px; }
     .pin-poem .line:empty::before { content: "\00a0"; }
-    /* a cut poem fades away instead of stopping, and the rest is one click off */
-    .pin-poem.cut { -webkit-mask-image: linear-gradient(to bottom, #000 40%, rgba(0, 0, 0, 0.1) 100%); mask-image: linear-gradient(to bottom, #000 40%, rgba(0, 0, 0, 0.1) 100%); }
-    .pin-more { font-family: var(--sans); font-size: 0.8125rem; margin-top: -0.2rem; }
-    .pin-more a { color: var(--wine-bright); text-decoration-color: var(--wine); }
-    .pin-meta { margin-top: auto; font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
+
+    .pin-reading-pane { min-width: 0; }
+    .pin-reading-head { font-size: 1.2rem; font-style: italic; font-weight: 400; color: var(--bone-soft); margin-bottom: 0.5rem; }
+    .pin-reading { font-size: 1rem; line-height: 1.65; color: var(--reading); text-wrap: pretty; }
+    .pin-reading.none { color: var(--faint); font-style: italic; }
+
+    .pin-meta {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.6rem 1rem;
+      padding-top: 0.9rem;
+      border-top: 1px solid var(--crease-soft);
+      font-family: var(--sans);
+      font-size: 0.8125rem;
+      color: var(--dim);
+    }
+
+    .pin-meta a { color: var(--wine-bright); text-decoration-color: var(--wine); }
+
+    @media (min-width: 56rem) {
+      /* the reading leads and the poem sits to its right: the reveal's two columns, staggered */
+      .pin { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); grid-template-areas: "reading poem" "meta meta"; column-gap: clamp(1.5rem, 4vw, 3rem); align-items: start; }
+      .pin-reading-pane { grid-area: reading; }
+      .pin-poem-pane { grid-area: poem; border-left: 1px solid var(--crease-soft); padding-left: clamp(1.5rem, 4vw, 3rem); }
+      .pin-meta { grid-area: meta; }
+    }
 
     /* ── footer ─────────────────────────────────────────────────────────── */
     footer {
@@ -508,7 +553,7 @@
       .epigraph, .intro, .table, .sheet, .wall, footer, .reveal-foot, .reading .pending, .reading .err { display: none; }
       .masthead { border-color: #ccc; }
       .revealed { display: block; }
-      .poem { color: #111; font-size: 1.2rem; margin-bottom: 1.5rem; }
+      .poem { color: #111; font-size: 1.2rem; margin-bottom: 1.5rem; background: none; padding: 0; }
       .poem .w.lit { background: none; box-shadow: none; color: #111; }
       .reading-head { color: #888; }
       .reading { color: #444; }
@@ -623,7 +668,7 @@
     <section class="wall" id="wallSec" hidden aria-label="the wall">
       <div class="wall-head">
         <h2 class="wall-title"><img src="assets/title-wall-1.png" alt="The Wall" width="678" height="168"></h2>
-        <a href="wall.html">see the whole wall</a>
+        <a class="nav-link" href="wall.html">see the whole wall</a>
       </div>
       <p class="wall-note" id="wallNote">the newest corpses pinned from any table</p>
       <div class="wall-grid" id="wallList"></div>
@@ -1529,10 +1574,9 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     }
 
     /* ── the wall, previewed ────────────────────────────────────────────
-       The parlor shows the newest pins, five lines each; whole poems, votes,
-       and unpinning live on wall.html. */
-    const WALL_PREVIEW = 6;
-    const WALL_PREVIEW_LINES = 5;
+       The parlor shows the newest three pins as wall.html sets them — the
+       whole poem beside its reading, never cut; votes and unpinning live there. */
+    const WALL_PREVIEW = 3;
 
     function rebuildWall() {
       const remote = remoteWall.map((item) => ({ ...item, remote: true }));
@@ -1546,28 +1590,45 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
 
     function renderWallItem(item) {
       const lines = String(item.poem || "").split(/\r?\n/);
-      // a poem one line over the preview is shown whole; longer ones fade out
-      const hidden = lines.length > WALL_PREVIEW_LINES + 1 ? lines.length - WALL_PREVIEW_LINES : 0;
       const pin = document.createElement("article");
       pin.className = "pin";
+
+      // the whole poem, flush left in its pane
+      const poemPane = document.createElement("div");
+      poemPane.className = "pin-poem-pane";
       const poem = document.createElement("div");
-      poem.className = "pin-poem" + (hidden ? " cut" : "");
-      renderPoemWords(poem, hidden ? lines.slice(0, WALL_PREVIEW_LINES) : lines, false);
-      pin.append(poem);
-      if (hidden) {
-        const more = document.createElement("p");
-        more.className = "pin-more";
-        const link = document.createElement("a");
-        link.href = wallLink(item);
-        link.textContent = `continue reading on the wall, ${hidden} more line${hidden === 1 ? "" : "s"}`;
-        more.append(link);
-        pin.append(more);
+      poem.className = "pin-poem";
+      poem.setAttribute("aria-label", "poem");
+      const tokens = renderPoemWords(poem, lines, false);
+      poemPane.appendChild(poem);
+
+      // its reading beside it, always open; quotes light the poem's words
+      const readingPane = document.createElement("div");
+      readingPane.className = "pin-reading-pane";
+      const head = document.createElement("h3");
+      head.className = "pin-reading-head";
+      head.textContent = "Close reading";
+      const reading = document.createElement("div");
+      reading.className = "pin-reading";
+      if (item.analysis) {
+        renderReadingLinked(reading, item.analysis, tokens);
+      } else {
+        reading.classList.add("none");
+        reading.textContent = "No close reading was kept with this corpse.";
       }
-      const meta = document.createElement("p");
+      readingPane.append(head, reading);
+
+      const meta = document.createElement("div");
       meta.className = "pin-meta";
+      const who = document.createElement("span");
       const when = new Date(item.ts);
-      meta.textContent = item.name + (isNaN(when) ? "" : ", " + when.toLocaleDateString());
-      pin.append(meta);
+      who.textContent = item.name + (isNaN(when) ? "" : ", " + when.toLocaleDateString());
+      const link = document.createElement("a");
+      link.href = wallLink(item);
+      link.textContent = "see it on the wall";
+      meta.append(who, link);
+
+      pin.append(poemPane, readingPane, meta);
       return pin;
     }
 

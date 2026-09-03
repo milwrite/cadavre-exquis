@@ -70,10 +70,12 @@ npm test                                             # Node game-rule tests + Py
   404s harmlessly on Pages) < `?endpoint=…&model=…` URL params. The parlor
   builds the revealed poem from its own state — only the close reading needs
   the model.
-- **The wall has its own page.** `wall.html` shows every pin as one card, the whole
-  poem beside its always-open reading, with votes, rename, and unpinning for the
-  hand that holds the delete token; `index.html` only previews the newest six pins at five lines each
-  and links into `wall.html#pin-<id>`. Both resolve the wall endpoint the same way
+- **The wall has its own page.** `wall.html` shows every pin as one card — the
+  always-open reading on the left, the whole poem to its right (flush left in its
+  pane, never cut or paged) — with votes, rename, and unpinning for the hand that
+  holds the delete token; `index.html` previews only the newest three pins in the
+  same card (no votes) and links into `wall.html#pin-<id>`. The card CSS is
+  duplicated across the two files, so change both together. Both resolve the wall endpoint the same way
   (`CFG.wallEndpoint` from `ui/config.local.js`, else inference-arcade.com), and the
   Worker copies `wall.html` into `dist/` (served at `/wall`).
 - **The parlor is one column.** Masthead (cut-out title, epigraph on one line at
