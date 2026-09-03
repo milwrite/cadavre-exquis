@@ -25,6 +25,30 @@ host with `./scripts/vllm_serve.sh`. The local default connects directly to
 `exquisite-corpse`. Because the local default has no model catalog, each page
 shows one direct local vLLM choice.
 
+## Play through the CAIL Gateway
+
+The CUNY AI Lab Gateway (`https://tools.ailab.gc.cuny.edu/v1`) fronts
+Cloudflare AI Gateway and offers Workers AI (`@cf/author/model`) and OpenRouter
+(`author/model`) models behind a personal `sk-cail-*` key. It answers no CORS
+preflight, so a page cannot call it directly. `ui/cail_proxy.py` is a
+dependency-free relay that keeps the key in the server process and serves both
+pages with the same three same-origin routes the published proxy uses:
+
+```bash
+CAIL_API_KEY=sk-cail-... ./ui/serve-cail.sh     # prompts for the key if unset
+# http://localhost:8800/  ·  http://localhost:8800/ui/corpse.html
+```
+
+While the relay runs it serves `ui/config.local.js` itself (pointing at
+`/api/cail/chat`, `/api/cail/ready`, `/api/cail/models`), so a copy on disk is
+ignored. Only models from the gateway catalog are offered, and a chat request
+naming any other model is refused with `400`. The relay switches thinking off
+for reasoning-capable models (`chat_template_kwargs.enable_thinking` on Workers
+AI, `reasoning.enabled` on OpenRouter); without that they spend the whole turn
+budget on hidden reasoning and answer with an empty message. Narrow the menu in
+`select_models()` inside `ui/cail_proxy.py`. `CAIL_DEFAULT_MODEL` overrides the
+default route (`@cf/google/gemma-4-26b-a4b-it`). The relay binds loopback only.
+
 ## Published routes and model selection
 
 Published pages use the inference-arcade.com proxy. GitHub Pages sends chat

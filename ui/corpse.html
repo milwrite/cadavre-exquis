@@ -381,7 +381,9 @@ function routeGroup(route){
   const provider = String(route.provider || route.owned_by || route.id.split(":", 1)[0] || "");
   if(/legion|vllm/i.test(provider)) return { rank:0, label:"Fine-tuned on Legion" };
   if(/ollama/i.test(provider)) return { rank:1, label:"Ollama Cloud" };
-  return { rank:2, label:"Other models" };
+  if(/workers-ai/i.test(provider)) return { rank:2, label:"Cloudflare Workers AI" };
+  if(/openrouter/i.test(provider)) return { rank:3, label:"OpenRouter via Cloudflare AI Gateway" };
+  return { rank:4, label:"Other models" };
 }
 
 function setSingleModelOption(label, status){
@@ -525,7 +527,8 @@ async function loadModelOptions(){
   }
   try {
     const response = await fetch(CFG.modelsEndpoint, {
-      headers: { Accept:"application/json" },
+      headers: Object.assign({ Accept:"application/json" },
+        CFG.apiKey ? { "Authorization": "Bearer " + CFG.apiKey } : {}),
       cache: "no-store",
     });
     if(!response.ok) throw new Error("model list returned " + response.status);

@@ -4,7 +4,9 @@
   "private": true,
   "description": "Exquisite Corpse game and dependency-free rule tests",
   "scripts": {
-    "test": "node --test test/*.test.js",
+    "test": "node --test test/*.test.js && python3 -m unittest discover -s test -p 'test_*.py' && npm --prefix worker test",
+    "test:worker": "npm --prefix worker test",
+    "test:proxy": "python3 -m unittest discover -s test -p 'test_*.py'",
     "test:core": "node --test test/cadavre-core.test.js"
   }
 }

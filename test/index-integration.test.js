@@ -13,16 +13,36 @@ test("the canonical page loads the tested game core", () => {
   assert.match(html, /Core\.matchPhrase/);
 });
 
-test("the canonical page presents one clean model setting", () => {
+test("the other hand is a menu when the host lists routes, one clean line otherwise", () => {
   assert.match(html, /function modelLabel\(model\)/);
   assert.match(html, /setSingleModelOption\(\);/);
-  assert.doesNotMatch(html, /renderModelOptions/);
-  assert.doesNotMatch(html, /OpenRouter|Ollama Cloud|Ollama Fallback/);
+  assert.match(html, /function renderModelOptions\(catalog\)/);
+  assert.match(html, /async function loadModelOptions\(\)/);
+  assert.match(html, /if \(!CFG\.modelsEndpoint \|\| custom\)/);
+  assert.match(html, /el\("modelRoute"\)\.addEventListener\("change"/);
+  assert.match(html, /warmSelectedModel\(\{ force: true \}\)/);
+  assert.match(html, /loadModelOptions\(\);\n/);
+});
+
+test("the parlor takes a same-origin wall endpoint from config.local.js", () => {
+  assert.match(html, /CFG\.wallEndpoint/);
+  assert.match(html, /return REMOTE_API \+ "\/wall";/);
+});
+
+test("the stage carries the game's state and reflows the reveal on wide screens", () => {
+  assert.match(html, /el\("stage"\)\.classList\.add\("is-playing"\)/);
+  assert.match(html, /el\("stage"\)\.classList\.add\("is-revealed"\)/);
+  assert.equal((html.match(/classList\.remove\("is-revealed"\)/g) || []).length, 2);
+  assert.match(html, /\.stage\.is-playing \.intro, \.stage\.is-revealed \.intro \{ display: none; \}/);
+  assert.match(html, /@media \(min-width: 60rem\) \{\s*\.revealed \{[^}]*grid-template-areas: "poem reading" "foot foot";/);
+  assert.match(html, /\.poem \{[^}]*max-width: 36rem;/);
+  assert.match(html, /\.epigraph \{[^}]*white-space: nowrap;/);
+  assert.doesNotMatch(html, /game-shell|game-intro|game-stage|\.eyebrow|text-transform: uppercase/);
 });
 
 test("the table stays closed until a generated readiness check succeeds", () => {
   assert.match(html, /readyEndpoint: REMOTE_API \+ "\/ready"/);
-  assert.match(html, /model: "ollama:kimi-k2\.5"/);
+  assert.match(html, /model: "ollama:deepseek-v4-flash"/);
   assert.match(html, /id="startBtn" class="primary" disabled>warming…<\/button>/);
   assert.match(html, /async function warmSelectedModel/);
   assert.match(html, /if \(!data\.ready \|\| !data\.model\)/);
@@ -42,23 +62,12 @@ test("the canonical page's inline scripts parse", () => {
   });
 });
 
-test("wall poems use numbered twenty-line pages and retain per-item view state", () => {
-  assert.match(html, /Core\.paginateLines\(item\.poem, 20\)/);
-  assert.match(html, /if \(pages\.length > 1\)/);
-  assert.match(html, /aria-current", "page"/);
-  assert.match(html, /wallViews = new Map\(\)/);
-  assert.match(html, /readingOpen: false/);
-  assert.match(html, /view\.readingOpen = details\.open/);
-});
-
-test("remote wall votes persist a private browser token and follow the vote API contract", () => {
-  assert.match(html, /const WALL_VOTER_TOKEN_KEY = "cadavreWallVoterToken"/);
-  assert.match(html, /const WALL_VOTES_KEY = "cadavreWallVotes"/);
-  assert.match(html, /new Uint8Array\(32\)/);
-  assert.match(html, /crypto\.getRandomValues\(bytes\)/);
-  assert.match(html, /if \(item\.remote\)/);
-  assert.match(html, /\/vote`, \{/);
-  assert.match(html, /JSON\.stringify\(\{ voterToken: wallVoterToken, value \}\)/);
-  assert.match(html, /aria-pressed/);
-  assert.match(html, /delete wallVotes\[item\.id\]/);
+test("the parlor previews the wall, five lines a pin, and sends readers to wall.html", () => {
+  assert.match(html, /const WALL_PREVIEW_LINES = 5;/);
+  assert.match(html, /lines\.slice\(0, WALL_PREVIEW_LINES\)/);
+  assert.match(html, /href="wall\.html">every pinned corpse<\/a>/);
+  assert.match(html, /wall\.html#pin-\$\{encodeURIComponent\(item\.id\)\}/);
+  assert.match(html, /wallTokens\[data\.item\.id\] = data\.deleteToken/);
+  assert.match(html, /setRevealStatus\(`pinned to the wall\./);
+  assert.doesNotMatch(html, /\/vote`|nextWallVote|paginateLines|loadWallMore|cadavreWallVoterToken|scrollIntoView\(\{ behavior: "smooth", block: "start" \}\);\n\s*\} catch/);
 });

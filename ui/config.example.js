@@ -5,6 +5,7 @@ window.CORPSE_CONFIG = {
   // Direct multi-LoRA vLLM connection for local play.
   endpoint: "http://127.0.0.1:1234/v1/chat/completions",
   readyEndpoint: "",
+  wallEndpoint: "",       // parlor only: same-origin wall API, e.g. "/api/cadavre/wall" (default: inference-arcade.com)
   model: "exquisite-corpse",
 
   // Leave this blank for one direct local vLLM choice. A configured catalog
@@ -19,6 +20,11 @@ window.CORPSE_CONFIG = {
   // Local Ollama after deploy/build_ollama_model.py --create:
   // endpoint: "http://localhost:11434/v1/chat/completions",
   // model: "exquisite-corpse-tuned",
+
+  // CAIL Gateway (Cloudflare AI Gateway) play: don't configure it here. Run
+  // `CAIL_API_KEY=sk-cail-... ./ui/serve-cail.sh`; the relay serves this file
+  // itself, pointing at /api/cail/{chat,ready,models}, and keeps the key
+  // server-side because the gateway allows no browser CORS.
 };
 
 // Leave config.local.js absent on published sites. Their built-in defaults are:

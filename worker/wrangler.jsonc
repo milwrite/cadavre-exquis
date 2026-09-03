@@ -1,0 +1,47 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // One self-contained Worker: both play surfaces as static assets, the model
+  // routes in front of Workers AI, and the shared wall in a Durable Object.
+  "name": "cail-cadavre",
+  // Pinned so a stray CLOUDFLARE_ACCOUNT_ID can never deploy this elsewhere.
+  "account_id": "452c33847cf5cb1e46f391fca32fd1b5",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-25",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./dist",
+    // Only these paths run the script first; every other path is asset-first.
+    "run_worker_first": ["/api/*", "/health", "/ui/config.local.js"]
+  },
+  // Workers AI on the lab's own account. No provider key is needed for @cf/ models.
+  "ai": { "binding": "AI" },
+  "durable_objects": {
+    "bindings": [{ "name": "STORE", "class_name": "CadavreStore" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CadavreStore"] }],
+  // Rate-limit counters are shared account-wide by namespace_id, so these ids
+  // are deliberately unusual and every key is prefixed "cadavre:".
+  "ratelimits": [
+    { "name": "TURN_LIMIT", "namespace_id": "74101", "simple": { "limit": 20, "period": 60 } },
+    { "name": "READING_LIMIT", "namespace_id": "74102", "simple": { "limit": 6, "period": 60 } },
+    { "name": "WALL_LIMIT", "namespace_id": "74103", "simple": { "limit": 5, "period": 60 } }
+  ],
+  "vars": {
+    "RELEASE": "dev",
+    "CAIL_LOG_ENV": "preview",
+    // Public catalog of what the CAIL Gateway exposes; the page menu is drawn from it.
+    "CAIL_CATALOG_URL": "https://tools.ailab.gc.cuny.edu/v1/catalog",
+    "CAIL_GATEWAY_URL": "https://tools.ailab.gc.cuny.edu/v1",
+    // "workers-ai" offers only @cf/ models (run on the AI binding).
+    // "all" adds the gateway's OpenRouter routes, which need CAIL_GATEWAY_KEY.
+    "CADAVRE_MODEL_POLICY": "workers-ai",
+    "CADAVRE_DEFAULT_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
+    // Completion tokens per UTC day before the parlor rests until tomorrow.
+    "CADAVRE_DAILY_TOKEN_CEILING": "1500000",
+    // Optional: an AI Gateway id on this account, so binding calls are logged there.
+    "AI_GATEWAY_ID": ""
+  }
+  // Secrets (wrangler secret put): CAIL_GATEWAY_KEY — an app-class sk-cail key,
+  // only needed for CADAVRE_MODEL_POLICY=all.
+}

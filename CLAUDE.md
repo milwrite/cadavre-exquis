@@ -5,8 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Pipeline that scrapes public-domain surrealist/modernist poetry, reshapes it into
 next-line-continuation examples, QLoRA-fine-tunes a small Gemma, and serves the
 adapter from a multi-LoRA vLLM host that feeds an *Exquisite Corpse* game UI.
-The Open WebUI wrapper defaults to `deepseek-v4-flash`; local vLLM routes use
-the `exquisite-corpse` adapter.
+The Open WebUI wrapper and the Cloudflare Worker (`CADAVRE_DEFAULT_MODEL`,
+`@cf/deepseek-ai/deepseek-v4-flash-0731`) default to DeepSeek V4 Flash; local vLLM
+routes use the `exquisite-corpse` adapter.
 
 **`PROGRESS.md` is the source of truth** for what's done and what's next.
 `CONTINUE.md` is the runbook the scheduled agent follows.
@@ -35,6 +36,10 @@ MODEL=unsloth/gemma-4-E4B-it .venv/bin/python train/train_qlora.py --max-steps 2
 
 # play UI (local): serve from localhost so Ollama/vLLM CORS allows it
 ./ui/serve.sh                                        # parlor -> :8800/ · open sheet -> :8800/ui/corpse.html
+CAIL_API_KEY=sk-cail-... ./ui/serve-cail.sh          # same pages via the CUNY AI Lab Gateway relay (ui/cail_proxy.py)
+(cd worker && npm run dev)                          # the Cloudflare Worker locally (AI binding is remote; see worker/README.md)
+(cd worker && npm run deploy)                       # deploy cail-cadavre to the CUNY AI Lab account (workers.dev only)
+npm test                                             # Node game-rule tests + Python relay tests + Worker unit tests
 ```
 
 ## Architecture
@@ -65,6 +70,23 @@ MODEL=unsloth/gemma-4-E4B-it .venv/bin/python train/train_qlora.py --max-steps 2
   404s harmlessly on Pages) < `?endpoint=…&model=…` URL params. The parlor
   builds the revealed poem from its own state — only the close reading needs
   the model.
+- **The wall has its own page.** `wall.html` shows every pin as one card, the whole
+  poem beside its always-open reading, with votes, rename, and unpinning for the
+  hand that holds the delete token; `index.html` only previews the newest six pins at five lines each
+  and links into `wall.html#pin-<id>`. Both resolve the wall endpoint the same way
+  (`CFG.wallEndpoint` from `ui/config.local.js`, else inference-arcade.com), and the
+  Worker copies `wall.html` into `dist/` (served at `/wall`).
+- **The parlor is one column.** Masthead (cut-out title, epigraph on one line at
+  ≥48rem), a short intro, then the table, the sheet, or the reveal in the same
+  column; `main#stage` carries `is-playing` / `is-revealed`, which hide the intro
+  and (while playing) the wall. From 60rem the reveal sets the poem flush left
+  beside its close reading. Serif for verse, intro, and reading; a system sans
+  (`--sans`) for every control and status line.
+- **The model's turn has a floor and a shape.** `modelTurn` awaits both the reply
+  and `MODEL_MIN_WAIT_MS` (3 s) so the hand that just folded can still hit
+  "reveal poem" and end on its own line; the reveal drops the in-flight reply.
+  `shapeNote()` adds a SHAPE paragraph to the play prompt keyed to the fold count,
+  asking for a closable line once the poem is long. Keep both when editing the prompt.
 - **Both UIs are single self-contained files, no build step.** Each inlines all
   CSS (one `<style>`) and JS (one `<script>`); no bundler, no shared stylesheet,
   system-font stacks only. The shared ink/bone design tokens (`:root` custom
@@ -90,5 +112,9 @@ MODEL=unsloth/gemma-4-E4B-it .venv/bin/python train/train_qlora.py --max-steps 2
   The remote is `milwrite/cadavre-exquis` (PUBLIC). A plain `git push` uses the
   `zmuhls` credential and gets 403 on milwrite's repo — push with milwrite's
   token: `git push "https://x-access-token:$(gh auth token --user milwrite)@github.com/milwrite/cadavre-exquis.git" master`.
+- **The CAIL Gateway allows no browser CORS and blocks `Python-urllib` UAs
+  (Cloudflare error 1010).** `ui/cail_proxy.py` relays with the key server-side
+  and its own User-Agent; it also switches thinking off for reasoning models,
+  which otherwise return empty `content` at the game's 80-token turn budget.
 - **A daily-noon cron** (`scripts/continue.sh`) runs a headless agent against
   `CONTINUE.md` and commits one step per run. It's autonomous (`bypassPermissions`).

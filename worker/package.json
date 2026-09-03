@@ -1,0 +1,22 @@
+{
+  "name": "cail-cadavre",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Exquisite Corpse as one self-contained Cloudflare Worker on the CUNY AI Lab account",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-assets.mjs",
+    "types": "wrangler types",
+    "check": "npm run build && npm run types && tsc --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run check && npm test && wrangler deploy --var RELEASE:$(git rev-parse --short HEAD)"
+  },
+  "dependencies": {
+    "hono": "4.13.5"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "wrangler": "4.128.0"
+  }
+}

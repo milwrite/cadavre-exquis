@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Wall — Cadavre Exquis</title>
+  <meta name="description" content="Every Exquisite Corpse pinned from the table, with its close reading, shared across browsers." />
+  <meta name="theme-color" content="#0C0D10" />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
+  <style>
+    /* The wall shares the parlor's tokens (index.html re-declares them; change both together). */
+    :root {
+      color-scheme: dark;
+      --ink: #0C0D10;
+      --bone: #E7E0D0;
+      --bone-soft: rgba(231, 224, 208, 0.84);
+      --reading: #B8B2A4;
+      --dim: #9A9385;
+      --faint: #6E6A61;
+      --crease: rgba(231, 224, 208, 0.14);
+      --crease-soft: rgba(231, 224, 208, 0.08);
+      --edge: rgba(231, 224, 208, 0.38);   /* control borders, visible at a glance */
+      --wine: #A44856;
+      --wine-bright: #C57080;
+      --wine-wash: rgba(197, 112, 128, 0.14);
+      --sans: system-ui, -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "URW Palladio L", "P052", "Liberation Serif", "Noto Serif", Georgia, serif;
+      --t-small: 0.875rem;
+      --t-body: 1.0625rem;
+      --t-h2: 1.45rem;
+      --wide: 66rem;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { min-height: 100%; }
+
+    body {
+      background: var(--ink);
+      color: var(--bone);
+      font-family: var(--serif);
+      font-size: var(--t-body);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    .page {
+      width: min(100%, var(--wide));
+      margin: 0 auto;
+      padding: clamp(1.1rem, 3vh, 2rem) clamp(1rem, 3vw, 2rem) clamp(1.5rem, 4vh, 3rem);
+    }
+
+    a { color: inherit; text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 0.18em; }
+    a:hover { color: var(--wine-bright); text-decoration-color: var(--wine-bright); }
+    :focus-visible { outline: 2px solid var(--wine-bright); outline-offset: 2px; }
+    h2 { font-weight: 400; font-size: var(--t-h2); line-height: 1.25; }
+
+    .masthead {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem 2.5rem;
+      padding-bottom: 1.1rem;
+      border-bottom: 1px solid var(--crease);
+    }
+
+    .brand { flex: 0 1 30rem; min-width: 15rem; font-size: 0; line-height: 1; }
+    .brand a { display: block; text-decoration: none; }
+    .brand img { display: block; width: 100%; height: auto; aspect-ratio: 1300 / 155; transform: translateX(-3.8%); }
+
+    .epigraph {
+      flex: 0 0 auto;
+      text-align: right;
+      font-style: italic;
+      font-size: clamp(0.95rem, 0.72rem + 0.6vw, 1.15rem);
+      line-height: 1.35;
+      color: var(--faint);
+      white-space: nowrap;
+    }
+
+    .epigraph .attr { display: block; margin-top: 0.3em; font-style: normal; font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
+
+    button {
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      line-height: 1.2;
+      color: var(--bone);
+      background: transparent;
+      border: 1px solid var(--edge);
+      border-radius: 2px;
+      padding: 0.6em 1.1em;
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+    }
+
+    button:hover:not(:disabled) { border-color: var(--bone); }
+    button:disabled { opacity: 0.35; cursor: not-allowed; }
+    button.primary { background: var(--wine); border-color: var(--wine); color: #fff; }
+    button.primary:hover:not(:disabled) { background: var(--wine-bright); border-color: var(--wine-bright); }
+    button.accent { border-color: var(--wine-bright); color: var(--wine-bright); }
+    button.accent:hover:not(:disabled) { background: var(--wine-wash); }
+    button.linklike { border: 0; padding: 0 0.1em; font-size: inherit; line-height: inherit; text-decoration: underline; text-underline-offset: 0.18em; color: var(--wine-bright); }
+
+    /* ── the wall ───────────────────────────────────────────────────────── */
+    .wall { padding-top: clamp(1.6rem, 4vh, 2.6rem); }
+    .wall-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.6rem 1.5rem; }
+    .wall-head a { font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); padding-bottom: 0.3rem; }
+    /* "The Wall" set in the same cut-out print as the title, at the title's scale */
+    .wall-title { width: min(100%, 11rem); font-size: 0; line-height: 1; }
+    .wall-title img { display: block; width: 100%; height: auto; aspect-ratio: 678 / 168; }
+    .wall-note { margin-top: 0.6rem; font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
+    .wall-status { min-height: 1.5em; margin-top: 1rem; font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
+    .wall-status.err { color: var(--wine-bright); }
+
+    .wall-list { display: grid; gap: 1.4rem; margin-top: 1.6rem; }
+    .wall-more { margin-top: 1.6rem; }
+
+    /* ── one card per corpse: the poem on the left, its reading on the right ── */
+    .pin {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.4rem;
+      padding: clamp(1.2rem, 3vw, 1.8rem) clamp(1.1rem, 3vw, 2rem);
+      border: 1px solid var(--crease);
+    }
+
+    .pin:target { border-color: var(--wine); }
+    .pin-poem-pane { display: flex; justify-content: center; }
+    .pin-poem { width: fit-content; max-width: 100%; font-size: 1.1rem; line-height: 1.55; overflow-wrap: break-word; }
+    .pin-poem .line:empty::before { content: "\00a0"; }
+
+    .pin-reading-pane { min-width: 0; }
+    .pin-reading-head { font-size: var(--t-small); font-style: italic; font-weight: 400; color: var(--dim); margin-bottom: 0.45rem; }
+    .pin-reading { font-size: 1rem; line-height: 1.65; color: var(--reading); text-wrap: pretty; }
+    .pin-reading.none { color: var(--faint); font-style: italic; }
+
+    .w { padding: 0 0.04em; transition: background-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease; }
+    .w.lit { background: var(--wine-wash); box-shadow: 0 2px 0 var(--wine); color: var(--bone); border-radius: 1px; }
+    .quote { border-bottom: 1px dotted var(--wine); cursor: default; transition: color 0.18s ease; }
+    .quote:hover, .quote:focus-visible { color: var(--wine-bright); }
+
+    .pin-meta {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.6rem 1rem;
+      padding-top: 0.9rem;
+      border-top: 1px solid var(--crease-soft);
+      font-family: var(--sans);
+      font-size: 0.8125rem;
+      color: var(--dim);
+    }
+
+    .pin-controls, .pin-votes { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem 0.8rem; }
+    .pin-vote { min-width: 3.4rem; padding: 0.3em 0.6em; font-size: var(--t-small); font-variant-numeric: tabular-nums; }
+    .pin-vote[aria-pressed="true"] { border-color: var(--wine); color: var(--wine-bright); background: var(--wine-wash); }
+    .pin-vote-status { flex-basis: 100%; color: var(--wine-bright); }
+
+    @media (min-width: 56rem) {
+      .pin { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); column-gap: clamp(1.5rem, 4vw, 3rem); align-items: start; }
+      .pin-reading-pane { border-left: 1px solid var(--crease-soft); padding-left: clamp(1.5rem, 4vw, 3rem); }
+    }
+
+    /* ── dialogs ────────────────────────────────────────────────────────── */
+    dialog {
+      background: var(--ink);
+      color: var(--bone);
+      border: 1px solid var(--crease);
+      padding: 1.6rem 1.7rem;
+      width: min(24rem, 92vw);
+      margin: auto;
+    }
+
+    dialog::backdrop { background: rgba(0, 0, 0, 0.72); }
+    dialog p { color: var(--bone-soft); margin-bottom: 1rem; }
+    dialog p.status { font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); margin-bottom: 0.8rem; min-height: 1.4em; }
+    dialog p.status.err { color: var(--wine-bright); }
+
+    dialog input {
+      font: inherit;
+      font-size: 1.2rem;
+      color: var(--bone);
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid var(--crease);
+      border-radius: 0;
+      padding: 0.3em 0.1em;
+      width: 100%;
+      margin-bottom: 1.2rem;
+    }
+
+    dialog input:focus { border-bottom-color: var(--wine); outline: none; }
+    dialog .row { display: flex; justify-content: flex-end; gap: 0.6rem; flex-wrap: wrap; }
+
+    footer {
+      margin-top: clamp(2.5rem, 6vh, 4rem);
+      padding-top: 1rem;
+      border-top: 1px solid var(--crease);
+      font-family: var(--sans);
+      font-size: 0.8125rem;
+      line-height: 1.7;
+      color: var(--dim);
+    }
+
+    @media (max-width: 47.99rem) {
+      .masthead { flex-direction: column; align-items: flex-start; gap: 0.9rem; }
+      .brand { flex: none; width: min(100%, 26rem); min-width: 0; }
+      .epigraph { text-align: left; white-space: normal; }
+      .pin-meta { align-items: flex-start; }
+    }
+
+    @media (max-width: 30rem) {
+      .pin-controls { width: 100%; justify-content: space-between; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .w, .quote { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="masthead">
+      <h1 class="brand">
+        <a href="./"><img src="assets/title-cutup-1.png" alt="Exquisite Corpse" width="1300" height="155"></a>
+      </h1>
+      <p class="epigraph">“The exquisite corpse will drink the new wine.”
+        <span class="attr">the game’s first sentence, Paris, 1925</span>
+      </p>
+    </header>
+
+    <main class="wall" aria-label="The Wall">
+      <div class="wall-head">
+        <h2 class="wall-title"><img src="assets/title-wall-1.png" alt="The Wall" width="678" height="168"></h2>
+        <a href="./">back to the table</a>
+      </div>
+      <p class="wall-note" id="wallNote">every corpse pinned from any table, newest first</p>
+      <p class="wall-status" id="wallStatus" role="status" aria-live="polite">loading the wall…</p>
+      <div class="wall-list" id="wallList"></div>
+      <div class="wall-more" id="wallMore" hidden>
+        <button id="loadWallMore" type="button">earlier corpses</button>
+      </div>
+    </main>
+
+    <footer><p>Pins are shared across browsers. A vote is remembered in this browser; the hand that pinned a corpse can unpin it from the same browser.</p></footer>
+  </div>
+
+  <dialog id="renameDialog">
+    <p>rename this pin</p>
+    <input id="renameName" type="text" maxlength="40" placeholder="your name, or an alias" aria-label="new name" />
+    <p id="renameStatus" class="status" hidden></p>
+    <div class="row">
+      <button id="renameCancel" type="button">cancel</button>
+      <button id="renameConfirm" class="primary" type="button">rename</button>
+    </div>
+  </dialog>
+
+  <script src="ui/config.local.js"></script>
+  <script src="assets/cadavre-core.js"></script>
+  <script>
+    /* Same resolution as the parlor: a same-origin host names its wall in
+       ui/config.local.js; GitHub Pages falls back to inference-arcade.com. */
+    const REMOTE_API = location.hostname === "inference-arcade.com"
+      ? "/api/cadavre"
+      : "https://inference-arcade.com/api/cadavre";
+    const CFG = Object.assign({}, window.CORPSE_CONFIG || {});
+    const WALL_API = (() => {
+      const configured = String(CFG.wallEndpoint || "");
+      try {
+        if (configured && /^https?:$/.test(new URL(configured, location.href).protocol)) return configured;
+      } catch {}
+      return REMOTE_API + "/wall";
+    })();
+
+    const LEGACY_WALL_KEY = "cadavreWall";
+    const WALL_TOKENS_KEY = "cadavreWallDeleteTokens";
+    const WALL_VOTER_TOKEN_KEY = "cadavreWallVoterToken";
+    const WALL_VOTES_KEY = "cadavreWallVotes";
+    const Core = window.CadavreCore;
+    const el = (id) => document.getElementById(id);
+
+    let legacyWall = readLegacyWall();
+    let remoteWall = [];
+    let wall = [];
+    let wallCursor = null;
+    let wallLoading = false;
+    let wallTokens = readWallTokens();
+    let wallVoterToken = readOrCreateWallVoterToken();
+    let wallVotes = readWallVotes();
+    const wallViews = new Map();
+    const wallVoting = new Set();
+    let scrolledToHash = false;
+    const WALL_CAN_RENAME = true;   // the host offers /wall/:id/rename
+
+    function readLegacyWall() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(LEGACY_WALL_KEY) || "[]");
+        if (!Array.isArray(saved)) return [];
+        return saved.filter((item) => item && typeof item.poem === "string").map((item, index) => ({
+          name: String(item.name || "anonymous"),
+          poem: item.poem,
+          analysis: String(item.analysis || ""),
+          ts: item.ts || new Date(0).toISOString(),
+          legacyKey: `${index}:${item.ts || ""}:${item.poem}`,
+          local: true,
+        }));
+      } catch {
+        return [];
+      }
+    }
+
+    function saveLegacyWall() {
+      try {
+        localStorage.setItem(LEGACY_WALL_KEY, JSON.stringify(legacyWall.map((item) => ({
+          name: item.name, poem: item.poem, analysis: item.analysis, ts: item.ts,
+        }))));
+      } catch {}
+    }
+
+    function readWallTokens() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(WALL_TOKENS_KEY) || "{}");
+        return saved && typeof saved === "object" && !Array.isArray(saved) ? saved : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveWallTokens() {
+      try { localStorage.setItem(WALL_TOKENS_KEY, JSON.stringify(wallTokens)); } catch {}
+    }
+
+    function readOrCreateWallVoterToken() {
+      let saved = "";
+      try { saved = String(localStorage.getItem(WALL_VOTER_TOKEN_KEY) || "").toLowerCase(); } catch {}
+      if (/^[0-9a-f]{64}$/.test(saved)) return saved;
+      try {
+        const bytes = new Uint8Array(32);
+        crypto.getRandomValues(bytes);
+        const token = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+        try { localStorage.setItem(WALL_VOTER_TOKEN_KEY, token); } catch {}
+        return token;
+      } catch {
+        return "";
+      }
+    }
+
+    function readWallVotes() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(WALL_VOTES_KEY) || "{}");
+        if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
+        return Object.fromEntries(Object.entries(saved).filter(([, value]) => value === 1 || value === -1));
+      } catch {
+        return {};
+      }
+    }
+
+    function saveWallVotes() {
+      try { localStorage.setItem(WALL_VOTES_KEY, JSON.stringify(wallVotes)); } catch {}
+    }
+
+    /* ── the poem ↔ reading link, as in the parlor ──────────────────────── */
+    const normWord = Core.normalizeWord;
+    const matchPhrase = Core.matchPhrase;
+
+    function renderPoemWords(container, lines) {
+      container.innerHTML = "";
+      const tokens = [];
+      lines.forEach((text) => {
+        const line = document.createElement("div");
+        line.className = "line";
+        String(text).split(/\s+/).filter(Boolean).forEach((word, index) => {
+          if (index) line.appendChild(document.createTextNode(" "));
+          const span = document.createElement("span");
+          span.className = "w";
+          span.textContent = word;
+          tokens.push({ norm: normWord(word), el: span });
+          line.appendChild(span);
+        });
+        container.appendChild(line);
+      });
+      return tokens;
+    }
+
+    function renderReadingLinked(target, text, tokens) {
+      target.textContent = "";
+      const quotes = /“([^”]+)”|"([^"]+)"|«([^»]+)»/g;
+      let last = 0;
+      let match;
+      while ((match = quotes.exec(text))) {
+        if (match.index > last) target.appendChild(document.createTextNode(text.slice(last, match.index)));
+        const refs = matchPhrase(tokens, match[1] ?? match[2] ?? match[3]);
+        if (refs) {
+          const quote = document.createElement("span");
+          quote.className = "quote";
+          quote.tabIndex = 0;
+          quote.textContent = match[0];
+          const light = () => refs.forEach((index) => tokens[index].el.classList.add("lit"));
+          const clear = () => refs.forEach((index) => tokens[index].el.classList.remove("lit"));
+          quote.addEventListener("mouseenter", light);
+          quote.addEventListener("mouseleave", clear);
+          quote.addEventListener("focus", light);
+          quote.addEventListener("blur", clear);
+          target.appendChild(quote);
+        } else {
+          target.appendChild(document.createTextNode(match[0]));
+        }
+        last = quotes.lastIndex;
+      }
+      if (last < text.length) target.appendChild(document.createTextNode(text.slice(last)));
+    }
+
+    /* ── pins ───────────────────────────────────────────────────────────── */
+    function wallItemKey(item) {
+      return item.id ? `remote:${item.id}` : `local:${item.legacyKey}`;
+    }
+
+    function wallView(item) {
+      const key = wallItemKey(item);
+      if (!wallViews.has(key)) wallViews.set(key, { voteError: "" });
+      return wallViews.get(key);
+    }
+
+    function wallCount(value) {
+      const count = Number(value);
+      return Number.isSafeInteger(count) && count >= 0 ? count : 0;
+    }
+
+    function rebuildWall() {
+      const remote = remoteWall.map((item) => ({ ...item, remote: true }));
+      wall = [...remote, ...legacyWall].sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts));
+      renderWall();
+    }
+
+    function replaceWallItem(item) {
+      const current = Array.from(el("wallList").children)
+        .find((node) => node.dataset.wallKey === wallItemKey(item));
+      if (!current) {
+        renderWall();
+        return;
+      }
+      current.replaceWith(renderWallItem(item));
+    }
+
+    async function voteWallItem(item, requested) {
+      if (!item.remote || !item.id || wallVoting.has(item.id)) return;
+      const view = wallView(item);
+      if (!wallVoterToken) wallVoterToken = readOrCreateWallVoterToken();
+      if (!wallVoterToken) {
+        view.voteError = "voting is unavailable in this browser";
+        replaceWallItem(item);
+        return;
+      }
+      const value = Core.nextWallVote(wallVotes[item.id] || 0, requested);
+      view.voteError = "";
+      wallVoting.add(item.id);
+      replaceWallItem(item);
+      try {
+        const response = await fetch(`${WALL_API}/${encodeURIComponent(item.id)}/vote`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ voterToken: wallVoterToken, value }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "the vote could not be saved");
+        if (data.id !== item.id) throw new Error("the wall returned the wrong corpse");
+        const viewerVote = Number(data.viewerVote);
+        if (![-1, 0, 1].includes(viewerVote)) throw new Error("the wall returned an invalid vote");
+        const upvotes = wallCount(data.upvotes);
+        const downvotes = wallCount(data.downvotes);
+        const returnedScore = Number(data.score);
+        const score = Number.isSafeInteger(returnedScore) ? returnedScore : upvotes - downvotes;
+        const index = remoteWall.findIndex((entry) => entry.id === item.id);
+        if (index < 0) throw new Error("the corpse is no longer on the wall");
+        remoteWall[index] = { ...remoteWall[index], upvotes, downvotes, score, viewerVote };
+        if (viewerVote) wallVotes[item.id] = viewerVote;
+        else delete wallVotes[item.id];
+        saveWallVotes();
+      } catch (error) {
+        view.voteError = error.message || "the vote could not be saved";
+      } finally {
+        wallVoting.delete(item.id);
+        replaceWallItem({ ...(remoteWall.find((entry) => entry.id === item.id) || item), remote: true });
+      }
+    }
+
+    async function unpinWallItem(item, button) {
+      if (item.local) {
+        legacyWall = legacyWall.filter((entry) => entry.legacyKey !== item.legacyKey);
+        wallViews.delete(wallItemKey(item));
+        saveLegacyWall();
+        rebuildWall();
+        return;
+      }
+      const deleteToken = wallTokens[item.id];
+      if (!deleteToken) return;
+      button.disabled = true;
+      try {
+        const response = await fetch(`${WALL_API}/${encodeURIComponent(item.id)}/remove`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deleteToken }),
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "the pin could not be removed");
+        }
+        remoteWall = remoteWall.filter((entry) => entry.id !== item.id);
+        delete wallTokens[item.id];
+        delete wallVotes[item.id];
+        saveWallTokens();
+        saveWallVotes();
+        wallViews.delete(wallItemKey(item));
+        rebuildWall();
+      } catch (error) {
+        button.disabled = false;
+        button.title = error.message || "the pin could not be removed";
+      }
+    }
+
+    function renderWallItem(item) {
+      const view = wallView(item);
+      const lines = String(item.poem || "").split(/\r?\n/);
+      const pin = document.createElement("article");
+      pin.className = "pin";
+      pin.dataset.wallKey = wallItemKey(item);
+      if (item.id) pin.id = `pin-${item.id}`;
+
+      // the whole poem, never paged, centred in its third of the card
+      const poemPane = document.createElement("div");
+      poemPane.className = "pin-poem-pane";
+      const poem = document.createElement("div");
+      poem.className = "pin-poem";
+      poem.setAttribute("aria-label", "poem");
+      const tokens = renderPoemWords(poem, lines);
+      poemPane.appendChild(poem);
+      pin.appendChild(poemPane);
+
+      // its reading beside it, always open; quotes light the poem's words
+      const readingPane = document.createElement("div");
+      readingPane.className = "pin-reading-pane";
+      const head = document.createElement("h3");
+      head.className = "pin-reading-head";
+      head.textContent = "Close reading";
+      const reading = document.createElement("div");
+      reading.className = "pin-reading";
+      if (item.analysis) {
+        renderReadingLinked(reading, item.analysis, tokens);
+      } else {
+        reading.classList.add("none");
+        reading.textContent = "No close reading was kept with this corpse.";
+      }
+      readingPane.append(head, reading);
+      pin.appendChild(readingPane);
+
+      const meta = document.createElement("div");
+      meta.className = "pin-meta";
+      const who = document.createElement("span");
+      const when = new Date(item.ts);
+      who.textContent = item.name + (Number.isNaN(when.getTime()) ? "" : ", " + when.toLocaleDateString());
+      meta.appendChild(who);
+      const controls = document.createElement("div");
+      controls.className = "pin-controls";
+
+      if (item.remote) {
+        const votes = document.createElement("div");
+        votes.className = "pin-votes";
+        votes.setAttribute("role", "group");
+        votes.setAttribute("aria-label", `votes for ${item.name}'s poem`);
+        const selected = wallVotes[item.id] || 0;
+        const pending = wallVoting.has(item.id);
+        [
+          { value: 1, label: "upvote", mark: "↑", count: wallCount(item.upvotes) },
+          { value: -1, label: "downvote", mark: "↓", count: wallCount(item.downvotes) },
+        ].forEach(({ value, label, mark, count }) => {
+          const vote = document.createElement("button");
+          vote.type = "button";
+          vote.className = "pin-vote";
+          vote.textContent = `${mark} ${count}`;
+          vote.disabled = pending;
+          vote.setAttribute("aria-pressed", String(selected === value));
+          vote.setAttribute("aria-label", `${label}, ${count} ${count === 1 ? "vote" : "votes"}`);
+          vote.addEventListener("click", () => voteWallItem(item, value));
+          votes.appendChild(vote);
+        });
+        controls.appendChild(votes);
+      }
+
+      if (WALL_CAN_RENAME && item.remote && wallTokens[item.id]) {
+        const rename = document.createElement("button");
+        rename.type = "button";
+        rename.className = "linklike";
+        rename.textContent = "rename";
+        rename.addEventListener("click", () => openRename(item));
+        controls.appendChild(rename);
+      }
+
+      if (item.local || wallTokens[item.id]) {
+        const unpin = document.createElement("button");
+        unpin.type = "button";
+        unpin.className = "linklike";
+        unpin.textContent = "unpin";
+        unpin.addEventListener("click", () => unpinWallItem(item, unpin));
+        controls.appendChild(unpin);
+      }
+
+      if (controls.childElementCount) meta.appendChild(controls);
+      if (view.voteError) {
+        const error = document.createElement("div");
+        error.className = "pin-vote-status";
+        error.setAttribute("role", "status");
+        error.setAttribute("aria-live", "polite");
+        error.textContent = view.voteError;
+        meta.appendChild(error);
+      }
+      pin.appendChild(meta);
+      return pin;
+    }
+
+    /* ── rename: the hand that pinned a corpse may correct its name ─────── */
+    let renaming = null;
+
+    function openRename(item) {
+      renaming = item;
+      el("renameName").value = item.name || "";
+      el("renameStatus").textContent = "";
+      el("renameStatus").hidden = true;
+      el("renameStatus").classList.remove("err");
+      el("renameDialog").showModal();
+      el("renameName").select();
+    }
+
+    async function renameWallItem() {
+      const item = renaming;
+      const status = el("renameStatus");
+      const confirm = el("renameConfirm");
+      const name = el("renameName").value.trim();
+      if (!item || !wallTokens[item.id]) return;
+      if (!name) {
+        status.hidden = false;
+        status.classList.add("err");
+        status.textContent = "give the pin a name";
+        return;
+      }
+      confirm.disabled = true;
+      status.hidden = false;
+      status.classList.remove("err");
+      status.textContent = "renaming…";
+      try {
+        const response = await fetch(`${WALL_API}/${encodeURIComponent(item.id)}/rename`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deleteToken: wallTokens[item.id], name }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "the pin could not be renamed");
+        const index = remoteWall.findIndex((entry) => entry.id === item.id);
+        if (index >= 0) remoteWall[index] = { ...remoteWall[index], name: data.name || name };
+        el("renameDialog").close();
+        rebuildWall();
+      } catch (error) {
+        status.classList.add("err");
+        status.textContent = error.message || "the pin could not be renamed";
+      } finally {
+        confirm.disabled = false;
+      }
+    }
+
+    el("renameCancel").addEventListener("click", () => el("renameDialog").close());
+    el("renameConfirm").addEventListener("click", renameWallItem);
+    el("renameName").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") { event.preventDefault(); renameWallItem(); }
+    });
+
+    function renderWall() {
+      const list = el("wallList");
+      list.innerHTML = "";
+      el("wallNote").textContent = legacyWall.length
+        ? "every corpse pinned from any table, newest first, plus earlier pins kept in this browser"
+        : "every corpse pinned from any table, newest first";
+      el("wallMore").hidden = !wallCursor;
+      if (!wall.length && !wallLoading) el("wallStatus").textContent = "Nothing is pinned yet. Play a round and pin the poem.";
+      wall.forEach((item) => list.appendChild(renderWallItem(item)));
+      // a link from the parlor names one pin; land on it once it exists
+      if (!scrolledToHash && location.hash) {
+        const target = document.getElementById(location.hash.slice(1));
+        if (target) {
+          scrolledToHash = true;
+          target.scrollIntoView({ block: "start" });
+        }
+      }
+    }
+
+    async function loadWall(cursor = null) {
+      if (wallLoading || (cursor && !wallCursor)) return;
+      wallLoading = true;
+      el("loadWallMore").disabled = true;
+      el("wallStatus").classList.remove("err");
+      el("wallStatus").textContent = cursor ? "loading earlier corpses…" : "loading the wall…";
+      try {
+        const url = new URL(WALL_API, location.href);
+        url.searchParams.set("limit", "40");
+        if (cursor) url.searchParams.set("cursor", cursor);
+        const response = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !Array.isArray(data.items)) {
+          throw new Error(data.error || "the shared wall is unavailable");
+        }
+        if (cursor) {
+          const seen = new Set(remoteWall.map((item) => item.id));
+          remoteWall.push(...data.items.filter((item) => item?.id && !seen.has(item.id)));
+        } else {
+          remoteWall = data.items;
+        }
+        wallCursor = data.nextCursor || null;
+        el("wallStatus").textContent = "";
+      } catch (error) {
+        el("wallStatus").textContent = error.message || "the shared wall is unavailable";
+        el("wallStatus").classList.add("err");
+      } finally {
+        wallLoading = false;
+        el("loadWallMore").disabled = false;
+        rebuildWall();
+      }
+    }
+
+    el("loadWallMore").addEventListener("click", () => loadWall(wallCursor));
+    rebuildWall();
+    loadWall();
+  </script>
+</body>
+</html>

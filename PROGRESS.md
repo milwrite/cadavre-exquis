@@ -49,6 +49,68 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   and a bounded Cadavre-only Ollama reserve cannot be consumed by tournaments
   or background warmups. Both UIs retry transient turns automatically and
   adopt the effective route returned by the server.
+- **2026-09-02 CAIL Gateway relay:** `ui/cail_proxy.py` + `ui/serve-cail.sh`
+  serve both pages locally through the CUNY AI Lab Gateway (Cloudflare AI
+  Gateway) with a personal `sk-cail-*` key held server-side; the gateway sends
+  no CORS preflight and rejects `Python-urllib` (error 1010). The relay maps
+  `/v1/models` (264 routes: 31 Workers AI, 233 OpenRouter) to the page catalog,
+  refuses any model outside it, verifies readiness with one tiny generation,
+  and switches thinking off for reasoning models. Verified: models, ready, and
+  chat via `@cf/google/gemma-4-26b-a4b-it` and `deepseek/deepseek-chat-v3.1`.
+- **2026-09-02 Cloudflare Worker on the CUNY AI Lab account:** `worker/` ships the
+  game as one self-contained Worker, `cail-cadavre`, at
+  https://cail-cadavre.ailab-452.workers.dev (workers.dev trigger only; nothing
+  else on the account touched). Both pages are static assets; `/api/cadavre/*`
+  runs `@cf/` routes on the account's own Workers AI binding (no provider key),
+  draws its menu from the gateway's public catalog, clamps budgets (400 tokens,
+  12 messages), rate-limits by IP (20 turns / 6 readings / 5 pins per minute),
+  and keeps a daily token ceiling plus the shared wall in one SQLite Durable
+  Object. A one-fold probe of all 24 listed Workers AI routes excluded nine
+  (hidden or leaked reasoning, one license-gated vision model); 15 remain,
+  default Gemma 4 26B. Verified live: readiness, a fold, wall pin/vote/remove,
+  and full browser rounds with close readings on Gemma 4 and Llama 3.3 70B.
+  Page fixes shipped with it: the parlor's other hand is now a catalog menu,
+  and the intro column stays pinned at the top instead of centring itself
+  halfway down a long reveal. On middle-sized screens (48–80rem) the reveal
+  collapses the intro to its title line and gives the poem the whole width,
+  with the close reading beside it from 60rem up.
+  Next folds: Turnstile sessions, the lab's front-door ruling, a delegated name.
+
+## 2026-09-02 · the parlor as one column, the wall on its own page
+- `index.html` redesigned: masthead with the epigraph on one unbroken line, a short
+  intro, then table → sheet → reveal in a single 42rem column (the reveal widens to
+  poem-left / reading-right from 60rem). Verse is flush left at 1.15–1.3rem; the
+  close reading sits beside it without a box. One serif, no mono chrome, no caps
+  eyebrows. Phone, tablet, and desk widths rendered and checked.
+- The wall moved to `wall.html` (paging, votes, unpin). The parlor previews the six
+  newest pins at five lines each and links to `wall.html#pin-<id>`; pinning stays on
+  the page and reports "pinned to the wall" with a link.
+- Worker: `wall.html` in `dist/`, default model `@cf/deepseek-ai/deepseek-v4-flash-0731`
+  (also first in the offline fallback catalog). Deployed to
+  https://cail-cadavre.ailab-452.workers.dev. Same design ported to the
+  inference-arcade fork (`gvgai-web` `web/public/cadavre.html` + `cadavre-wall.html`),
+  whose server default is now `ollama:deepseek-v4-flash`.
+- "The Wall" is set in the title's cut-out print: `assets/title-wall-1.png` (678×168 at
+  1x, rendered 2x from an HTML collage of Rockwell, Helvetica Neue Light, Didot, Bodoni 72,
+  American Typewriter, Futura, and Baskerville Italic on tinted scraps), shown at 15.6rem so
+  its scraps match the title's scale; used as the wall heading on both pages and on the fork.
+- Second pass on the same day: the wall sits further below the game under a 9.5rem heading
+  (11rem on its own page); controls read `submit` and `redo turn | clear lines | reveal poem`;
+  chrome (labels, status, buttons, selects, footer) is a system sans while verse, intro, and
+  reading stay serif; buttons are filled wine (primary), wine-outlined (reveal), or bone-edged.
+  The model's line never lands inside 3 s (`MODEL_MIN_WAIT_MS`) so a hand can reveal on its
+  own turn, and the play prompt carries a SHAPE note keyed to the fold count (opening → shaping
+  → offering a close after 8 folds). The footer's connection line is gone.
+- The wall page is one card per corpse: the whole poem (never paged) centred in the left
+  third, its close reading always open in the right two-thirds, name/date/votes on a strip
+  below; stacked single-file, poem above reading under 56rem. The Worker gained
+  `POST /api/cadavre/wall/:id/rename` (delete token + name) and the wall page a "rename"
+  control for pins this browser made; the inference-arcade fork has the cards but no rename.
+- The sheet is flush left at the poem's measure (folds, cue, input, status, controls), so the
+  visible line and the line being written stand where they will in the finished poem. A cut
+  wall preview fades its last lines and links "continue reading on the wall, N more lines";
+  a poem only one line over the preview is shown whole. Both cut-out headings carry alt text
+  ("Exquisite Corpse", "The Wall"); the accessibility tree names them as h1 and h2.
 
 ## Automation
 - [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 12:00 (noon)**.

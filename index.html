@@ -25,262 +25,205 @@
   <link rel="icon" type="image/png" sizes="512x512" href="assets/favicon.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
   <style>
+    /* One sheet, top to bottom: masthead, a few lines on the game, the table,
+       then the sheet or the finished poem in the same column, and the wall's
+       newest pins below. The cut-out title is the one loud thing; everything
+       else is set in a single serif at a short scale. */
     :root {
       color-scheme: dark;
-      --ink: #0C0D10;       /* the field */
-      --bone: #E7E0D0;      /* the poem */
-      --ash: #6E6A61;       /* large quiet text */
-      --label: #8A8375;     /* small mono chrome (AA on ink) */
-      --reading: #B8B2A4;   /* the close reading */
-      --fold-hi: #191B22;   /* folded strip face, lit edge */
-      --fold-lo: #111318;   /* folded strip face, shadow edge */
-      --crease: rgba(231, 224, 208, 0.13);
-      --wine: #A44856;      /* the model's hand; le vin nouveau */
+      --ink: #0C0D10;        /* the field */
+      --bone: #E7E0D0;       /* the poem */
+      --bone-soft: rgba(231, 224, 208, 0.84);
+      --reading: #B8B2A4;    /* the close reading */
+      --dim: #9A9385;        /* small secondary text, AA on ink */
+      --faint: #6E6A61;      /* the epigraph: large, quiet, decorative */
+      --crease: rgba(231, 224, 208, 0.14);
+      --crease-soft: rgba(231, 224, 208, 0.08);
+      --edge: rgba(231, 224, 208, 0.38);   /* control borders, visible at a glance */
+      --fold-hi: #191B22;    /* folded strip face, lit edge */
+      --fold-lo: #111318;    /* folded strip face, shadow edge */
+      --wine: #A44856;       /* the model's hand; le vin nouveau */
       --wine-bright: #C57080;
-      --wine-wash: rgba(197, 112, 128, 0.14);  /* the reading's hand on a poem word */
+      --wine-wash: rgba(197, 112, 128, 0.14);
+      --sans: system-ui, -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
       --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "URW Palladio L", "P052", "Liberation Serif", "Noto Serif", Georgia, serif;
-      --mono: ui-monospace, "DejaVu Sans Mono", "SF Mono", Menlo, Consolas, monospace;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+      /* type scale, ratio ≈ 1.2 from a 17px body */
+      --t-small: 0.875rem;
+      --t-body: 1.0625rem;
+      --t-lead: 1.2rem;
+      --t-h2: 1.45rem;
+      --t-verse: clamp(1.15rem, 1.05rem + 0.4vw, 1.3rem);
+      --t-cue: clamp(1.45rem, 1.15rem + 1vw, 1.9rem);
+      --measure: 42rem;      /* prose, controls, the sheet */
+      --wide: 66rem;         /* the reveal's two columns and the wall */
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
+    [hidden] { display: none !important; }
     html, body { min-height: 100%; }
 
     body {
       background: var(--ink);
       color: var(--bone);
       font-family: var(--serif);
-      line-height: 1.5;
+      font-size: var(--t-body);
+      line-height: 1.55;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
     }
 
     .page {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      max-width: 96rem;
-      min-height: 100svh;
+      width: min(100%, var(--wide));
       margin: 0 auto;
-      padding: clamp(0.85rem, 2.2vh, 1.6rem) clamp(0.85rem, 2.5vw, 2rem) clamp(1.25rem, 3vh, 2.5rem);
+      padding: clamp(1.1rem, 3vh, 2rem) clamp(1rem, 3vw, 2rem) clamp(1.5rem, 4vh, 3rem);
     }
 
-    a { color: inherit; text-decoration: underline; text-underline-offset: 0.18em; text-decoration-color: var(--ash); }
+    a { color: inherit; text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 0.18em; }
     a:hover { color: var(--wine-bright); text-decoration-color: var(--wine-bright); }
-
     :focus-visible { outline: 2px solid var(--wine-bright); outline-offset: 2px; }
+    code { font-family: var(--mono); font-size: 0.86em; }
 
-    /* ── header ─────────────────────────────────────────────────────────── */
-    header { text-align: left; margin-bottom: 1.6rem; }
+    h2 { font-weight: 400; font-size: var(--t-h2); line-height: 1.25; }
 
-    h1 {
-      font-weight: 400;
-      font-size: clamp(2.6rem, 1.9rem + 3.2vw, 4.4rem);
-      letter-spacing: 0.01em;
-      line-height: 1.08;
+    /* ── masthead: the cut-out title and, on its right, the first sentence ── */
+    .masthead {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem 2.5rem;
+      padding-bottom: 1.1rem;
+      border-bottom: 1px solid var(--crease);
     }
 
-    .cutout-title {
-      width: min(100%, 46rem);
-      margin: 0 0 0.4rem;
+    .brand {
+      flex: 0 1 30rem;
+      min-width: 15rem;
+      font-size: 0;
       line-height: 1;
     }
 
-    .cutout-title img {
-      display: block;
-      width: 100%;
-      height: auto;
-      aspect-ratio: 1300 / 155;
-      transform: translateX(-3.8462%);
-    }
+    .brand a { display: block; text-decoration: none; }
+    .brand img { display: block; width: 100%; height: auto; aspect-ratio: 1300 / 155; transform: translateX(-3.8%); }
 
     .epigraph {
-      margin-top: 0.4rem;
+      flex: 0 0 auto;
+      text-align: right;
       font-style: italic;
-      font-size: clamp(0.72rem, 3.75vw, 1.25rem);
-      color: var(--ash);
-      max-width: 100%;
-      overflow-wrap: anywhere;
+      font-size: clamp(0.95rem, 0.72rem + 0.6vw, 1.15rem);
+      line-height: 1.35;
+      color: var(--faint);
+      white-space: nowrap;   /* the line never breaks while it sits beside the title */
     }
 
-    .epigraph .attr {
+    .epigraph .attr { /*KEEP*/
       display: block;
-      margin-top: 0.45rem;
-      font-family: var(--mono);
+      margin-top: 0.3em;
       font-style: normal;
-      font-size: clamp(0.5rem, 2.35vw, 0.7rem);
-      letter-spacing: clamp(0.06em, 0.35vw, 0.14em);
-      color: var(--label);
-      overflow-wrap: anywhere;
+      font-size: var(--t-small);
+      color: var(--dim);
     }
 
-    /* ── one compact game surface ──────────────────────────────────────── */
-    .game-shell {
-      display: grid;
-      flex: 1;
-      grid-template-columns: minmax(0, 1fr) minmax(24rem, 1fr);
-      grid-template-areas: "intro stage";
-      align-items: start;
-      min-height: clamp(34rem, calc(100svh - 10rem), 46rem);
-      border: 1px solid var(--crease);
-      min-width: 0;
+    /* ── the stage: one column, whatever state the game is in ─────────── */
+    .stage { padding-top: clamp(1.6rem, 4vh, 2.6rem); }
+
+    .intro {
+      max-width: 36rem;
+      color: var(--bone-soft);
+      text-wrap: pretty;
     }
 
-    .game-intro {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      position: relative;
-      grid-area: intro;
-      align-self: stretch;
-      padding: clamp(1.5rem, 4vw, 4rem) clamp(1.35rem, 4vw, 3.5rem);
-      min-width: 0;
-    }
-
-    .game-stage {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      grid-area: stage;
-      align-self: stretch;
-      min-width: 0;
-      padding: clamp(1.4rem, 3.5vw, 3.5rem);
-      border-left: 1px solid var(--crease);
-    }
-
-    /* ── prose ──────────────────────────────────────────────────────────── */
-    .prose {
-      max-width: 38rem;
-      margin: 0;
-      font-size: clamp(1rem, 0.88rem + 0.42vw, 1.22rem);
-      line-height: 1.6;
-      color: rgba(231, 224, 208, 0.88);
-    }
-
-    .prose p + p { margin-top: 0.9em; }
-    .prose strong { font-weight: 600; color: var(--bone); }
-
-    /* ── section labels: museum wall tags ───────────────────────────────── */
-    .eyebrow {
-      font-family: var(--mono);
-      font-weight: 400;
-      font-size: clamp(0.72rem, 0.64rem + 0.2vw, 0.84rem);
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--label);
-      text-align: center;
-      margin-bottom: 1.3rem;
-    }
+    .intro strong { font-weight: 600; color: var(--bone); }
+    .stage.is-playing .intro, .stage.is-revealed .intro { display: none; }
+    /* while the sheet is folding, the page holds nothing else */
+    .stage.is-playing + .wall { display: none; }
 
     /* ── the table ──────────────────────────────────────────────────────── */
+    .table { max-width: var(--measure); margin-top: 1.8rem; }
+
     .table-setting {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.75rem;
-      font-family: var(--mono);
-      font-size: 0.78rem;
-      color: var(--label);
+      gap: 1.1rem 1.5rem;
     }
 
+    .setting-field { display: flex; min-width: 0; flex-direction: column; gap: 0.15rem; }
     .setting-field.model-route { grid-column: 1 / -1; }
-
-    .setting-field {
-      display: flex;
-      min-width: 0;
-      flex-direction: column;
-      gap: 0.35rem;
-    }
-
-    .setting-label {
-      font-size: clamp(0.66rem, 0.58rem + 0.18vw, 0.76rem);
-      line-height: 1.25;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
+    .setting-label { font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
 
     .table-setting select {
-      font-family: var(--mono);
-      font-size: clamp(0.85rem, 0.76rem + 0.2vw, 0.98rem);
+      font-family: var(--sans);
+      font-size: 0.95rem;
       color: var(--bone);
       background: transparent;
       border: 0;
       border-bottom: 1px solid var(--crease);
       border-radius: 0;
-      padding: 0.45em 0.1em;
+      padding: 0.35em 0;
       width: 100%;
       min-width: 0;
       cursor: pointer;
     }
 
     .table-setting select:hover { border-bottom-color: var(--wine-bright); }
+    .table-setting select:disabled { cursor: default; color: var(--bone-soft); }
 
-    .model-readiness {
-      min-height: 1.2em;
-      margin-top: 0.45rem;
-      font-family: var(--mono);
-      font-size: 0.66rem;
-      letter-spacing: 0.04em;
-      color: var(--label);
-    }
+    .model-readiness { min-height: 1.4em; margin-top: 0.3rem; font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
 
-    .table-actions {
-      display: flex;
-      justify-content: center;
-      margin-top: clamp(1.25rem, 3vh, 2rem);
-    }
+    .table-actions { display: flex; align-items: center; gap: 1rem; margin-top: 1.4rem; }
+    .table-actions .primary { min-width: 8rem; }
 
-    .table-actions .primary {
-      width: auto;
-      min-width: 9rem;
-      padding: 0.75em 2.5em;
-      background: var(--wine-wash);
-    }
-
-    /* ── buttons: quiet catalog chrome ──────────────────────────────────── */
+    /* ── buttons: printed-programme chrome ──────────────────────────────── */
     button {
-      font-family: var(--mono);
-      font-size: clamp(0.78rem, 0.71rem + 0.16vw, 0.88rem);
-      letter-spacing: 0.12em;
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      line-height: 1.2;
       color: var(--bone);
       background: transparent;
-      border: 1px solid var(--crease);
-      padding: 0.7em 1.3em;
+      border: 1px solid var(--edge);
+      border-radius: 2px;
+      padding: 0.6em 1.1em;
       cursor: pointer;
-      transition: border-color 0.15s ease, color 0.15s ease;
+      transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
     }
 
-    button:hover:not(:disabled) { border-color: var(--wine-bright); }
+    button:hover:not(:disabled) { border-color: var(--bone); }
     button:disabled { opacity: 0.35; cursor: not-allowed; }
-    button.primary { border-color: var(--wine); color: var(--wine-bright); }
-    button.primary:hover:not(:disabled) { border-color: var(--wine-bright); }
+    button.primary { background: var(--wine); border-color: var(--wine); color: #fff; }
+    button.primary:hover:not(:disabled) { background: var(--wine-bright); border-color: var(--wine-bright); }
+    button.accent { border-color: var(--wine-bright); color: var(--wine-bright); }
+    button.accent:hover:not(:disabled) { background: var(--wine-wash); }
 
     button.linklike {
       border: 0;
-      padding: 0 0.2em;
+      padding: 0 0.1em;
+      font-size: inherit;
+      line-height: inherit;
       text-decoration: underline;
       text-underline-offset: 0.18em;
       color: var(--wine-bright);
-      font-size: inherit;
-      letter-spacing: inherit;
     }
 
-    /* ── the sheet ──────────────────────────────────────────────────────── */
-    .sheet { margin-top: 0.6rem; }
+    /* ── the sheet: a folded object, centred in the column ─────────────── */
+    /* the sheet sits flush left at the poem's measure: the visible line and the
+       line being written stand where they will stand in the finished poem */
+    .sheet { max-width: 36rem; margin: 0.4rem 0 0; text-align: left; }
 
     .folds {
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
-      align-items: center;
-      gap: 7px;
-      margin-bottom: 1.6rem;
+      align-items: flex-start;
+      gap: 6px;
       min-height: 0;
-      max-height: 7rem;
+      max-height: 6.5rem;
       overflow: hidden;
     }
 
     .fold {
-      height: 2.1rem;
+      height: 1.9rem;
       background: linear-gradient(180deg, var(--fold-hi), var(--fold-lo));
       border-top: 1px solid var(--crease);
       border-bottom: 1px solid rgba(0, 0, 0, 0.55);
@@ -299,8 +242,8 @@
       position: absolute;
       left: 0.7rem;
       top: 50%;
-      width: 0.32rem;
-      height: 0.32rem;
+      width: 0.3rem;
+      height: 0.3rem;
       border-radius: 50%;
       background: var(--wine);
       transform: translateY(-50%);
@@ -319,8 +262,8 @@
       to { transform: scaleY(0.1); opacity: 0; }
     }
 
-    /* who is at the table, and whose turn it is — the duet made spatial */
-    .seats { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.2rem; min-height: 2px; }
+    /* who is at the table, and whose turn it is */
+    .seats { display: flex; justify-content: flex-start; gap: 0.5rem; margin: 0.9rem 0 0.5rem; min-height: 2px; }
 
     .seat {
       width: 1.4rem;
@@ -333,34 +276,12 @@
     .seat.model { background: var(--wine); }
     .seat.model.active { background: var(--wine-bright); box-shadow: 0 0 0 1px rgba(197, 112, 128, 0.4); }
 
-    .fold-count {
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      letter-spacing: 0.14em;
-      color: var(--label);
-      text-align: center;
-      min-height: 1em;
-      margin: -0.8rem 0 1.4rem;
-    }
+    .fold-count { min-height: 1.4em; font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
 
-    .cue { text-align: center; margin-bottom: 1.8rem; }
-
-    .cue-label {
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--label);
-      margin-bottom: 0.5rem;
-    }
-
-    .cue-words {
-      font-size: clamp(1.7rem, 1.15rem + 2.6vw, 3rem);
-      line-height: 1.25;
-      overflow-wrap: break-word;
-    }
-
-    .cue-words.blank { font-style: italic; color: var(--ash); font-size: clamp(1.3rem, 1rem + 1.4vw, 1.8rem); }
+    .cue { margin: 1.4rem 0 1.1rem; }
+    .cue-label { font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); margin-bottom: 0.3rem; }
+    .cue-words { font-size: var(--t-cue); line-height: 1.25; overflow-wrap: break-word; }
+    .cue-words.blank { font-style: italic; color: var(--faint); font-size: var(--t-lead); }
     .cue-words.rise { animation: rise 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
 
     @keyframes rise {
@@ -374,442 +295,304 @@
       to { opacity: 0; transform: translateY(0.7em) scaleY(0.12); }
     }
 
-    .cue-words.folding {
-      transform-origin: top center;
-      animation: foldDown 0.26s cubic-bezier(0.4, 0, 0.7, 0.2) both;
-    }
+    .cue-words.folding { transform-origin: top center; animation: foldDown 0.26s cubic-bezier(0.4, 0, 0.7, 0.2) both; }
 
     .entry {
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
+      justify-content: flex-start;
       align-items: baseline;
-      gap: 0.9rem;
-      margin-bottom: 1.1rem;
+      gap: 0.8rem;
+      margin-bottom: 0.9rem;
     }
 
     .entry input {
-      font-family: var(--serif);
+      font: inherit;
       font-size: 1.3rem;
-      text-align: center;
+      text-align: left;
       color: var(--bone);
       caret-color: var(--wine-bright);
       background: transparent;
       border: 0;
       border-bottom: 1px solid var(--crease);
-      padding: 0.35em 0.2em;
-      width: min(24ch, 100%);
+      border-radius: 0;
+      padding: 0.3em 0.2em;
+      width: min(26ch, 100%);
     }
 
     .entry input:focus { border-bottom-color: var(--wine); outline: none; }
-    .entry input::placeholder { color: var(--ash); font-style: italic; }
+    .entry input::placeholder { color: var(--faint); font-style: italic; }
 
-    .status {
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      color: var(--label);
-      text-align: center;
-      min-height: 1.5em;
-      margin-bottom: 1.4rem;
-    }
-
+    .status { min-height: 1.5em; font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
     .status.err { color: var(--wine-bright); }
+    .sheet .status { margin-bottom: 1.1rem; }
 
     .breathe { color: var(--wine-bright); animation: breathe 1.5s ease-in-out infinite; }
-
     @keyframes breathe { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.9; } }
 
-    .sheet-actions { text-align: center; display: flex; justify-content: center; gap: 0.8rem; flex-wrap: wrap; }
+    .sheet-actions { display: flex; justify-content: flex-start; gap: 0.6rem; flex-wrap: wrap; }
 
-    /* ── the reveal ─────────────────────────────────────────────────────── */
-    .revealed { margin-top: 1rem; }
+    /* ── the reveal: verse flush left, the reading beside it once there is room ── */
+    .revealed { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 1.6rem; margin-top: 0.4rem; }
 
-    .poem {
-      text-align: center;
-      font-size: clamp(1.45rem, 1.05rem + 1.9vw, 2.35rem);
-      line-height: 1.42;
-      margin-bottom: 2rem;
-    }
-
+    .poem { font-size: var(--t-verse); line-height: 1.55; max-width: 36rem; }
     .poem .line { overflow-wrap: break-word; animation: rise 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
 
-    /* the poem folds once more into its gloss — a final crease + wall label */
-    .reading-seam {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.7rem;
-      margin: 0 auto 1.1rem;
-      animation: fade 0.9s ease 0.4s both;
-    }
+    .reading-col { max-width: 40rem; }
+    .reading-head { font-size: var(--t-small); font-style: italic; font-weight: 400; color: var(--dim); margin-bottom: 0.45rem; }
 
-    .reading-seam::before { content: ""; width: 1px; height: 1.6rem; background: var(--crease); }
-
-    .reading-label {
-      font-family: var(--mono);
-      font-size: 0.62rem;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--label);
-    }
-
-    /* the close reading, set as a ruled placard: contained, justified prose
-       against the poem's open centered lyric — one object, two registers */
     .reading {
-      max-width: 40rem;
-      margin: 0 auto 2.2rem;
-      padding: 1.4rem 1.6rem;
-      border: 1px solid var(--crease);
-      text-align: left;
-      font-style: italic;
-      font-size: clamp(1.05rem, 0.95rem + 0.5vw, 1.25rem);
-      line-height: 1.7;
+      font-size: 1rem;
+      line-height: 1.65;
       color: var(--reading);
       text-wrap: pretty;
     }
 
-    .reading.show { animation: fade 1.1s ease 0.2s both; }
-
+    .reading.show { animation: fade 0.9s ease 0.15s both; }
     @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
-
-    .reading .pending { font-family: var(--mono); font-style: normal; font-size: 0.8rem; color: var(--label); }
-    .reading .err { font-family: var(--mono); font-style: normal; font-size: 0.8rem; color: var(--wine-bright); }
+    .reading .pending, .reading .err { font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
+    .reading .err { color: var(--wine-bright); }
 
     /* the reading's quotes reach back and light the poem words they name */
     .w { padding: 0 0.04em; transition: background-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease; }
     .w.lit { background: var(--wine-wash); box-shadow: 0 2px 0 var(--wine); color: var(--bone); border-radius: 1px; }
-
     .quote { border-bottom: 1px dotted var(--wine); cursor: default; transition: color 0.18s ease; }
     .quote:hover, .quote:focus-visible { color: var(--wine-bright); }
     .quote:focus-visible { outline: 1px solid var(--wine-bright); outline-offset: 2px; }
 
-    .reveal-actions { display: flex; justify-content: center; gap: 0.8rem; flex-wrap: wrap; }
+    .reveal-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1rem; }
+    .reveal-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .reveal-foot .status { min-height: 0; }
 
-    /* ── the wall ───────────────────────────────────────────────────────── */
-    .wall { margin-top: 4rem; }
+    @media (min-width: 60rem) {
+      .revealed {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+        grid-template-areas: "poem reading" "foot foot";
+        column-gap: clamp(2.5rem, 5vw, 4.5rem);
+        align-items: start;
+      }
 
-    .wall-note {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--label);
-      text-align: center;
-      margin: -0.6rem 0 1.6rem;
+      .poem { grid-area: poem; }
+      .reading-col { grid-area: reading; max-width: none; padding-top: 0.15rem; }
+      .reveal-foot { grid-area: foot; padding-top: 0.4rem; border-top: 1px solid var(--crease-soft); }
     }
 
-    .wall-more { margin-top: 1.4rem; text-align: center; }
-
-    .pin { border-top: 1px solid var(--crease); padding: 1.5rem 0.2rem; }
-
-    .pin-poem { white-space: pre-wrap; font-size: 1.08rem; line-height: 1.55; overflow-wrap: break-word; }
-
-    .pin-pages {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.38rem;
-      margin-top: 1rem;
+    /* ── the wall: the newest pins, five lines each, the rest on their own page ── */
+    .wall {
+      margin-top: clamp(5rem, 12vh, 8rem);
+      padding-top: 2.2rem;
+      border-top: 1px solid var(--crease);
     }
 
-    .pin-page {
-      min-width: 2.1rem;
-      padding: 0.38rem 0.55rem;
-      font-size: 0.68rem;
+    .wall-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.6rem 1.5rem; }
+    .wall-head a { font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); padding-bottom: 0.15rem; }
+    /* "The Wall" set in the same cut-out print as the title, at the title's scale */
+    .wall-title { width: min(100%, 9.5rem); font-size: 0; line-height: 1; }
+    .wall-title img { display: block; width: 100%; height: auto; aspect-ratio: 678 / 168; }
+    .wall-note { margin-top: 0.6rem; font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
+
+    .wall-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+      gap: 1.6rem 2.5rem;
+      margin-top: 1.5rem;
     }
 
-    .pin-page[aria-current="page"] {
-      border-color: var(--wine);
-      color: var(--wine-bright);
-      background: var(--wine-wash);
-    }
-
-    .pin-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-top: 0.8rem;
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--label);
-    }
-
-    .pin-meta .linklike { font-size: 0.72rem; }
-
-    .pin-controls, .pin-votes {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.48rem;
-    }
-
-    .pin-vote {
-      min-width: 3.3rem;
-      padding: 0.38rem 0.58rem;
-      font-size: 0.7rem;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .pin-vote[aria-pressed="true"] {
-      border-color: var(--wine);
-      color: var(--wine-bright);
-      background: var(--wine-wash);
-    }
-
-    .pin-vote-status {
-      flex-basis: 100%;
-      color: var(--wine-bright);
-      font-size: 0.66rem;
-    }
-
-    .pin-reading { margin-top: 0.9rem; }
-
-    .pin-reading > summary {
-      font-family: var(--mono);
-      font-size: 0.66rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--label);
-      cursor: pointer;
-      list-style: none;
-    }
-
-    .pin-reading > summary::-webkit-details-marker { display: none; }
-    .pin-reading > summary::before { content: "+ "; }
-    .pin-reading[open] > summary::before { content: "\2013 "; }
-
-    .pin-reading-body {
-      margin-top: 0.6rem;
-      max-width: 40rem;
-      font-style: italic;
-      font-size: 0.98rem;
-      line-height: 1.6;
-      color: var(--reading);
-    }
+    .pin { display: flex; flex-direction: column; gap: 0.6rem; padding-top: 0.9rem; border-top: 1px solid var(--crease-soft); }
+    .pin-poem { font-size: 1rem; line-height: 1.5; overflow-wrap: break-word; }
+    .pin-poem .line:empty::before { content: "\00a0"; }
+    /* a cut poem fades away instead of stopping, and the rest is one click off */
+    .pin-poem.cut { -webkit-mask-image: linear-gradient(to bottom, #000 40%, rgba(0, 0, 0, 0.1) 100%); mask-image: linear-gradient(to bottom, #000 40%, rgba(0, 0, 0, 0.1) 100%); }
+    .pin-more { font-family: var(--sans); font-size: 0.8125rem; margin-top: -0.2rem; }
+    .pin-more a { color: var(--wine-bright); text-decoration-color: var(--wine); }
+    .pin-meta { margin-top: auto; font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
 
     /* ── footer ─────────────────────────────────────────────────────────── */
     footer {
-      margin-top: clamp(1.5rem, 3.5vh, 3rem);
+      margin-top: clamp(2.5rem, 6vh, 4rem);
+      padding-top: 1rem;
       border-top: 1px solid var(--crease);
-      padding-top: 1.2rem;
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      line-height: 2;
-      color: var(--label);
-      text-align: center;
+      font-family: var(--sans);
+      font-size: 0.8125rem;
+      line-height: 1.7;
+      color: var(--dim);
     }
 
-    @media (max-width: 47.99rem) {
-      .page {
-        display: block;
-        min-height: auto;
-        padding-top: 0.85rem;
-      }
+    footer p + p { margin-top: 0.2rem; }
 
-      .game-shell {
-        grid-template-columns: minmax(0, 1fr);
-        grid-template-areas:
-          "intro"
-          "stage";
-        min-height: 0;
-      }
-
-      .game-intro {
-        display: block;
-        padding-bottom: 1.35rem;
-      }
-
-      .game-stage {
-        display: block;
-        padding: 1.35rem;
-        border-left: 0;
-        border-top: 1px solid var(--crease);
-        border-bottom: 1px solid var(--crease);
-      }
-
-      .eyebrow { margin-bottom: 1rem; }
-
-      .pin-meta { align-items: flex-start; }
-      .pin-controls { width: 100%; justify-content: space-between; }
-    }
-
-    @media (max-width: 24rem) {
-      .page { padding-inline: 0.55rem; }
-      .game-intro, .game-stage { padding-inline: 1rem; }
-      .table-setting { gap: 0.5rem; }
-      .setting-label { font-size: 0.6rem; letter-spacing: 0.06em; }
-      .table-setting select { font-size: 0.75rem; }
-      .entry { align-items: stretch; }
-      .entry input, .entry button { width: 100%; }
-      .sheet-actions, .reveal-actions { flex-direction: column; }
-      .sheet-actions button, .reveal-actions button { width: 100%; }
-      .pin-controls { align-items: stretch; flex-direction: column; }
-      .pin-votes { width: 100%; }
-      .pin-vote { flex: 1; }
-    }
-
-    /* ── pin dialog ─────────────────────────────────────────────────────── */
+    /* ── dialogs ────────────────────────────────────────────────────────── */
     dialog {
       background: var(--ink);
       color: var(--bone);
       border: 1px solid var(--crease);
-      padding: 1.8rem;
+      padding: 1.6rem 1.7rem;
       width: min(24rem, 92vw);
       margin: auto;
     }
 
     dialog::backdrop { background: rgba(0, 0, 0, 0.72); }
-
-    dialog p { font-family: var(--mono); font-size: 0.8rem; color: var(--label); margin-bottom: 1rem; }
+    dialog p { color: var(--bone-soft); margin-bottom: 1rem; }
+    dialog p.status { color: var(--dim); margin-bottom: 0.8rem; }
 
     dialog input {
-      font-family: var(--serif);
-      font-size: 1.1rem;
+      font: inherit;
+      font-size: var(--t-lead);
       color: var(--bone);
       background: transparent;
       border: 0;
       border-bottom: 1px solid var(--crease);
+      border-radius: 0;
       padding: 0.3em 0.1em;
       width: 100%;
-      margin-bottom: 1.4rem;
+      margin-bottom: 1.2rem;
     }
 
     dialog input:focus { border-bottom-color: var(--wine); outline: none; }
-    dialog .row { display: flex; justify-content: flex-end; gap: 0.8rem; }
+    dialog .row { display: flex; justify-content: flex-end; gap: 0.6rem; flex-wrap: wrap; }
+
+    /* ── narrower screens ───────────────────────────────────────────────── */
+    @media (max-width: 47.99rem) {
+      .masthead { flex-direction: column; align-items: flex-start; gap: 0.9rem; }
+      .brand { flex: none; width: min(100%, 26rem); min-width: 0; }
+      .epigraph { text-align: left; white-space: normal; }
+    }
+
+    @media (max-width: 30rem) {
+      .table-setting { grid-template-columns: minmax(0, 1fr); }
+      .entry { align-items: stretch; }
+      .entry input, .entry button { width: 100%; }
+      .sheet-actions button, .reveal-actions button, .table-actions button { flex: 1 1 auto; }
+      .reveal-actions { width: 100%; }
+    }
 
     /* ── motion, print ──────────────────────────────────────────────────── */
     @media (prefers-reduced-motion: reduce) {
-      .fold, .fold.lifting, .cue-words.rise, .cue-words.folding, .poem .line,
-      .reading.show, .reading-seam, .breathe { animation: none; }
-      .reading.show, .reading-seam { opacity: 1; }
+      .fold, .fold.lifting, .cue-words.rise, .cue-words.folding, .poem .line, .reading.show, .breathe { animation: none; }
+      .reading.show { opacity: 1; }
       .w, .quote { transition: none; }
     }
 
     @media print {
       :root { color-scheme: light; }
       body { background: #fff; color: #111; }
-      header .epigraph, .prose, .table, .sheet, .wall, footer,
-      .reveal-actions, .eyebrow, .reading .pending, .reading .err { display: none; }
-      h1 { font-size: 1.6rem; margin-bottom: 1.5rem; }
-      .poem { color: #111; font-size: 1.3rem; }
+      .epigraph, .intro, .table, .sheet, .wall, footer, .reveal-foot, .reading .pending, .reading .err { display: none; }
+      .masthead { border-color: #ccc; }
+      .revealed { display: block; }
+      .poem { color: #111; font-size: 1.2rem; margin-bottom: 1.5rem; }
       .poem .w.lit { background: none; box-shadow: none; color: #111; }
-      .reading-seam::before { background: #ccc; }
-      .reading-label { color: #888; }
-      .reading { color: #444; border-color: #ccc; }
+      .reading-head { color: #888; }
+      .reading { color: #444; }
       .reading .quote { border-bottom: 0; color: #444; }
     }
   </style>
 </head>
 <body>
   <div class="page">
-    <main class="game-shell">
-      <div class="game-intro">
-        <header>
-          <h1 class="cutout-title">
-            <img src="assets/title-cutup-1.png" alt="Exquisite Corpse" width="1300" height="155">
-          </h1>
-          <p class="epigraph">“The exquisite corpse will drink the new wine.”
-            <span class="attr">the game’s first sentence — Paris, 1925</span>
-          </p>
-        </header>
+    <header class="masthead">
+      <h1 class="brand">
+        <a href="./"><img src="assets/title-cutup-1.png" alt="Exquisite Corpse" width="1300" height="155"></a>
+      </h1>
+      <p class="epigraph">“The exquisite corpse will drink the new wine.”
+        <span class="attr">the game’s first sentence, Paris, 1925</span>
+      </p>
+    </header>
 
-        <section class="prose" aria-label="about the game">
-          <p><strong>Exquisite Corpse</strong> is a parlor game in which participants take turns writing or drawing on a sheet of paper, then fold it to hide past contributions before passing it to the next player. This version seats a language model at the table. Each player crafts a one- to five-word line from the previous entry. The sheet folds as it passes, so the next player sees only the newest contribution. The complete poem appears when someone ends the game.</p>
-        </section>
-      </div>
+    <main class="stage" id="stage">
+      <section class="intro" id="introSec" aria-label="about the game">
+        <p><strong>Exquisite Corpse</strong> is a parlor game: each player writes a few words on a sheet, folds it to hide what came before, and passes it on. This table seats a language model. Every turn adds one to five words to the newest line, and only that line stays visible. Reveal the sheet whenever you like, and the whole poem unfolds with a close reading beside it.</p>
+      </section>
 
-      <div class="game-stage">
-        <section class="table" id="tableSec" aria-label="table setting">
-          <h2 class="eyebrow">The Table</h2>
-          <div class="table-setting">
-            <label class="setting-field model-route">
-              <span class="setting-label">the other hand</span>
-              <select id="modelRoute" aria-label="model">
-                <option value="">loading available models…</option>
-              </select>
-              <span id="modelReadiness" class="model-readiness" role="status" aria-live="polite">warming the other hand…</span>
-            </label>
-            <label class="setting-field">
-              <span class="setting-label">players</span>
-              <select id="playerCount" aria-label="number of players">
-                <option value="2" selected>two</option>
-                <option value="3">three</option>
-                <option value="4">four</option>
-              </select>
-            </label>
-            <label class="setting-field">
-              <span class="setting-label">model seat</span>
-              <select id="modelSlot" aria-label="the model's seat">
-                <option value="1">one</option>
-                <option value="2" selected>two</option>
-                <option value="3">three</option>
-              </select>
-            </label>
-            <label class="setting-field">
-              <span class="setting-label">per turn</span>
-              <select id="maxWords" aria-label="per turn">
-                <option value="1">one word</option>
-                <option value="2">two words</option>
-                <option value="3" selected>three words</option>
-                <option value="4">four words</option>
-                <option value="5">five words</option>
-              </select>
-            </label>
-          </div>
-          <div class="table-actions">
-            <button id="startBtn" class="primary" disabled>warming…</button>
-          </div>
-        </section>
+      <section class="table" id="tableSec" aria-label="setting the table">
+        <div class="table-setting">
+          <label class="setting-field model-route">
+            <span class="setting-label">the other hand</span>
+            <select id="modelRoute" aria-label="model">
+              <option value="">loading available models…</option>
+            </select>
+            <span id="modelReadiness" class="model-readiness" role="status" aria-live="polite">warming the other hand…</span>
+          </label>
+          <label class="setting-field">
+            <span class="setting-label">players</span>
+            <select id="playerCount" aria-label="number of players">
+              <option value="2" selected>two</option>
+              <option value="3">three</option>
+              <option value="4">four</option>
+            </select>
+          </label>
+          <label class="setting-field">
+            <span class="setting-label">the model sits at seat</span>
+            <select id="modelSlot" aria-label="the model's seat">
+              <option value="1">one</option>
+              <option value="2" selected>two</option>
+              <option value="3">three</option>
+            </select>
+          </label>
+          <label class="setting-field">
+            <span class="setting-label">words per turn</span>
+            <select id="maxWords" aria-label="words per turn">
+              <option value="1">one</option>
+              <option value="2">two</option>
+              <option value="3" selected>up to three</option>
+              <option value="4">up to four</option>
+              <option value="5">up to five</option>
+            </select>
+          </label>
+        </div>
+        <div class="table-actions">
+          <button id="startBtn" class="primary" disabled>warming…</button>
+        </div>
+      </section>
 
-        <section class="sheet" id="sheetSec" hidden aria-label="the sheet">
-          <h2 class="eyebrow">The Sheet</h2>
-          <div class="seats" id="seats" aria-hidden="true"></div>
-          <div class="folds" id="folds" aria-hidden="true"></div>
-          <div class="fold-count" id="foldCount" aria-hidden="true"></div>
-          <div class="cue" id="cue">
-            <div class="cue-label" id="cueLabel"></div>
-            <div class="cue-words blank" id="cueWords" aria-live="polite"></div>
-          </div>
-          <form class="entry" id="entryForm">
-            <input id="wordInput" type="text" autocomplete="off" autocapitalize="off"
-                   autocorrect="off" spellcheck="false" aria-label="your contribution" />
-            <button id="submitBtn" class="primary" type="submit">fold in</button>
-          </form>
-          <p class="status" id="status" role="status" aria-live="polite"></p>
-          <div class="sheet-actions">
-            <button id="undoBtn" disabled>unfold last</button>
-            <button id="endBtn" disabled>reveal the poem</button>
-            <button id="resetBtn">clear the table</button>
-          </div>
-        </section>
+      <section class="sheet" id="sheetSec" hidden aria-label="the sheet">
+        <div class="folds" id="folds" aria-hidden="true"></div>
+        <div class="seats" id="seats" aria-hidden="true"></div>
+        <div class="fold-count" id="foldCount" aria-hidden="true"></div>
+        <div class="cue" id="cue">
+          <div class="cue-label" id="cueLabel"></div>
+          <div class="cue-words blank" id="cueWords" aria-live="polite"></div>
+        </div>
+        <form class="entry" id="entryForm">
+          <input id="wordInput" type="text" autocomplete="off" autocapitalize="off"
+                 autocorrect="off" spellcheck="false" aria-label="your contribution" />
+          <button id="submitBtn" class="primary" type="submit">submit</button>
+        </form>
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+        <div class="sheet-actions">
+          <button id="undoBtn" disabled>redo turn</button>
+          <button id="resetBtn">clear lines</button>
+          <button id="endBtn" class="accent" disabled>reveal poem</button>
+        </div>
+      </section>
 
-        <section class="revealed" id="revealSec" hidden aria-label="the poem">
-          <h2 class="eyebrow">The Poem</h2>
-          <div class="poem" id="poem"></div>
-          <div class="reading-seam" aria-hidden="true"><span class="reading-label">close reading</span></div>
+      <section class="revealed" id="revealSec" hidden aria-label="the poem">
+        <div class="poem" id="poem"></div>
+        <aside class="reading-col">
+          <h2 class="reading-head">Close reading</h2>
           <div class="reading" id="reading" aria-live="polite"></div>
+        </aside>
+        <div class="reveal-foot">
           <div class="reveal-actions">
             <button id="againBtn" class="primary">play again</button>
             <button id="exportMdBtn">save as markdown</button>
             <button id="printBtn">print</button>
             <button id="pinBtn">pin to the wall</button>
           </div>
-        </section>
-      </div>
-
+          <p class="status" id="revealStatus" role="status" aria-live="polite"></p>
+        </div>
+      </section>
     </main>
 
     <section class="wall" id="wallSec" hidden aria-label="the wall">
-      <h2 class="eyebrow">The Wall</h2>
-      <p class="wall-note" id="wallNote">shared corpses, across browsers</p>
-      <div id="wallList"></div>
-      <div class="wall-more" id="wallMore" hidden><button id="loadWallMore" type="button">earlier corpses</button></div>
+      <div class="wall-head">
+        <h2 class="wall-title"><img src="assets/title-wall-1.png" alt="The Wall" width="678" height="168"></h2>
+        <a href="wall.html">every pinned corpse</a>
+      </div>
+      <p class="wall-note" id="wallNote">the newest corpses pinned from any table</p>
+      <div class="wall-grid" id="wallList"></div>
     </section>
 
     <footer>
-      <div>a barer surface for solo play: <a href="ui/corpse.html">the open sheet</a> · <a href="https://github.com/milwrite/cadavre-exquis">source</a></div>
-      <div id="connLine">model <span id="connModel"></span> at <span id="connHost"></span>
-        — point elsewhere with <span style="white-space:nowrap">?endpoint=…&amp;model=…</span> (this visit only)
-      </div>
+      <p>Solo play on <a href="ui/corpse.html">the open sheet</a>. <a href="https://github.com/milwrite/cadavre-exquis">Source</a> on GitHub.</p>
     </footer>
   </div>
 
@@ -817,14 +600,14 @@
     <p id="revealNote">the reveal unfolds the sheet and ends the game</p>
     <div class="row">
       <button id="revealCancel" type="button">keep writing</button>
-      <button id="revealConfirm" class="primary" type="button">reveal the poem</button>
+      <button id="revealConfirm" class="primary" type="button">reveal poem</button>
     </div>
   </dialog>
 
   <dialog id="pinDialog">
     <p>pin this corpse to the wall</p>
     <input id="pinName" type="text" placeholder="your name, or an alias" aria-label="your name" />
-    <p id="pinStatus" hidden></p>
+    <p id="pinStatus" class="status" hidden></p>
     <div class="row">
       <button id="pinCancel" type="button">cancel</button>
       <button id="pinConfirm" class="primary" type="button">pin it</button>
@@ -852,7 +635,7 @@
       endpoint: REMOTE_API + "/chat",
       readyEndpoint: REMOTE_API + "/ready",
       modelsEndpoint: REMOTE_API + "/models",
-      model: "ollama:kimi-k2.5",
+      model: "ollama:deepseek-v4-flash",
       apiKey: "",
     };
     const params = new URLSearchParams(location.search);
@@ -860,7 +643,14 @@
     if (params.get("endpoint")) paramConn.endpoint = params.get("endpoint");
     if (params.get("model")) paramConn.model = params.get("model");
     const CFG = Object.assign({}, DEFAULTS, window.CORPSE_CONFIG || {}, paramConn);
-    const WALL_API = REMOTE_API + "/wall";
+    const WALL_API = (() => {
+      // A same-origin host (the CUNY AI Lab Worker) names its own wall in config.local.js.
+      const configured = String(CFG.wallEndpoint || "");
+      try {
+        if (configured && /^https?:$/.test(new URL(configured, location.href).protocol)) return configured;
+      } catch {}
+      return REMOTE_API + "/wall";
+    })();
     const isHttpEndpoint = (value) => /^https?:$/.test(new URL(value, location.href).protocol);
     try {
       if (!isHttpEndpoint(CFG.endpoint)) throw new Error("bad scheme");
@@ -910,6 +700,10 @@ REPETITION
 
 Repetition earns its place through refrain, parallel structure, escalation, reversal, or a changed grammatical role. An exact repeat should alter rhythm or pressure. Otherwise advance the phrase.
 
+SHAPE
+
+${shapeNote()}
+
 POETRY EXAMPLES
 
 Study the movement in these public-domain lines, rather than borrowing their vocabulary:
@@ -922,6 +716,15 @@ OUTPUT
 
 Return only ${capPhrase()}. Use plain text without a label, explanation, alternative, quotation marks, or terminal punctuation.`;
 
+    // Any hand may end the poem after any line, so the model's line should know
+    // where the sheet stands: opening early on, and offering a close once it is long.
+    function shapeNote() {
+      const folds = contributions.length;
+      if (folds < 4) return "The sheet is just opening. Extend the syntax and leave a thread for the next hand.";
+      if (folds < 8) return "The poem is finding its shape. Develop what is already present; open onward or settle, whichever the visible fold invites.";
+      return "The poem has grown long, and any hand may end it after any line. When the visible fold invites a close, a completed clause, a resolved image, a returning sound, write the line the poem could end on. Continue only when the fold clearly asks for more.";
+    }
+
     const readingPrompt = () => `You are a close reader of a finished poem.
 
 Write one paragraph of 2–4 concrete sentences. Quote specific words and describe how syntax, juxtaposition, line breaks, or pronouns shape the poem. Treat the poem as a finished, single-authored work. Focus on what the language does.`;
@@ -933,20 +736,17 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     let poemText = "", readingText = "";
     let gameActive = false;
     let poemTokens = [];      // { norm, el } per revealed poem word — the reading links to these
+    // The model's line never lands inside three seconds, so the hand that just
+    // folded can still reveal and end the poem on its own turn.
+    const MODEL_MIN_WAIT_MS = 3000;
+    const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     const LEGACY_WALL_KEY = "cadavreWall";
     const WALL_TOKENS_KEY = "cadavreWallDeleteTokens";
-    const WALL_VOTER_TOKEN_KEY = "cadavreWallVoterToken";
-    const WALL_VOTES_KEY = "cadavreWallVotes";
     let legacyWall = readLegacyWall();
     let remoteWall = [];
     let wall = [];
-    let wallCursor = null;
     let wallLoading = false;
-    let wallTokens = readWallTokens();
-    let wallVoterToken = readOrCreateWallVoterToken();
-    let wallVotes = readWallVotes();
-    const wallViews = new Map();
-    const wallVoting = new Set();
+    let wallTokens = readWallTokens();   // proof of authorship; wall.html uses it to unpin
     const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     const el = (id) => document.getElementById(id);
@@ -960,6 +760,11 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     function setStatus(html, isErr) {
       el("status").innerHTML = html;
       el("status").classList.toggle("err", !!isErr);
+    }
+
+    function setRevealStatus(html, isErr) {
+      el("revealStatus").innerHTML = html;
+      el("revealStatus").classList.toggle("err", !!isErr);
     }
 
     function readLegacyWall() {
@@ -981,13 +786,6 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       }
     }
 
-    function saveLegacyWall() {
-      try {
-        localStorage.setItem(LEGACY_WALL_KEY, JSON.stringify(legacyWall.map((item) => ({
-          name: item.name, poem: item.poem, analysis: item.analysis, ts: item.ts,
-        }))));
-      } catch {}
-    }
 
     function readWallTokens() {
       try {
@@ -1004,47 +802,9 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       } catch {}
     }
 
-    function readOrCreateWallVoterToken() {
-      let saved = "";
-      try {
-        saved = String(localStorage.getItem(WALL_VOTER_TOKEN_KEY) || "").toLowerCase();
-      } catch {}
-      if (/^[0-9a-f]{64}$/.test(saved)) return saved;
 
-      try {
-        const bytes = new Uint8Array(32);
-        crypto.getRandomValues(bytes);
-        const token = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-        try {
-          localStorage.setItem(WALL_VOTER_TOKEN_KEY, token);
-        } catch {}
-        return token;
-      } catch {
-        return "";
-      }
-    }
 
-    function readWallVotes() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(WALL_VOTES_KEY) || "{}");
-        if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
-        return Object.fromEntries(Object.entries(saved).filter(([, value]) => value === 1 || value === -1));
-      } catch {
-        return {};
-      }
-    }
 
-    function saveWallVotes() {
-      try {
-        localStorage.setItem(WALL_VOTES_KEY, JSON.stringify(wallVotes));
-      } catch {}
-    }
-
-    function rebuildWall() {
-      const remote = remoteWall.map((item) => ({ ...item, remote: true }));
-      wall = [...remote, ...legacyWall].sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts));
-      renderWall();
-    }
 
     /* ── the poem ↔ reading link ─────────────────────────────────────────
        The close reading is instructed to quote the poem's exact words, so a
@@ -1122,7 +882,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
 
     function updateFoldCount() {
       const n = el("folds").children.length;
-      el("foldCount").textContent = n ? `· ${n} folded ·` : "";
+      el("foldCount").textContent = n ? `${n} folded` : "";
     }
 
     /* ── the fold: conceal everything but the newest contribution ───────── */
@@ -1139,7 +899,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       const words = el("cueWords");
       if (!entry) {
         el("cueLabel").textContent = "";
-        words.textContent = "the sheet is blank — begin anywhere";
+        words.textContent = "the sheet is blank. begin anywhere";
         words.className = "cue-words blank";
         return;
       }
@@ -1186,7 +946,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       if (isModelTurn()) { modelTurn(); return; }
       const cap = NUMBER_WORDS[maxWords];
       const limit = maxWords === 1 ? "one word" : `up to ${cap} words`;
-      setStatus(`round ${round()} · player ${currentSeat()} writes — ${limit}`);
+      setStatus(`round ${round()}, player ${currentSeat()} writes ${limit}`);
       el("wordInput").disabled = false;
       el("submitBtn").disabled = false;
       el("undoBtn").disabled = !contributions.length;
@@ -1213,8 +973,89 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       option.textContent = label;
       select.appendChild(option);
       select.disabled = true;
-      el("connModel").textContent = label;
+      menuLoaded = false;
     }
+
+    /* ── the other hand as a menu ─────────────────────────────────────────
+       With a catalog endpoint the table lists every route the host offers,
+       grouped by provider family, and re-verifies readiness on each change.
+       Without one (or with ?endpoint= / ?model=) it stays a single line. */
+    let menuLoaded = false;
+
+    function routeGroup(route) {
+      const provider = String(route.provider || route.id || "");
+      if (/ollama/i.test(provider)) return { rank: 1, label: "Ollama Cloud" };
+      if (/workers-ai/i.test(provider)) return { rank: 2, label: "Cloudflare Workers AI" };
+      if (/openrouter/i.test(provider)) return { rank: 3, label: "OpenRouter via Cloudflare AI Gateway" };
+      return { rank: 4, label: "Other models" };
+    }
+
+    function routeName(route) {
+      return String(route.label || modelLabel(route.id));
+    }
+
+    function selectHasOption(value) {
+      return Array.from(el("modelRoute").options).some((option) => option.value === value && !option.disabled);
+    }
+
+    function renderModelOptions(catalog) {
+      const source = Array.isArray(catalog?.models) ? catalog.models : [];
+      const seen = new Set();
+      const routes = source
+        .filter((route) => route && typeof route.id === "string" && route.id.trim())
+        .map((route) => Object.assign({}, route, { id: route.id.trim() }))
+        .filter((route) => !seen.has(route.id) && seen.add(route.id))
+        .sort((a, b) => (routeGroup(a).rank - routeGroup(b).rank) || routeName(a).localeCompare(routeName(b)));
+      const available = routes.filter((route) => route.available !== false);
+      if (!available.length) return setSingleModelOption();
+
+      const select = el("modelRoute");
+      select.replaceChildren();
+      const groups = new Map();
+      routes.forEach((route) => {
+        const name = routeGroup(route).label;
+        if (!groups.has(name)) {
+          const group = document.createElement("optgroup");
+          group.label = name;
+          groups.set(name, group);
+          select.appendChild(group);
+        }
+        const option = document.createElement("option");
+        option.value = route.id;
+        option.textContent = routeName(route) + (route.available === false ? " — unavailable" : "");
+        option.disabled = route.available === false;
+        groups.get(name).appendChild(option);
+      });
+      const requested = [CFG.model, catalog?.default].find((id) => available.some((route) => route.id === id));
+      CFG.model = requested || available[0].id;
+      select.value = CFG.model;
+      select.disabled = available.length < 2;
+      menuLoaded = true;
+    }
+
+    async function loadModelOptions() {
+      const custom = params.has("endpoint") || params.has("model");
+      if (!CFG.modelsEndpoint || custom) {
+        setSingleModelOption();
+        return warmSelectedModel();
+      }
+      try {
+        const response = await fetch(CFG.modelsEndpoint, { headers: { Accept: "application/json" }, cache: "no-store" });
+        if (!response.ok) throw new Error("model list returned " + response.status);
+        renderModelOptions(await response.json());
+      } catch {
+        setSingleModelOption();
+      }
+      return warmSelectedModel();
+    }
+
+    el("modelRoute").addEventListener("change", () => {
+      const select = el("modelRoute");
+      if (!select.value || select.value === CFG.model) return;
+      CFG.model = select.value;
+      modelReadyFor = "";
+      warmSelectedModel({ force: true });
+    });
 
     function setModelReadiness(message, ready) {
       el("modelReadiness").textContent = message;
@@ -1228,7 +1069,11 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       activeModel = CFG.model;
       modelReadyFor = CFG.model;
       modelReadyAttempt = 0;
-      setSingleModelOption(modelLabel(CFG.model));
+      if (menuLoaded && selectHasOption(CFG.model)) {
+        el("modelRoute").value = CFG.model;
+      } else {
+        setSingleModelOption(modelLabel(CFG.model));
+      }
       setModelReadiness(message, true);
       return data || { ready: true, model: CFG.model, provider: "direct" };
     }
@@ -1326,7 +1171,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     async function modelTurn(retryAttempt = 0) {
       const id = gameId;
       renderSeats();
-      setStatus(`round ${round()} · the model writes <span class="breathe">·</span>`);
+      setStatus(`round ${round()}, the model writes <span class="breathe">·</span>`);
       el("wordInput").disabled = true;
       el("submitBtn").disabled = true;
       el("undoBtn").disabled = true;
@@ -1337,7 +1182,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
           { role: "system", content: playPrompt() },
           { role: "user", content: userMsg },
         ];
-        let result = await chat(messages, 80);
+        let [result] = await Promise.all([chat(messages, 80), pause(MODEL_MIN_WAIT_MS)]);
         reply = validContribution(result.content);
         if (!reply.valid) {
           result = await chat([
@@ -1355,7 +1200,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
           setTimeout(() => modelTurn(retryAttempt + 1), delay);
           return;
         }
-        setStatus(`the other hand is still reconnecting
+        setStatus(`the other hand is still reconnecting.
           <button class="linklike" id="retryTurn">try now</button>`, true);
         el("retryTurn").addEventListener("click", () => modelTurn(0));
         el("undoBtn").disabled = !contributions.length;   // unfolding back is the other way out
@@ -1425,6 +1270,9 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       poemText = contributions.map((c) => c.text).join("\n");
       el("sheetSec").hidden = true;
       el("revealSec").hidden = false;
+      el("stage").classList.remove("is-playing");
+      el("stage").classList.add("is-revealed");
+      setRevealStatus("");
       poemTokens = renderPoemWords(el("poem"), contributions.map((c) => c.text), true);
       el("revealSec").scrollIntoView({ behavior: "smooth", block: "start" });
       fetchReading();
@@ -1444,8 +1292,8 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
         readingEl.classList.add("show");
       } catch (e) {
         readingText = "";
-        readingEl.innerHTML = `<span class="err">the reading didn’t arrive from ${esc(endpointHost())}
-          — <button class="linklike" id="retryReading">try again</button></span>`;
+        readingEl.innerHTML = `<span class="err">the reading didn’t arrive from ${esc(endpointHost())}.
+          <button class="linklike" id="retryReading">try again</button></span>`;
         el("retryReading").addEventListener("click", fetchReading);
       }
     }
@@ -1487,6 +1335,8 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       el("tableSec").hidden = true;
       el("revealSec").hidden = true;
       el("sheetSec").hidden = false;
+      el("stage").classList.remove("is-revealed");
+      el("stage").classList.add("is-playing");
       showCue(null);
       el("sheetSec").scrollIntoView({ behavior: "smooth", block: "start" });
       promptTurn();
@@ -1498,7 +1348,10 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       el("sheetSec").hidden = true;
       el("revealSec").hidden = true;
       el("tableSec").hidden = false;
+      el("stage").classList.remove("is-revealed");
+      el("stage").classList.remove("is-playing");
       setStatus("");
+      setRevealStatus("");
     }
 
     el("startBtn").addEventListener("click", begin);
@@ -1510,7 +1363,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       if (!contributions.length) return;
       const n = contributions.length;
       el("revealNote").textContent =
-        `${n} fold${n === 1 ? "" : "s"} on the sheet — the reveal unfolds it and ends the game`;
+        `${n} fold${n === 1 ? "" : "s"} on the sheet. The reveal unfolds it and ends the game.`;
       el("revealDialog").showModal();
     });
     el("revealConfirm").addEventListener("click", () => {
@@ -1575,7 +1428,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
         saveWallTokens();
         rebuildWall();
         el("pinDialog").close();
-        el("wallSec").scrollIntoView({ behavior: "smooth", block: "start" });
+        setRevealStatus(`pinned to the wall. <a href="${wallLink(data.item)}">see it there</a>`);
       } catch (error) {
         status.textContent = error.message || "the shared wall is unavailable";
       } finally {
@@ -1583,280 +1436,83 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       }
     }
 
-    /* ── the wall ───────────────────────────────────────────────────────── */
-    async function loadWall(cursor = null) {
-      if (wallLoading || (cursor && !wallCursor)) return;
-      wallLoading = true;
-      el("loadWallMore").disabled = true;
-      try {
-        const url = new URL(WALL_API, location.href);
-        url.searchParams.set("limit", "40");
-        if (cursor) url.searchParams.set("cursor", cursor);
-        const response = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !Array.isArray(data.items)) {
-          throw new Error(data.error || "the shared wall is unavailable");
-        }
-        if (cursor) {
-          const seen = new Set(remoteWall.map((item) => item.id));
-          remoteWall.push(...data.items.filter((item) => item?.id && !seen.has(item.id)));
-        } else {
-          remoteWall = data.items;
-        }
-        wallCursor = data.nextCursor || null;
-        rebuildWall();
-      } catch {
-        rebuildWall();
-      } finally {
-        wallLoading = false;
-        el("loadWallMore").disabled = false;
-      }
+    /* ── the wall, previewed ────────────────────────────────────────────
+       The parlor shows the newest pins, five lines each; whole poems, votes,
+       and unpinning live on wall.html. */
+    const WALL_PREVIEW = 6;
+    const WALL_PREVIEW_LINES = 5;
+
+    function rebuildWall() {
+      const remote = remoteWall.map((item) => ({ ...item, remote: true }));
+      wall = [...remote, ...legacyWall].sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts));
+      renderWall();
     }
 
-    async function unpinWallItem(item, button) {
-      if (item.local) {
-        legacyWall = legacyWall.filter((entry) => entry.legacyKey !== item.legacyKey);
-        wallViews.delete(wallItemKey(item));
-        saveLegacyWall();
-        rebuildWall();
-        return;
-      }
-      const deleteToken = wallTokens[item.id];
-      if (!deleteToken) return;
-      button.disabled = true;
-      try {
-        const response = await fetch(`${WALL_API}/${encodeURIComponent(item.id)}/remove`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ deleteToken }),
-        });
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          throw new Error(data.error || "the pin could not be removed");
-        }
-        remoteWall = remoteWall.filter((entry) => entry.id !== item.id);
-        delete wallTokens[item.id];
-        delete wallVotes[item.id];
-        saveWallTokens();
-        saveWallVotes();
-        wallViews.delete(wallItemKey(item));
-        rebuildWall();
-      } catch (error) {
-        button.disabled = false;
-        button.title = error.message || "the pin could not be removed";
-      }
-    }
-
-    function wallItemKey(item) {
-      return item.id ? `remote:${item.id}` : `local:${item.legacyKey}`;
-    }
-
-    function wallView(item) {
-      const key = wallItemKey(item);
-      if (!wallViews.has(key)) {
-        wallViews.set(key, { page: 0, readingOpen: false, voteError: "" });
-      }
-      return wallViews.get(key);
-    }
-
-    function wallCount(value) {
-      const count = Number(value);
-      return Number.isSafeInteger(count) && count >= 0 ? count : 0;
-    }
-
-    function replaceWallItem(item) {
-      const key = wallItemKey(item);
-      const current = Array.from(el("wallList").children)
-        .find((node) => node.dataset.wallKey === key);
-      if (!current) {
-        renderWall();
-        return;
-      }
-      const details = current.querySelector(".pin-reading");
-      if (details) wallView(item).readingOpen = details.open;
-      current.replaceWith(renderWallItem(item));
-    }
-
-    async function voteWallItem(item, requested) {
-      if (!item.remote || !item.id || wallVoting.has(item.id)) return;
-      const view = wallView(item);
-      if (!wallVoterToken) wallVoterToken = readOrCreateWallVoterToken();
-      if (!wallVoterToken) {
-        view.voteError = "voting is unavailable in this browser";
-        replaceWallItem(item);
-        return;
-      }
-
-      const value = Core.nextWallVote(wallVotes[item.id] || 0, requested);
-      view.voteError = "";
-      wallVoting.add(item.id);
-      replaceWallItem(item);
-      try {
-        const response = await fetch(`${WALL_API}/${encodeURIComponent(item.id)}/vote`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ voterToken: wallVoterToken, value }),
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || "the vote could not be saved");
-        if (data.id !== item.id) throw new Error("the wall returned the wrong corpse");
-
-        const viewerVote = Number(data.viewerVote);
-        if (viewerVote !== -1 && viewerVote !== 0 && viewerVote !== 1) {
-          throw new Error("the wall returned an invalid vote");
-        }
-        const upvotes = wallCount(data.upvotes);
-        const downvotes = wallCount(data.downvotes);
-        const returnedScore = Number(data.score);
-        const score = Number.isSafeInteger(returnedScore) ? returnedScore : upvotes - downvotes;
-        const index = remoteWall.findIndex((entry) => entry.id === item.id);
-        if (index < 0) throw new Error("the corpse is no longer on the wall");
-
-        remoteWall[index] = { ...remoteWall[index], upvotes, downvotes, score, viewerVote };
-        if (viewerVote) wallVotes[item.id] = viewerVote;
-        else delete wallVotes[item.id];
-        saveWallVotes();
-      } catch (error) {
-        view.voteError = error.message || "the vote could not be saved";
-      } finally {
-        wallVoting.delete(item.id);
-        const current = remoteWall.find((entry) => entry.id === item.id) || item;
-        replaceWallItem({ ...current, remote: true });
-      }
+    function wallLink(item) {
+      return item.id ? `wall.html#pin-${encodeURIComponent(item.id)}` : "wall.html";
     }
 
     function renderWallItem(item) {
-      const view = wallView(item);
-      const pages = Core.paginateLines(item.poem, 20);
-      view.page = Math.min(Math.max(0, view.page), pages.length - 1);
-
-      const pin = document.createElement("div");
+      const lines = String(item.poem || "").split(/\r?\n/);
+      // a poem one line over the preview is shown whole; longer ones fade out
+      const hidden = lines.length > WALL_PREVIEW_LINES + 1 ? lines.length - WALL_PREVIEW_LINES : 0;
+      const pin = document.createElement("article");
       pin.className = "pin";
-      pin.dataset.wallKey = wallItemKey(item);
       const poem = document.createElement("div");
-      poem.className = "pin-poem";
-      poem.setAttribute("aria-label", pages.length > 1
-        ? `poem page ${view.page + 1} of ${pages.length}`
-        : "poem");
-      const pinTokens = renderPoemWords(poem, pages[view.page], false);
+      poem.className = "pin-poem" + (hidden ? " cut" : "");
+      renderPoemWords(poem, hidden ? lines.slice(0, WALL_PREVIEW_LINES) : lines, false);
       pin.append(poem);
-
-      if (pages.length > 1) {
-        const pageNav = document.createElement("nav");
-        pageNav.className = "pin-pages";
-        pageNav.setAttribute("aria-label", `poem pages, ${pages.length} total`);
-        pages.forEach((unused, index) => {
-          const pageButton = document.createElement("button");
-          pageButton.type = "button";
-          pageButton.className = "pin-page";
-          pageButton.textContent = String(index + 1);
-          pageButton.setAttribute("aria-label", `page ${index + 1} of ${pages.length}`);
-          if (index === view.page) pageButton.setAttribute("aria-current", "page");
-          pageButton.addEventListener("click", () => {
-            if (view.page === index) return;
-            view.page = index;
-            replaceWallItem(item);
-            const replacement = Array.from(el("wallList").children)
-              .find((node) => node.dataset.wallKey === wallItemKey(item));
-            replacement?.querySelectorAll(".pin-page")[index]?.focus();
-          });
-          pageNav.append(pageButton);
-        });
-        pin.append(pageNav);
+      if (hidden) {
+        const more = document.createElement("p");
+        more.className = "pin-more";
+        const link = document.createElement("a");
+        link.href = wallLink(item);
+        link.textContent = `continue reading on the wall, ${hidden} more line${hidden === 1 ? "" : "s"}`;
+        more.append(link);
+        pin.append(more);
       }
-
-      if (item.analysis) {
-        const det = document.createElement("details");
-        det.className = "pin-reading";
-        det.open = view.readingOpen;
-        const sum = document.createElement("summary");
-        sum.textContent = "close reading";
-        const body = document.createElement("div");
-        body.className = "pin-reading-body";
-        renderReadingLinked(body, item.analysis, pinTokens);
-        det.addEventListener("toggle", () => { view.readingOpen = det.open; });
-        det.append(sum, body);
-        pin.append(det);
-      }
-
-      const meta = document.createElement("div");
+      const meta = document.createElement("p");
       meta.className = "pin-meta";
-      const who = document.createElement("span");
       const when = new Date(item.ts);
-      who.textContent = `— ${item.name} · ${isNaN(when) ? "" : when.toLocaleDateString()}`;
-      meta.append(who);
-
-      const controls = document.createElement("div");
-      controls.className = "pin-controls";
-      if (item.remote) {
-        const votes = document.createElement("div");
-        votes.className = "pin-votes";
-        votes.setAttribute("role", "group");
-        votes.setAttribute("aria-label", `votes for ${item.name}'s poem`);
-        const selected = wallVotes[item.id] || 0;
-        const pending = wallVoting.has(item.id);
-        [
-          { value: 1, label: "upvote", mark: "↑", count: wallCount(item.upvotes) },
-          { value: -1, label: "downvote", mark: "↓", count: wallCount(item.downvotes) },
-        ].forEach(({ value, label, mark, count }) => {
-          const vote = document.createElement("button");
-          vote.type = "button";
-          vote.className = "pin-vote";
-          vote.textContent = `${mark} ${count}`;
-          vote.disabled = pending;
-          vote.setAttribute("aria-pressed", String(selected === value));
-          vote.setAttribute("aria-label", `${label}, ${count} ${count === 1 ? "vote" : "votes"}`);
-          vote.addEventListener("click", () => voteWallItem(item, value));
-          votes.append(vote);
-        });
-        controls.append(votes);
-      }
-      if (item.local || wallTokens[item.id]) {
-        const unpin = document.createElement("button");
-        unpin.type = "button";
-        unpin.className = "linklike";
-        unpin.textContent = "unpin";
-        unpin.addEventListener("click", () => unpinWallItem(item, unpin));
-        controls.append(unpin);
-      }
-      if (controls.childElementCount) meta.append(controls);
-      if (view.voteError) {
-        const error = document.createElement("div");
-        error.className = "pin-vote-status";
-        error.setAttribute("role", "status");
-        error.setAttribute("aria-live", "polite");
-        error.textContent = view.voteError;
-        meta.append(error);
-      }
+      meta.textContent = item.name + (isNaN(when) ? "" : ", " + when.toLocaleDateString());
       pin.append(meta);
       return pin;
     }
 
     function renderWall() {
       const list = el("wallList");
-      Array.from(list.children).forEach((pin) => {
-        const details = pin.querySelector(".pin-reading");
-        const view = wallViews.get(pin.dataset.wallKey);
-        if (details && view) view.readingOpen = details.open;
-      });
       list.innerHTML = "";
       el("wallSec").hidden = wall.length === 0;
       el("wallNote").textContent = legacyWall.length
-        ? "shared corpses, plus earlier pins kept in this browser"
-        : "shared corpses, across browsers";
-      el("wallMore").hidden = !wallCursor;
-      wall.forEach((item) => list.appendChild(renderWallItem(item)));
+        ? "the newest corpses pinned from any table, plus earlier pins kept in this browser"
+        : "the newest corpses pinned from any table";
+      wall.slice(0, WALL_PREVIEW).forEach((item) => list.appendChild(renderWallItem(item)));
+    }
+
+    async function loadWall() {
+      if (wallLoading) return;
+      wallLoading = true;
+      try {
+        const url = new URL(WALL_API, location.href);
+        url.searchParams.set("limit", String(WALL_PREVIEW));
+        const response = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !Array.isArray(data.items)) throw new Error(data.error || "the shared wall is unavailable");
+        remoteWall = data.items;
+      } catch {
+        remoteWall = [];
+      } finally {
+        wallLoading = false;
+        rebuildWall();
+      }
     }
 
     /* ── footer connection line ─────────────────────────────────────────── */
-    el("connModel").textContent = modelLabel(CFG.model);
-    el("connHost").textContent = endpointHost();
 
     setSingleModelOption();
-    warmSelectedModel();
+    loadModelOptions();
     syncSeats();
     rebuildWall();
-    el("loadWallMore").addEventListener("click", () => loadWall(wallCursor));
     loadWall();
   </script>
 </body>
