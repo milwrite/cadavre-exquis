@@ -155,8 +155,8 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
       quotes light the poem's words; check the wall page card for the same pin.
 - [x] `master` pushed 2026-09-03 (GitHub Pages rebuilds from it). For later pushes: `git push
       "https://x-access-token:$(gh auth token --user milwrite)@github.com/milwrite/cadavre-exquis.git" master`.
-- [ ] Deploy the Worker so https://cail-cadavre.ailab-452.workers.dev matches: `cd worker &&
-      npm run deploy` (runs check + tests first).
+- [x] Worker deployed 2026-09-03 (version `11b6f179`), so https://cail-cadavre.ailab-452.workers.dev
+      matches `master`. To redeploy: `cd worker && npm run deploy` (runs check + tests first).
 - [ ] Port the same card, first-screen, and copy changes to the inference-arcade fork
       (`gvgai-web` `web/public/cadavre.html` + `cadavre-wall.html`; Railway deploys on push to
       master) — it still has the poem-left cards, the six-pin cut preview, and the old copy.
