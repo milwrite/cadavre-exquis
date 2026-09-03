@@ -135,6 +135,11 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   the table's four settings sit in two rows of two (the other hand | words per turn, then
   players | the model sits at seat); "Solo play" sits just under "begin" with no rule above it.
   "play solo" and "see the wall" are filled wine buttons like "begin" (one shared rule).
+- Later that day: "see the wall" was rendering 6px shorter than "play solo" with its text sitting low,
+  because the old text-link rule `.wall-head a { padding-bottom: 0.15rem }` outranked the button rule.
+  That override is gone from `index.html`, `wall.html`, and the inference-arcade fork, and the wall
+  pages' `.nav-link` takes the shared `line-height: 1.2`, so every link set as a button measures the
+  same 35px as "begin" (checked with Playwright at 1280 and 390 wide).
 - Copy: the intro opens "is a parlor game in which players add images or a few words to a
   sheet of paper, fold it to hide previous turns, and hand it off to the next player" and ends
   "until someone decides to end the game"; the solo section reads "Solo play / Play a solo
