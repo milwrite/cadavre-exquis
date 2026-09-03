@@ -82,7 +82,7 @@ test("the parlor previews the newest three pins whole, as wall.html sets them, a
   assert.match(html, /renderReadingLinked\(reading, item\.analysis, tokens\)/);
   assert.match(html, /No close reading was kept with this corpse\./);
   assert.match(html, /class="nav-link" href="wall\.html">see the whole wall<\/a>/);
-  assert.match(html, /class="solo-link" href="ui\/corpse\.html">open the sheet<\/a>/);
+  assert.match(html, /class="solo-link" href="ui\/corpse\.html">play solo<\/a>/);
   assert.match(html, /\.stage\.is-playing ~ \.solo, \.stage\.is-playing ~ \.wall \{ display: none; \}/);
   assert.match(html, /wall\.html#pin-\$\{encodeURIComponent\(item\.id\)\}/);
   assert.match(html, /wallTokens\[data\.item\.id\] = data\.deleteToken/);
