@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Wall — Cadavre Exquis</title>
+  <title>Exquisite Corpse — the wall</title>
   <meta name="description" content="Every Exquisite Corpse pinned from the table, with its close reading, shared across browsers." />
   <meta name="theme-color" content="#0C0D10" />
   <meta name="robots" content="noindex" />
@@ -91,22 +91,21 @@
       font-weight: 500;
       letter-spacing: 0.01em;
       line-height: 1.2;
-      color: var(--bone);
-      background: transparent;
-      border: 1px solid var(--edge);
+      color: #fff;
+      background: var(--wine);
+      border: 1px solid var(--wine);
       border-radius: 2px;
       padding: 0.6em 1.1em;
       cursor: pointer;
       transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
     }
 
-    button:hover:not(:disabled) { border-color: var(--bone); }
+    /* every action button is set like "begin"; a way back or out keeps the quiet outline */
+    button:hover:not(:disabled) { background: var(--wine-bright); border-color: var(--wine-bright); }
     button:disabled { opacity: 0.35; cursor: not-allowed; }
-    button.primary { background: var(--wine); border-color: var(--wine); color: #fff; }
-    button.primary:hover:not(:disabled) { background: var(--wine-bright); border-color: var(--wine-bright); }
-    button.accent { border-color: var(--wine-bright); color: var(--wine-bright); }
-    button.accent:hover:not(:disabled) { background: var(--wine-wash); }
-    button.linklike { border: 0; padding: 0 0.1em; font-size: inherit; line-height: inherit; text-decoration: underline; text-underline-offset: 0.18em; color: var(--wine-bright); }
+    button.quiet { color: var(--bone); background: transparent; border-color: var(--edge); }
+    button.quiet:hover:not(:disabled) { background: transparent; border-color: var(--bone); }
+    button.linklike { background: transparent; border: 0; padding: 0 0.1em; font-size: inherit; line-height: inherit; text-decoration: underline; text-underline-offset: 0.18em; color: var(--wine-bright); }
 
     /* ── the wall ───────────────────────────────────────────────────────── */
     .wall { padding-top: clamp(1.6rem, 4vh, 2.6rem); }
@@ -219,6 +218,14 @@
     }
 
     .pin-controls, .pin-votes { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem 0.8rem; }
+    .pin-controls > button { font-size: 0.8125rem; padding: 0.45em 0.8em; }
+    /* votes are a toggle, not a call: quiet until pressed */
+    button.pin-vote { color: var(--bone); background: transparent; border-color: var(--edge); }
+    button.pin-vote:hover:not(:disabled) { background: transparent; border-color: var(--bone); }
+    .pin-title { font-size: 1.2rem; font-weight: 400; line-height: 1.3; margin-bottom: 0.6rem; }
+    dialog textarea { font: inherit; font-size: 1.05rem; line-height: 1.5; color: var(--bone); background: var(--sheet-wash); border: 1px solid var(--crease); border-radius: 2px; padding: 0.8rem 1rem; width: 100%; min-height: 12rem; resize: vertical; margin-bottom: 1rem; }
+    dialog textarea:focus { outline: none; border-color: var(--wine); }
+    #editDialog { width: min(34rem, 92vw); }
     .pin-vote { min-width: 3.4rem; padding: 0.3em 0.6em; font-size: var(--t-small); font-variant-numeric: tabular-nums; }
     .pin-vote[aria-pressed="true"] { border-color: var(--wine); color: var(--wine-bright); background: var(--wine-wash); }
     .pin-vote-status { flex-basis: 100%; color: var(--wine-bright); }
@@ -320,12 +327,22 @@
     </footer>
   </div>
 
+  <dialog id="editDialog">
+    <p>edit this corpse</p>
+    <input id="editTitle" type="text" placeholder="a title for the poem (optional)" aria-label="poem title" />
+    <textarea id="editPoem" aria-label="the poem, one line per line" spellcheck="false"></textarea>
+    <p id="editStatus" class="status" hidden></p>
+    <div class="row">
+      <button id="editCancel" class="quiet" type="button">cancel</button>
+      <button id="editConfirm" class="primary" type="button">save</button>
+    </div>
+  </dialog>
   <dialog id="renameDialog">
     <p>rename this pin</p>
     <input id="renameName" type="text" maxlength="40" placeholder="your name, or an alias" aria-label="new name" />
     <p id="renameStatus" class="status" hidden></p>
     <div class="row">
-      <button id="renameCancel" type="button">cancel</button>
+      <button id="renameCancel" class="quiet" type="button">cancel</button>
       <button id="renameConfirm" class="primary" type="button">rename</button>
     </div>
   </dialog>
@@ -366,6 +383,18 @@
     const wallVoting = new Set();
     let scrolledToHash = false;
     const WALL_CAN_RENAME = true;   // the host offers /wall/:id/rename
+    const WALL_CAN_EDIT = true;     // and /wall/:id/edit, for the poem, its title, or a fresh reading
+    const WALL_READINGS_KEY = "cadavreWallReadings";   // fresh readings asked for, per pin, from this browser
+    function readingsUsed(id) {
+      try { return Number(JSON.parse(localStorage.getItem(WALL_READINGS_KEY) || "{}")[id]) || 0; } catch { return 0; }
+    }
+    function noteReadingUsed(id) {
+      try {
+        const all = JSON.parse(localStorage.getItem(WALL_READINGS_KEY) || "{}");
+        all[id] = readingsUsed(id) + 1;
+        localStorage.setItem(WALL_READINGS_KEY, JSON.stringify(all));
+      } catch {}
+    }
 
     function readLegacyWall() {
       try {
@@ -608,6 +637,12 @@
       poem.className = "pin-poem";
       poem.setAttribute("aria-label", "poem");
       const tokens = renderPoemWords(poem, lines);
+      if (item.title) {
+        const title = document.createElement("h3");
+        title.className = "pin-title";
+        title.textContent = item.title;
+        poemPane.appendChild(title);
+      }
       poemPane.appendChild(poem);
       pin.appendChild(poemPane);
 
@@ -664,16 +699,32 @@
       if (WALL_CAN_RENAME && item.remote && wallTokens[item.id]) {
         const rename = document.createElement("button");
         rename.type = "button";
-        rename.className = "linklike";
         rename.textContent = "rename";
         rename.addEventListener("click", () => openRename(item));
         controls.appendChild(rename);
       }
 
+      if (WALL_CAN_EDIT && item.remote && wallTokens[item.id]) {
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.textContent = "edit";
+        edit.addEventListener("click", () => openEdit(item));
+        controls.appendChild(edit);
+        if (CFG.endpoint) {
+          const left = CadavreCore.READINGS_PER_POEM - readingsUsed(item.id);
+          const reread = document.createElement("button");
+          reread.type = "button";
+          reread.textContent = rereading.has(item.id) ? "reading…" : "read it again";
+          reread.disabled = left <= 0 || rereading.has(item.id);
+          reread.title = left > 0 ? `${left} more reading${left === 1 ? "" : "s"} for this corpse` : "three readings is the limit";
+          reread.addEventListener("click", () => rereadWallItem(item, reread));
+          controls.appendChild(reread);
+        }
+      }
+
       if (item.local || wallTokens[item.id]) {
         const unpin = document.createElement("button");
         unpin.type = "button";
-        unpin.className = "linklike";
         unpin.textContent = "unpin";
         unpin.addEventListener("click", () => unpinWallItem(item, unpin));
         controls.appendChild(unpin);
@@ -738,6 +789,97 @@
         status.textContent = error.message || "the pin could not be renamed";
       } finally {
         confirm.disabled = false;
+      }
+    }
+
+    /* ── edit: the same hand may change the poem or its title ───────────── */
+    let editingItem = null;
+
+    function openEdit(item) {
+      editingItem = item;
+      const current = remoteWall.find((entry) => entry.id === item.id) || item;
+      el("editTitle").value = current.title || "";
+      el("editPoem").value = current.poem || "";
+      const status = el("editStatus");
+      status.textContent = "";
+      status.hidden = true;
+      status.classList.remove("err");
+      el("editDialog").showModal();
+      el("editPoem").focus();
+    }
+
+    async function saveWallEdit(item, fields) {
+      const response = await fetch(`${WALL_API}/${encodeURIComponent(item.id)}/edit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deleteToken: wallTokens[item.id], ...fields }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "the pin could not be edited");
+      const index = remoteWall.findIndex((entry) => entry.id === item.id);
+      if (index >= 0) remoteWall[index] = { ...remoteWall[index], poem: data.poem, analysis: data.analysis, title: data.title };
+      return data;
+    }
+
+    async function editWallItem() {
+      const item = editingItem;
+      const status = el("editStatus");
+      const confirm = el("editConfirm");
+      if (!item || !wallTokens[item.id]) return;
+      const lines = el("editPoem").value.split(/\r?\n/).map((line) => line.trim());
+      while (lines.length && !lines[lines.length - 1]) lines.pop();
+      if (!lines.some(Boolean)) {
+        status.hidden = false;
+        status.classList.add("err");
+        status.textContent = "a corpse needs at least one line";
+        return;
+      }
+      confirm.disabled = true;
+      status.hidden = false;
+      status.classList.remove("err");
+      status.textContent = "saving…";
+      try {
+        await saveWallEdit(item, { poem: lines.join("\n"), title: el("editTitle").value.trim() });
+        el("editDialog").close();
+        rebuildWall();
+      } catch (error) {
+        status.classList.add("err");
+        status.textContent = error.message || "the pin could not be edited";
+      } finally {
+        confirm.disabled = false;
+      }
+    }
+
+    el("editCancel").addEventListener("click", () => el("editDialog").close());
+    el("editConfirm").addEventListener("click", editWallItem);
+
+    /* ── read it again: a fresh reading of the poem as it stands, three times at most ── */
+    const rereading = new Set();
+
+    async function rereadWallItem(item, button) {
+      if (!CFG.endpoint || !wallTokens[item.id] || readingsUsed(item.id) >= CadavreCore.READINGS_PER_POEM) return;
+      rereading.add(item.id);
+      button.disabled = true;
+      button.textContent = "reading…";
+      try {
+        const current = remoteWall.find((entry) => entry.id === item.id) || item;
+        const response = await fetch(CFG.endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: CFG.model, messages: CadavreCore.readingMessages(current.poem), max_tokens: 400, temperature: 0.8, stream: false }),
+        });
+        if (!response.ok) throw new Error(`the model answered ${response.status}`);
+        const data = await response.json();
+        const analysis = CadavreCore.stripPoemFromReading((data.choices?.[0]?.message?.content ?? "").trim(), current.poem);
+        if (!analysis) throw new Error("the reading didn’t arrive");
+        await saveWallEdit(item, { analysis });
+        noteReadingUsed(item.id);
+        wallView(item).voteError = "";
+      } catch (error) {
+        wallView(item).voteError = error.message || "the reading didn’t arrive";
+      } finally {
+        rereading.delete(item.id);
+        rebuildWall();
       }
     }
 

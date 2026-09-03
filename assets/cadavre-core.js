@@ -226,7 +226,48 @@
     };
   }
 
+  /* ── the close reading, asked for the same way on every page ─────────── */
+  const READING_PROMPT = `You are a close reader of a finished poem.
+
+Write one paragraph of 2–4 concrete sentences. Quote specific words and describe how syntax, juxtaposition, line breaks, or pronouns shape the poem. Treat the poem as a finished, single-authored work. Focus on what the language does. Do not reprint or restate the poem; begin with the reading itself.`;
+
+  const READINGS_PER_POEM = 3;   // "read it again" is offered this many times per poem
+
+  function readingMessages(poem) {
+    return [
+      { role: "system", content: READING_PROMPT },
+      { role: "user", content: `Read this finished poem:\n\n${String(poem || "").trim()}\n\nProvide the close reading paragraph.` },
+    ];
+  }
+
+  // A reading that opens by reprinting the poem loses that prefix, however the
+  // model joined the lines; what remains is the reading proper.
+  function stripPoemFromReading(reading, poem) {
+    const fold = (s) => String(s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    const text = String(reading || "").trim();
+    const target = fold(poem);
+    if (!target) return text;
+    let matched = "";
+    let i = 0;
+    while (i < text.length && matched.length < target.length) {
+      const piece = fold(text[i]);
+      if (piece) {
+        if (target[matched.length] !== piece) return text;
+        matched += piece;
+      } else if (matched && matched[matched.length - 1] !== " " && target[matched.length] === " ") {
+        matched += " ";
+      }
+      i += 1;
+    }
+    if (matched !== target) return text;
+    return text.slice(i).replace(/^[\s.,;:—–-]+/, "").trim() || text;
+  }
+
   return Object.freeze({
+    READING_PROMPT,
+    READINGS_PER_POEM,
+    readingMessages,
+    stripPoemFromReading,
     NUMBER_WORDS,
     capPhrase,
     capitalizedCapPhrase,

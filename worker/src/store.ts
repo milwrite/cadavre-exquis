@@ -6,6 +6,7 @@ import { DurableObject } from "cloudflare:workers";
 export type WallItem = {
   id: string;
   name: string;
+  title: string;
   poem: string;
   analysis: string;
   ts: string;
@@ -16,11 +17,12 @@ export type WallItem = {
 
 export type VoteResult = WallItem & { viewerVote: -1 | 0 | 1 };
 
-export const WALL_LIMITS = { name: 40, poem: 2000, analysis: 2000, page: 40 } as const;
+export const WALL_LIMITS = { name: 40, title: 80, poem: 2000, analysis: 2000, page: 40 } as const;
 
 type PinRow = {
   id: string;
   name: string;
+  title: string;
   poem: string;
   analysis: string;
   ts: number;
@@ -32,6 +34,7 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS pins (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
   poem TEXT NOT NULL,
   analysis TEXT NOT NULL DEFAULT '',
   delete_hash TEXT NOT NULL,
@@ -95,6 +98,7 @@ function toItem(row: PinRow): WallItem {
   return {
     id: row.id,
     name: row.name,
+    title: row.title ?? "",
     poem: row.poem,
     analysis: row.analysis,
     ts: new Date(row.ts).toISOString(),
@@ -105,7 +109,7 @@ function toItem(row: PinRow): WallItem {
 }
 
 const PIN_SELECT = `
-SELECT p.id, p.name, p.poem, p.analysis, p.ts,
+SELECT p.id, p.name, p.title, p.poem, p.analysis, p.ts,
   COALESCE(SUM(CASE WHEN v.value = 1 THEN 1 END), 0) AS upvotes,
   COALESCE(SUM(CASE WHEN v.value = -1 THEN 1 END), 0) AS downvotes
 FROM pins p LEFT JOIN votes v ON v.pin_id = p.id
@@ -115,6 +119,9 @@ export class CadavreStore extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     ctx.storage.sql.exec(SCHEMA);
+    // Pins made before titles existed: add the column in place.
+    const columns = ctx.storage.sql.exec<{ name: string }>("PRAGMA table_info(pins)").toArray().map((c) => c.name);
+    if (!columns.includes("title")) ctx.storage.sql.exec("ALTER TABLE pins ADD COLUMN title TEXT NOT NULL DEFAULT ''");
   }
 
   // -- wall -----------------------------------------------------------------
@@ -140,19 +147,20 @@ export class CadavreStore extends DurableObject<Env> {
     };
   }
 
-  async pin(input: { name?: unknown; poem?: unknown; analysis?: unknown }): Promise<{ item: WallItem; deleteToken: string } | { error: string }> {
+  async pin(input: { name?: unknown; poem?: unknown; analysis?: unknown; title?: unknown }): Promise<{ item: WallItem; deleteToken: string } | { error: string }> {
     const poem = clean(input.poem, WALL_LIMITS.poem);
     if (!poem) return { error: "a corpse needs at least one line" };
     const name = clean(input.name, WALL_LIMITS.name) || "anonymous";
     const analysis = clean(input.analysis, WALL_LIMITS.analysis);
+    const title = clean(input.title, WALL_LIMITS.title);
     const id = crypto.randomUUID();
     const deleteToken = randomToken();
     const ts = Date.now();
     this.ctx.storage.sql.exec(
-      "INSERT INTO pins (id, name, poem, analysis, delete_hash, ts) VALUES (?, ?, ?, ?, ?, ?)",
-      id, name, poem, analysis, await sha256(deleteToken), ts,
+      "INSERT INTO pins (id, name, title, poem, analysis, delete_hash, ts) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      id, name, title, poem, analysis, await sha256(deleteToken), ts,
     );
-    return { item: { id, name, poem, analysis, ts: new Date(ts).toISOString(), upvotes: 0, downvotes: 0, score: 0 }, deleteToken };
+    return { item: { id, name, title, poem, analysis, ts: new Date(ts).toISOString(), upvotes: 0, downvotes: 0, score: 0 }, deleteToken };
   }
 
   // The hand that pinned a corpse (it holds the delete token) may correct the name on it.
@@ -166,6 +174,27 @@ export class CadavreStore extends DurableObject<Env> {
     if (typeof deleteToken !== "string" || (await sha256(deleteToken)) !== row.delete_hash) return "forbidden";
     this.ctx.storage.sql.exec("UPDATE pins SET name = ? WHERE id = ?", cleaned, id);
     return { name: cleaned };
+  }
+
+  // The same hand may edit the poem, its reading, or its title after pinning.
+  async editPin(
+    id: string,
+    deleteToken: unknown,
+    input: { poem?: unknown; analysis?: unknown; title?: unknown },
+  ): Promise<"missing" | "forbidden" | "invalid" | { poem: string; analysis: string; title: string }> {
+    const row = this.ctx.storage.sql
+      .exec<{ delete_hash: string; poem: string; analysis: string; title: string }>(
+        "SELECT delete_hash, poem, analysis, title FROM pins WHERE id = ? AND removed_at IS NULL", id,
+      )
+      .toArray()[0];
+    if (!row) return "missing";
+    if (typeof deleteToken !== "string" || (await sha256(deleteToken)) !== row.delete_hash) return "forbidden";
+    const poem = input.poem === undefined ? row.poem : clean(input.poem, WALL_LIMITS.poem);
+    if (!poem) return "invalid";
+    const analysis = input.analysis === undefined ? row.analysis : clean(input.analysis, WALL_LIMITS.analysis);
+    const title = input.title === undefined ? row.title ?? "" : clean(input.title, WALL_LIMITS.title);
+    this.ctx.storage.sql.exec("UPDATE pins SET poem = ?, analysis = ?, title = ? WHERE id = ?", poem, analysis, title, id);
+    return { poem, analysis, title };
   }
 
   async removePin(id: string, deleteToken: unknown): Promise<"removed" | "missing" | "forbidden"> {

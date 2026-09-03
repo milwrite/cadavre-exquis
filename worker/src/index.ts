@@ -8,9 +8,10 @@
  *   POST /api/cadavre/ready         { model } -> { ready, model, provider }
  *   POST /api/cadavre/chat          OpenAI-shaped, never streamed
  *   GET  /api/cadavre/wall          ?limit&cursor -> { items, nextCursor }
- *   POST /api/cadavre/wall          { name, poem, analysis } -> { item, deleteToken }
+ *   POST /api/cadavre/wall          { name, title, poem, analysis } -> { item, deleteToken }
  *   POST /api/cadavre/wall/:id/remove   { deleteToken }
  *   POST /api/cadavre/wall/:id/rename   { deleteToken, name } -> { renamed, name }
+ *   POST /api/cadavre/wall/:id/edit     { deleteToken, poem?, analysis?, title? } -> { edited, poem, analysis, title }
  *   POST /api/cadavre/wall/:id/vote     { voterToken, value } -> counts + viewerVote
  *   GET  /health
  */
@@ -195,6 +196,15 @@ app.post("/api/cadavre/wall/:id/rename", async (c) => {
   if (outcome === "forbidden") return c.json({ error: "only the hand that pinned it may rename it" }, 403, noStore);
   if (outcome === "invalid") return c.json({ error: "give the pin a name" }, 400, noStore);
   return c.json({ renamed: true, name: outcome.name }, 200, noStore);
+});
+
+app.post("/api/cadavre/wall/:id/edit", async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { deleteToken?: unknown; poem?: unknown; analysis?: unknown; title?: unknown };
+  const outcome = await store(c.env).editPin(c.req.param("id"), body.deleteToken, body);
+  if (outcome === "missing") return c.json({ error: "that corpse is no longer on the wall" }, 404, noStore);
+  if (outcome === "forbidden") return c.json({ error: "only the hand that pinned it may edit it" }, 403, noStore);
+  if (outcome === "invalid") return c.json({ error: "a corpse needs at least one line" }, 400, noStore);
+  return c.json({ edited: true, ...outcome }, 200, noStore);
 });
 
 app.post("/api/cadavre/wall/:id/vote", async (c) => {

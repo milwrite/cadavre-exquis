@@ -182,23 +182,22 @@
       font-weight: 500;
       letter-spacing: 0.01em;
       line-height: 1.2;
-      color: var(--bone);
-      background: transparent;
-      border: 1px solid var(--edge);
+      color: #fff;
+      background: var(--wine);
+      border: 1px solid var(--wine);
       border-radius: 2px;
       padding: 0.6em 1.1em;
       cursor: pointer;
       transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
     }
 
-    button:hover:not(:disabled) { border-color: var(--bone); }
+    /* every action button is set like "begin"; a way back or out keeps the quiet outline */
+    button:hover:not(:disabled) { background: var(--wine-bright); border-color: var(--wine-bright); }
     button:disabled { opacity: 0.35; cursor: not-allowed; }
-    button.primary { background: var(--wine); border-color: var(--wine); color: #fff; }
-    button.primary:hover:not(:disabled) { background: var(--wine-bright); border-color: var(--wine-bright); }
-    button.accent { border-color: var(--wine-bright); color: var(--wine-bright); }
-    button.accent:hover:not(:disabled) { background: var(--wine-wash); }
+    button.quiet { color: var(--bone); background: transparent; border-color: var(--edge); }
+    button.quiet:hover:not(:disabled) { background: transparent; border-color: var(--bone); }
 
-    button.linklike {
+    button.linklike { background: transparent;
       border: 0;
       padding: 0 0.1em;
       font-size: inherit;
@@ -338,6 +337,17 @@
     .revealed { display: grid; grid-template-columns: minmax(0, 1fr); row-gap: 1.6rem; margin-top: 0.4rem; }
 
     .poem { font-size: var(--t-verse); line-height: 1.55; max-width: 36rem; padding: 1rem 1.2rem; background: var(--sheet-wash); border-radius: 2px; }
+    .poem .line:empty::before { content: "\00a0"; }
+    /* the finished poem, edited in its own place */
+    .poem-edit { display: none; width: 100%; max-width: 36rem; min-height: 12rem; font: inherit; font-size: var(--t-verse); line-height: 1.55; color: var(--bone); background: var(--sheet-wash); border: 0; border-radius: 2px; padding: 1rem 1.2rem; resize: vertical; grid-area: poem; }
+    .poem-edit:focus { outline: 1px solid var(--wine); }
+    .revealed.editing .poem { display: none; }
+    .revealed.editing .poem-edit { display: block; }
+    /* the pinned notice: what went up, under whose name, and the way there */
+    .pinned { grid-column: 1 / -1; max-width: 40rem; padding: 1rem 1.2rem; border: 1px solid var(--crease); border-radius: 2px; font-family: var(--sans); font-size: 0.9rem; line-height: 1.5; color: var(--bone-soft); animation: fade 0.9s ease both; }
+    .pinned strong { display: block; font-family: var(--serif); font-size: 1.15rem; font-weight: 400; color: var(--bone); margin-bottom: 0.35rem; }
+    .pinned .nav-link { margin-top: 0.8rem; }
+    .pin-title { font-size: 1.2rem; font-weight: 400; line-height: 1.3; margin-bottom: 0.6rem; }
     .poem .line { overflow-wrap: break-word; animation: rise 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
 
     .reading-col { max-width: 40rem; }
@@ -672,6 +682,7 @@
 
       <section class="revealed" id="revealSec" hidden aria-label="the poem">
         <div class="poem" id="poem"></div>
+        <textarea class="poem-edit" id="poemEdit" aria-label="edit the poem" spellcheck="false"></textarea>
         <aside class="reading-col">
           <h2 class="reading-head">Close reading</h2>
           <div class="reading" id="reading" aria-live="polite"></div>
@@ -679,19 +690,22 @@
         <div class="reveal-foot">
           <div class="reveal-actions">
             <button id="againBtn" class="primary">play again</button>
+            <button id="editPoemBtn">edit the poem</button>
+            <button id="rereadBtn" disabled>read it again</button>
             <button id="exportMdBtn">save as markdown</button>
             <button id="printBtn">print</button>
             <button id="pinBtn">pin to the wall</button>
           </div>
           <p class="status" id="revealStatus" role="status" aria-live="polite"></p>
         </div>
+        <div class="pinned" id="pinned" hidden role="status" aria-live="polite"></div>
       </section>
     </main>
 
     <section class="solo" id="soloSec" aria-label="the open sheet">
       <div class="solo-text">
         <h2>Solo play</h2>
-        <p>Play a solo round with a language model in a fullscreen view.</p>
+        <p>Try your hand at a solo round with your favorite large language model. Modify the system prompt, steer with a style of verse, and tinker with related settings in a fullscreen view.</p>
       </div>
       <a class="solo-link" href="ui/corpse.html">play solo</a>
     </section>
@@ -713,17 +727,18 @@
   <dialog id="revealDialog">
     <p id="revealNote">the reveal unfolds the sheet and ends the game</p>
     <div class="row">
-      <button id="revealCancel" type="button">keep writing</button>
+      <button id="revealCancel" class="quiet" type="button">keep writing</button>
       <button id="revealConfirm" class="primary" type="button">reveal poem</button>
     </div>
   </dialog>
 
   <dialog id="pinDialog">
     <p>pin this corpse to the wall</p>
-    <input id="pinName" type="text" placeholder="your name, or an alias" aria-label="your name" />
+    <input id="pinTitle" type="text" placeholder="a title for the poem (optional)" aria-label="poem title" />
+    <input id="pinName" type="text" placeholder="your name, or an alias (optional)" aria-label="your name" />
     <p id="pinStatus" class="status" hidden></p>
     <div class="row">
-      <button id="pinCancel" type="button">cancel</button>
+      <button id="pinCancel" class="quiet" type="button">cancel</button>
       <button id="pinConfirm" class="primary" type="button">pin it</button>
     </div>
   </dialog>
@@ -842,10 +857,6 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
       if (folds < 8) return "The poem is finding its shape. Develop what is already present; open onward or settle, whichever the visible fold invites.";
       return "The poem has grown long, and any hand may end it after any line. When the visible fold invites a close, a completed clause, a resolved image, a returning sound, write the line the poem could end on. Continue only when the fold clearly asks for more.";
     }
-
-    const readingPrompt = () => `You are a close reader of a finished poem.
-
-Write one paragraph of 2–4 concrete sentences. Quote specific words and describe how syntax, juxtaposition, line breaks, or pronouns shape the poem. Treat the poem as a finished, single-authored work. Focus on what the language does.`;
 
     let players = 2, modelSeat = 2, maxWords = 3;
     let contributions = [];   // { text, isModel, seat }
@@ -1440,28 +1451,78 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       el("stage").classList.add("is-revealed");
       setRevealStatus("");
       poemTokens = renderPoemWords(el("poem"), contributions.map((c) => c.text), true);
+      readingsLeft = Core.READINGS_PER_POEM;
+      stopEditing();
+      el("pinned").hidden = true;
       el("revealSec").scrollIntoView({ behavior: "smooth", block: "start" });
-      fetchReading();
+      fetchReading(true);
     }
 
-    async function fetchReading() {
+    // The reading is asked for on its own, from the poem as it stands, with the
+    // prompt every page shares; a fresh one may be asked for three more times.
+    let readingsLeft = Core.READINGS_PER_POEM;
+    async function fetchReading(first = false) {
+      if (!first && readingsLeft <= 0) return;
       const readingEl = el("reading");
+      el("rereadBtn").disabled = true;
       readingEl.classList.remove("show");
       readingEl.innerHTML = `<span class="pending">reading <span class="breathe">·</span></span>`;
       try {
-        const result = await chat([
-          { role: "system", content: readingPrompt() },
-          { role: "user", content: `Read this finished poem:\n\n${poemText}\n\nProvide the close reading paragraph.` },
-        ], 400);
-        readingText = result.content;
+        const result = await chat(Core.readingMessages(poemText), 400);
+        readingText = Core.stripPoemFromReading(result.content, poemText);
         renderReadingLinked(readingEl, readingText, poemTokens);
         readingEl.classList.add("show");
+        if (!first) {
+          readingsLeft -= 1;
+          setRevealStatus(readingsLeft > 0
+            ? `a fresh reading. ${readingsLeft} more ${readingsLeft === 1 ? "is" : "are"} yours to ask for`
+            : "a fresh reading. three is the limit");
+        }
       } catch (e) {
         readingText = "";
         readingEl.innerHTML = `<span class="err">the reading didn’t arrive from ${esc(endpointHost())}.
           <button class="linklike" id="retryReading">try again</button></span>`;
-        el("retryReading").addEventListener("click", fetchReading);
+        el("retryReading").addEventListener("click", () => fetchReading(first));
+      } finally {
+        el("rereadBtn").disabled = readingsLeft <= 0;
       }
+    }
+
+    /* ── editing the finished poem: a textarea in the poem's place ──────── */
+    let editingPoem = false;
+    function stopEditing() {
+      editingPoem = false;
+      el("revealSec").classList.remove("editing");
+      el("editPoemBtn").textContent = "edit the poem";
+    }
+    el("editPoemBtn").addEventListener("click", () => {
+      if (!editingPoem) {
+        editingPoem = true;
+        el("poemEdit").value = poemText;
+        el("revealSec").classList.add("editing");
+        el("editPoemBtn").textContent = "done editing";
+        el("poemEdit").focus();
+        return;
+      }
+      const lines = el("poemEdit").value.split(/\r?\n/).map((l) => l.trim());
+      while (lines.length && !lines[lines.length - 1]) lines.pop();
+      if (!lines.some(Boolean)) { setRevealStatus("a poem needs at least one line"); return; }
+      stopEditing();
+      poemText = lines.join("\n");
+      poemTokens = renderPoemWords(el("poem"), lines, false);
+      if (readingText) renderReadingLinked(el("reading"), readingText, poemTokens);
+      setRevealStatus("poem edited. read it again for a fresh reading, or pin it to the wall");
+    });
+    el("rereadBtn").addEventListener("click", () => fetchReading(false));
+
+    function showPinned(item) {
+      const box = el("pinned");
+      const what = item.title ? `“${esc(item.title)}”` : "This corpse";
+      box.innerHTML = `<strong>Pinned to the wall</strong>${what} is on the wall under the name ${esc(item.name || "anonymous")}, with its close reading. From this browser you can rename, edit, or unpin it there.
+        <a class="nav-link" href="${wallLink(item)}">see it on the wall</a>`;
+      box.hidden = false;
+      box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      setRevealStatus("pinned to the wall");
     }
 
     /* ── table setup ────────────────────────────────────────────────────── */
@@ -1560,6 +1621,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
 
     el("pinBtn").addEventListener("click", () => {
       el("pinName").value = "";
+      el("pinTitle").value = "";
       el("pinStatus").textContent = "";
       el("pinStatus").hidden = true;
       el("pinDialog").showModal();
@@ -1567,6 +1629,9 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     el("pinCancel").addEventListener("click", () => el("pinDialog").close());
     el("pinName").addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); el("pinConfirm").click(); }
+    });
+    el("pinTitle").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); el("pinName").focus(); }
     });
     el("pinConfirm").addEventListener("click", pinToWall);
 
@@ -1583,6 +1648,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: el("pinName").value.trim() || "anonymous",
+            title: el("pinTitle").value.trim(),
             poem: poemText,
             analysis: readingText,
           }),
@@ -1596,7 +1662,7 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
         saveWallTokens();
         rebuildWall();
         el("pinDialog").close();
-        setRevealStatus(`pinned to the wall. <a href="${wallLink(data.item)}">see it there</a>`);
+        showPinned(data.item);
       } catch (error) {
         status.textContent = error.message || "the shared wall is unavailable";
       } finally {
@@ -1631,6 +1697,12 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       poem.className = "pin-poem";
       poem.setAttribute("aria-label", "poem");
       const tokens = renderPoemWords(poem, lines, false);
+      if (item.title) {
+        const title = document.createElement("h3");
+        title.className = "pin-title";
+        title.textContent = item.title;
+        poemPane.appendChild(title);
+      }
       poemPane.appendChild(poem);
 
       // its reading beside it, always open; quotes light the poem's words

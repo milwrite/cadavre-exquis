@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>exquisite corpse</title>
+<title>Exquisite Corpse — the open sheet</title>
 <meta name="theme-color" content="#0C0D10">
 <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="512x512" href="../assets/favicon.png">
@@ -24,6 +24,7 @@
     --edge:rgba(231,224,208,.38);
     --paper:#E9E3D6;    /* the tab is a scrap of the sheet */
     --paper-edge:#CFC6B6;
+    --wine:#A44856; --wine-bright:#C57080;   /* every action button, as on the table */
     --measure:36rem; --wide:66rem; --panel-w:min(24rem, 88vw);
     --t-line:clamp(1.45rem, 1.15rem + 1vw, 1.9rem);
     --poem: "Iowan Old Style","Palatino Linotype",Palatino,"URW Palladio L","P052","Liberation Serif","Noto Serif",Georgia,serif;
@@ -37,7 +38,7 @@
     font-family:var(--poem); font-size:1.0625rem; line-height:1.55;
     -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
     display:flex; min-height:100vh; overflow-x:clip;
-    padding:4vh 4vw 5.5rem;
+    padding:max(4vh, 4.5rem) 4vw 5.5rem;   /* room for the cut-out title, top left */
   }
   /* the column is centred on the page; the lines are flush left within it */
   main{ width:min(var(--measure), 100%); margin:auto; text-align:left; }
@@ -154,18 +155,36 @@
   }
   .chip:hover{ border-color:var(--bone); }
   .chip[aria-pressed="true"]{ color:var(--ink); background:var(--bone); border-color:var(--bone); }
+  /* action buttons are set like the table's "begin"; a way back or out keeps the quiet outline */
   .pbtn{
-    font-family:var(--sans); font-size:.85rem; font-weight:500; color:var(--bone);
-    background:transparent; border:1px solid var(--edge); border-radius:2px;
-    padding:.55em 1em; margin:.2rem .3rem .2rem 0; cursor:pointer;
+    font-family:var(--sans); font-size:.85rem; font-weight:500; letter-spacing:.01em; line-height:1.2; color:#fff;
+    background:var(--wine); border:1px solid var(--wine); border-radius:2px;
+    padding:.6em 1.1em; margin:.2rem .3rem .2rem 0; cursor:pointer;
+    transition:border-color .15s ease, background-color .15s ease;
   }
-  .pbtn:hover:not(:disabled){ border-color:var(--bone); }
+  .pbtn:hover:not(:disabled){ background:var(--wine-bright); border-color:var(--wine-bright); }
   .pbtn:disabled{ opacity:.35; cursor:not-allowed; }
+  .pbtn.secondary{ color:var(--bone); background:transparent; border-color:var(--edge); }
+  .pbtn.secondary:hover:not(:disabled){ background:transparent; border-color:var(--bone); }
+  .linklike{ border:0; background:none; padding:0 .1em; font:inherit; color:var(--bone); text-decoration:underline; text-underline-offset:.18em; cursor:pointer; }
+  #reading .pending,#reading .err{ font-family:var(--sans); font-size:.8125rem; color:var(--dim); }
+  /* the cut-out title, top left on every page; here it is also the way back to the table */
+  #brand{ position:fixed; top:max(1rem, 2.5vh); left:max(1.1rem, 3vw); width:min(14rem, 40vw); z-index:2; font-size:0; line-height:1; }
+  #brand img{ display:block; width:100%; height:auto; }
+  /* the finished poem, edited in its own place */
+  #poem-edit{ display:none; width:100%; min-height:12rem; font-family:var(--poem); font-size:var(--t-line); line-height:1.35; letter-spacing:.003em; color:var(--bone); background:transparent; border:0; border-bottom:1px solid var(--crease); border-radius:0; resize:vertical; padding:0; }
+  #poem-edit:focus{ outline:none; border-bottom-color:var(--bone); }
+  main.editing #poem{ display:none; } main.editing #poem-edit{ display:block; }
+  main.revealed #poem-edit{ padding:1rem 1.2rem; background:rgba(231,224,208,.05); border-radius:2px; border-bottom:0; }
+  /* the pinned notice: what went up, under whose name, and the way there */
+  #pinned{ display:none; padding:1rem 1.2rem; border:1px solid var(--crease); border-radius:2px; font-family:var(--sans); font-size:.9rem; line-height:1.5; color:var(--bone-soft); max-width:40rem; }
+  #pinned.show{ display:block; animation:fade 1s ease both; }
+  #pinned strong{ display:block; font-family:var(--poem); font-size:1.15rem; font-weight:400; color:var(--bone); margin-bottom:.35rem; }
+  #pinned .pbtn{ display:inline-block; text-decoration:none; margin:.8rem 0 0; }
+  main.revealed #pinned{ grid-column:1 / -1; }
   #full-prompt{ white-space:pre-wrap; font-family:var(--mono); font-size:.78rem; line-height:1.5; color:var(--reading);
     border:1px dashed var(--crease); padding:.6rem; margin-top:.5rem; display:none; }
 
-  .pbtn.primary{ color:var(--ink); background:var(--bone); border-color:var(--bone); }
-  .pbtn.primary:hover:not(:disabled){ background:#fff; border-color:#fff; }
   #hint a{ color:var(--bone); text-decoration:underline; text-underline-offset:.18em; }
   dialog{ background:var(--ink); color:var(--bone); border:1px solid var(--crease); padding:1.6rem 1.7rem; width:min(24rem, 92vw); margin:auto; }
   dialog::backdrop{ background:rgba(0,0,0,.72); }
@@ -174,7 +193,7 @@
   dialog input{ font:inherit; font-family:var(--poem); font-size:1.2rem; color:var(--bone); background:transparent; border:0; border-bottom:1px solid var(--crease); border-radius:0; padding:.3em .1em; width:100%; margin-bottom:1rem; }
   dialog input:focus{ outline:none; border-bottom-color:var(--bone); }
   dialog .row{ display:flex; justify-content:flex-end; gap:.6rem; }
-  @media print{ #panel,#panel-tab,#hint,#edge{ display:none !important; } }
+  @media print{ #panel,#panel-tab,#hint,#edge,#brand,#pinned{ display:none !important; } }
 
   @media (prefers-reduced-motion: reduce){
     .rise,#reading-col.show,#edge.waiting::before,#hint .breathe{ animation:none; }
@@ -186,8 +205,10 @@
 </style>
 </head>
 <body>
+  <a id="brand" href="../" aria-label="Exquisite Corpse, back to the table"><img src="../assets/title-cutup-1.png" alt="Exquisite Corpse" width="1300" height="155"></a>
   <main>
     <div id="poem" aria-live="polite"></div>
+    <textarea id="poem-edit" aria-label="edit the poem" spellcheck="false"></textarea>
     <div id="edge">
       <input id="entry" autocomplete="off" autocapitalize="off" autocorrect="off"
              spellcheck="false" aria-label="your one or two words" placeholder="warming the other hand…" disabled>
@@ -196,6 +217,7 @@
       <h2 class="reading-head">Close reading</h2>
       <div id="reading" aria-live="polite"></div>
     </div>
+    <div id="pinned" role="status" aria-live="polite"></div>
   </main>
   <div id="hint">One or two words, then Enter. A single period closes the poem.</div>
   <button id="panel-tab" type="button" aria-expanded="false" aria-controls="panel"><span class="tab-open">the table</span><span class="tab-close">fold away</span></button>
@@ -212,18 +234,21 @@
     <h2>Steer the hand</h2>
     <p class="help">A line of guidance that leans the model's word choice without breaking the game.</p>
     <textarea id="steer" placeholder="a line of guidance for the other hand…"></textarea>
+    <button class="pbtn" id="steer-apply">steer the hand</button>
 
     <h2>Lean toward</h2>
     <div class="chips" id="chips"></div>
 
     <h2>Full prompt</h2>
-    <label class="pbtn" style="user-select:none"><input type="checkbox" id="override-on" style="margin-right:.4rem">override</label>
+    <label class="pbtn secondary" style="user-select:none"><input type="checkbox" id="override-on" style="margin-right:.4rem">override</label>
     <button class="pbtn" id="toggle-full">view</button>
     <pre id="full-prompt"></pre>
     <textarea id="override-text" placeholder="full system prompt…" style="display:none"></textarea>
 
     <h2>Turns</h2>
     <button class="pbtn" id="regen" disabled>rewrite the last line</button>
+    <button class="pbtn" id="close-poem" disabled>close the poem</button>
+    <button class="pbtn" id="edit-poem" disabled>edit the poem</button>
     <button class="pbtn" id="reread" disabled>read it again</button>
 
     <h2>Keep</h2>
@@ -233,14 +258,16 @@
   </aside>
   <dialog id="pin-dialog">
     <p>pin this corpse to the wall</p>
-    <input id="pin-name" type="text" placeholder="your name, or an alias" aria-label="your name">
+    <input id="pin-title" type="text" placeholder="a title for the poem (optional)" aria-label="poem title">
+    <input id="pin-name" type="text" placeholder="your name, or an alias (optional)" aria-label="your name">
     <p id="pin-status" class="pin-status" hidden></p>
     <div class="row">
-      <button class="pbtn" id="pin-cancel" type="button">cancel</button>
-      <button class="pbtn primary" id="pin-confirm" type="button">pin it</button>
+      <button class="pbtn secondary" id="pin-cancel" type="button">cancel</button>
+      <button class="pbtn" id="pin-confirm" type="button">pin it</button>
     </div>
   </dialog>
 
+<script src="../assets/cadavre-core.js"></script>
 <script src="config.local.js"></script>
 <script>
 /* ── config ───────────────────────────────────────────────────────────────
@@ -352,17 +379,19 @@ function saveSettings(){
     { steer: state.steer, tags: state.tags, override: state.override }));
 }
 
+// Only the human closes the poem; the other hand never answers with a period alone.
+const NEVER_CLOSE = "\n\nNever answer with a period or any punctuation alone, and never close the poem yourself: only the human closes it, with a single period. If you have nothing to add, give one concrete word.";
 function composeSystem(){
   if (state.override != null) return state.override;
   const descriptors = state.tags
     .map(label => (TAGS.find(t => t[0] === label) || [])[1])
     .filter(Boolean);
   const steer = (state.steer || "").trim();
-  if (!steer && !descriptors.length) return BASE_GAME_PROMPT;
+  if (!steer && !descriptors.length) return BASE_GAME_PROMPT + NEVER_CLOSE;
   let block = "\n\nSTYLE GUIDANCE (bias word choice and imagery; never break the rules above):";
   if (steer) block += "\n" + steer;
   if (descriptors.length) block += "\nLean toward: " + descriptors.join("; ") + ".";
-  return BASE_GAME_PROMPT + block;
+  return BASE_GAME_PROMPT + NEVER_CLOSE + block;
 }
 function applySystem(){ messages[0].content = composeSystem(); saveSettings(); }
 
@@ -575,6 +604,10 @@ loadModelOptions();
 const steerEl = $("steer");
 steerEl.value = state.steer || "";
 steerEl.addEventListener("input", () => { state.steer = steerEl.value; applySystem(); syncPromptView(); });
+$("steer-apply").addEventListener("click", () => {
+  state.steer = steerEl.value; applySystem(); syncPromptView();
+  note(state.steer.trim() ? "the hand is steered" : "the hand is unsteered");
+});
 
 const chipsEl = $("chips");
 function renderChips(){
@@ -673,6 +706,9 @@ function renderReadingLinked(targetEl, text, tokens){
 function setRegenEnabled(on){ $("regen").disabled = !on; }
 function setRereadEnabled(on){ $("reread").disabled = !on; }
 function setKeepEnabled(on){ ["save-md", "print-poem", "pin-wall"].forEach(id => { $(id).disabled = !on; }); }
+function setCloseEnabled(on){ $("close-poem").disabled = !on; }
+// A reply with no word in it, or a trailing period, is the other hand trying to close the poem.
+const tidyReply = (t) => { const s = String(t || "").trim().replace(/[.…\s]+$/u, "").trim(); return /[\p{L}\p{N}]/u.test(s) ? s : ""; };
 const poemText = () => [...poemEl.querySelectorAll(".line")].map(l => l.textContent.trim()).join("\n");
 
 /* ── keeping a closed poem: a markdown file, the printer, or the shared wall ── */
@@ -710,7 +746,7 @@ async function pinToWall(){
   try {
     const res = await fetch(WALL_API, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: $("pin-name").value.trim() || "anonymous", poem, analysis: readingText }),
+      body: JSON.stringify({ name: $("pin-name").value.trim() || "anonymous", title: $("pin-title").value.trim(), poem, analysis: readingText }),
     });
     const data = await res.json().catch(() => ({}));
     if(!res.ok || !data.item || !data.deleteToken){
@@ -719,7 +755,7 @@ async function pinToWall(){
     saveWallToken(data.item.id, data.deleteToken);
     $("pin-dialog").close();
     $("pin-wall").disabled = true;   // one pin per poem
-    note(`pinned to the wall. <a href="../wall.html#pin-${encodeURIComponent(data.item.id)}">see it there</a>`);
+    showPinned(data.item);
   } catch(err){
     status.textContent = err.message || "the shared wall is unavailable";
   } finally {
@@ -809,29 +845,95 @@ async function send(text, maxTokens = TURN_TOKENS){
   }
 }
 
-function parseReading(reply){
-  const parts = reply.split(/\n\s*\n/);
-  return parts.slice(1).join("\n\n").trim() || parts[0];
-}
-function renderReading(reply){
-  readingText = parseReading(reply);
-  renderReadingLinked(readingEl, readingText, poemTokens);
-  readingEl.classList.add("show");
-  readingEl.scrollIntoView({ behavior: "smooth", block: "center" });
-}
-function reveal(reply){
+/* ── closing the poem: the sheet settles and the reading arrives ─────────── */
+let readingsLeft = CadavreCore.READINGS_PER_POEM;
+
+async function closePoem(){
+  if(closed || entry.disabled || !poemEl.querySelector(".line")) return;
+  closed = true;
   poemEl.querySelectorAll(".line").forEach(l => l.classList.add("settled"));
   poemTokens = collectTokens();
   document.querySelector("main").classList.add("revealed");
   $("reading-col").classList.add("show");
-  renderReading(reply);
   entry.remove();
-  closed = true;
   last = null;
-  setRegenEnabled(false);
-  setRereadEnabled(true);
-  setKeepEnabled(true);
-  note("closed. reload to begin again");
+  setRegenEnabled(false); setCloseEnabled(false);
+  setKeepEnabled(true); $("edit-poem").disabled = false;
+  note("closed. edit the poem, read it again, or pin it to the wall");
+  await fetchReading(true);
+}
+
+// The reading is asked for on its own, from the poem as it stands, with the
+// prompt every page shares; a fresh one may be asked for three more times.
+async function fetchReading(first = false){
+  if(!closed || (!first && readingsLeft <= 0)) return;
+  setWaiting(true); setRereadEnabled(false);
+  readingEl.classList.remove("show");
+  readingEl.innerHTML = `<span class="pending">reading <span class="breathe">·</span></span>`;
+  const poem = poemText();
+  try {
+    const reply = await request(CadavreCore.readingMessages(poem), 0.8, READING_TOKENS);
+    readingText = CadavreCore.stripPoemFromReading(reply, poem);
+    renderReadingLinked(readingEl, readingText, poemTokens);
+    readingEl.classList.add("show");
+    readingEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if(!first){
+      readingsLeft -= 1;
+      note(readingsLeft > 0 ? `a fresh reading. ${readingsLeft} more ${readingsLeft === 1 ? "is" : "are"} yours to ask for` : "a fresh reading. three is the limit");
+    }
+  } catch(err){
+    readingEl.innerHTML = `<span class="err">the reading didn’t arrive. <button class="linklike" id="retry-reading">try again</button></span>`;
+    $("retry-reading").addEventListener("click", () => fetchReading(first));
+  } finally {
+    setWaiting(false);
+    setRereadEnabled(readingsLeft > 0);
+  }
+}
+
+/* ── editing the finished poem: a textarea in the poem's place ──────────── */
+const editBtn = $("edit-poem"), poemEdit = $("poem-edit");
+let editing = false;
+editBtn.addEventListener("click", () => {
+  const main = document.querySelector("main");
+  if(!editing){
+    editing = true;
+    poemEdit.value = poemText();
+    main.classList.add("editing");
+    editBtn.textContent = "done editing";
+    poemEdit.focus();
+    return;
+  }
+  const lines = poemEdit.value.split(/\r?\n/).map(l => l.trim());
+  while(lines.length && !lines[lines.length - 1]) lines.pop();
+  if(!lines.some(Boolean)) return note("a poem needs at least one line", true);
+  editing = false;
+  main.classList.remove("editing");
+  editBtn.textContent = "edit the poem";
+  const others = [...poemEl.querySelectorAll(".line")].map(l => l.classList.contains("other"));
+  poemEl.innerHTML = "";
+  lines.forEach((text, i) => {
+    const div = document.createElement("div");
+    div.className = "line settled" + (others.length === lines.length && others[i] ? " other" : "");
+    text.split(/\s+/).filter(Boolean).forEach((w, j) => {
+      if(j) div.appendChild(document.createTextNode(" "));
+      const span = document.createElement("span"); span.className = "w"; span.textContent = w; div.appendChild(span);
+    });
+    if(!text) div.appendChild(document.createTextNode(" "));   // a stanza break
+    poemEl.appendChild(div);
+  });
+  poemTokens = collectTokens();
+  if(readingText) renderReadingLinked(readingEl, readingText, poemTokens);
+  note("poem edited. read it again for a fresh reading, or pin it to the wall");
+});
+
+function showPinned(item){
+  const box = $("pinned");
+  const what = item.title ? `“${esc(item.title)}”` : "This corpse";
+  box.innerHTML = `<strong>Pinned to the wall</strong>${what} is on the wall under the name ${esc(item.name || "anonymous")}, with its close reading. From this browser you can rename, edit, or unpin it there.
+    <a class="pbtn" href="../wall.html#pin-${encodeURIComponent(item.id)}">see it on the wall</a>`;
+  box.classList.add("show");
+  box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  note("pinned to the wall");
 }
 
 async function regenerate(){
@@ -846,7 +948,8 @@ async function regenerate(){
     const req = messages.concat([{ role: "user",
       content: `Previous attempt${avoid.length > 1 ? "s" : ""}: ${list}. `
         + `Give a different next line — one or two words only, do not repeat those.` }]);
-    const reply = await request(req, 1.0);
+    const reply = tidyReply(await request(req, 1.0));
+    if(!reply) throw new Error("the other hand offered only a period");
     messages.push({ role: "assistant", content: reply });
     last = { userText: last.userText, reply, lineEl: addLine(reply, true), avoided: avoid };
   } catch(err){
@@ -855,23 +958,6 @@ async function regenerate(){
     note("the other hand is still reconnecting. try again shortly", true);
   } finally {
     setWaiting(false); setRegenEnabled(!!last); keepFocus();
-  }
-}
-
-async function reread(){
-  if(!closed) return;
-  let prev = null;
-  if(messages[messages.length - 1]?.role === "assistant") prev = messages.pop().content;
-  setWaiting(true); setRereadEnabled(false);
-  try {
-    const reply = await request(messages, 1.0, READING_TOKENS);
-    messages.push({ role: "assistant", content: reply });
-    renderReading(reply);
-  } catch(err){
-    if(prev != null) messages.push({ role: "assistant", content: prev });   // restore on failure
-    note("the other hand is still reconnecting. try again shortly", true);
-  } finally {
-    setWaiting(false); setRereadEnabled(true);
   }
 }
 
@@ -884,10 +970,7 @@ entry.addEventListener("keydown", async (e) => {
 
   if(text === "."){
     entry.value = "";
-    let reply;
-    try { reply = await send(".", READING_TOKENS); }
-    catch(err){ entry.value = "."; return note("the other hand is still reconnecting. press enter to try again", true); }
-    reveal(reply);
+    await closePoem();
     return;
   }
 
@@ -903,14 +986,27 @@ entry.addEventListener("keydown", async (e) => {
     note(esc(reply.replace(/\s+/g," ").slice(0,80)), true);
     return;
   }
+  reply = tidyReply(reply);
+  if(!reply){
+    // the other hand tried to close the poem; only the human may. ask once more.
+    messages.splice(-2, 2);
+    try { reply = tidyReply(await send(text)); } catch(err){ reply = ""; }
+    if(!reply){
+      if(messages[messages.length - 1]?.role === "assistant") messages.splice(-2, 2);
+      entry.value = text;
+      return note("the other hand offered only a period. press enter to ask again, or try another word", true);
+    }
+  }
+  messages[messages.length - 1].content = reply;
   addLine(text);                          // your contribution
   const modelEl = addLine(reply, true);   // the other hand
   last = { userText: text, reply, lineEl: modelEl, avoided: [] };
-  setRegenEnabled(true); setKeepEnabled(true);
+  setRegenEnabled(true); setCloseEnabled(true);
 });
 
 $("regen").addEventListener("click", regenerate);
-$("reread").addEventListener("click", reread);
+$("reread").addEventListener("click", () => fetchReading(false));
+$("close-poem").addEventListener("click", closePoem);
 </script>
 </body>
 </html>

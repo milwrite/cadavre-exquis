@@ -86,6 +86,16 @@ test("the parlor previews the newest three pins whole, as wall.html sets them, a
   assert.match(html, /\.stage\.is-playing ~ \.solo, \.stage\.is-playing ~ \.wall \{ display: none; \}/);
   assert.match(html, /wall\.html#pin-\$\{encodeURIComponent\(item\.id\)\}/);
   assert.match(html, /wallTokens\[data\.item\.id\] = data\.deleteToken/);
-  assert.match(html, /setRevealStatus\(`pinned to the wall\./);
+  assert.match(html, /showPinned\(data\.item\)/);
   assert.doesNotMatch(html, /\/vote`|nextWallVote|paginateLines|loadWallMore|cadavreWallVoterToken|scrollIntoView\(\{ behavior: "smooth", block: "start" \}\);\n\s*\} catch/);
+});
+
+test("the finished poem can be edited and read again, and a pin carries a title", () => {
+  assert.match(html, /Core\.readingMessages\(poemText\)/);
+  assert.match(html, /Core\.stripPoemFromReading\(result\.content, poemText\)/);
+  assert.match(html, /readingsLeft = Core\.READINGS_PER_POEM/);
+  for (const id of ["editPoemBtn", "rereadBtn", "poemEdit", "pinTitle", "pinned"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /title: el\("pinTitle"\)\.value\.trim\(\)/);
+  assert.match(html, /button\.quiet \{/);
+  assert.doesNotMatch(html, /const readingPrompt = |button\.accent \{/);
 });

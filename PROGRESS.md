@@ -142,8 +142,9 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   same 35px as "begin" (checked with Playwright at 1280 and 390 wide).
 - Copy: the intro opens "is a parlor game in which players add images or a few words to a
   sheet of paper, fold it to hide previous turns, and hand it off to the next player" and ends
-  "until someone decides to end the game"; the solo section reads "Solo play / Play a solo
-  round with a language model in a fullscreen view."; the wall note is "newly pinned corpses".
+  "until someone decides to end the game"; the solo section reads "Solo play / Try your hand at a solo
+  round with your favorite large language model. Modify the system prompt, steer with a style
+  of verse, and tinker with related settings in a fullscreen view."; the wall note is "newly pinned corpses".
 - Same day, other hands: poems on a faint sheet wash (`--sheet-wash`), the larger italic
   "Close reading" head, "The Wall" cut letters laid up as faded brick, the epigraph credited
   "Paris, 1925", and a model-neutral meta description.
@@ -159,6 +160,23 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   store, linking `../wall.html#pin-<id>`), and `keepFocus` became a hoisted function so the
   synchronous local warm-up path (no models endpoint) no longer throws. Verified with a stubbed
   Playwright flow (play, close, save, pin) and a 16-message live chat; Worker version `16d3b8ea`.
+- Later the same afternoon, from play-testing: the model had answered a fold with a lone
+  period, the sheet lit its Keep buttons after every turn, and a pin on an unclosed poem
+  refused silently. Now only the human closes a poem: the sheet's prompt carries a
+  NEVER_CLOSE clause, a reply with no word in it (or a trailing period) is tidied and asked
+  for once more, and Keep controls light only after the close. The panel gained "close the
+  poem", "steer the hand", "edit the poem", and a three-reread "read it again"; the reading is
+  asked for with the prompt every page now shares (`CadavreCore.readingMessages`, with
+  `stripPoemFromReading` for a model that reprints the poem first — the cause of a reading
+  that opened with the whole poem run together). The parlor's reveal has the same edit and
+  reread controls; the wall's owner controls gained "edit" (poem and title) and "read it
+  again" (three per pin, counted in `cadavreWallReadings`) through the Worker's new
+  `POST /wall/:id/edit`; pins carry an optional `title` (new column, migrated in place) asked
+  for in every pin dialog beside the optional name, and pinning ends in a notice that names
+  the title, the hand, and the way to the wall. Every action button is set like "begin"
+  (wine, filled); back links, cancels, chips, and vote toggles keep the quiet outline. The
+  cut-out title sits top left on the open sheet too, as the way back; every `<title>` begins
+  "Exquisite Corpse". Verified with stubbed Playwright flows on all three pages.
 
 ### Next session — review, then push where relevant
 - [ ] Open `index.html` and `wall.html` locally (`python3 -m http.server`, or `cd worker &&

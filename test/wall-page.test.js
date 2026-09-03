@@ -55,3 +55,14 @@ test("the wall page's inline scripts parse", () => {
     assert.doesNotThrow(() => new vm.Script(source));
   });
 });
+
+test("the hand that pinned a corpse can edit it and ask for a fresh reading, three times at most", () => {
+  assert.match(html, /const WALL_CAN_EDIT = true;/);
+  assert.match(html, /\/edit`, \{/);
+  assert.match(html, /CadavreCore\.readingMessages\(current\.poem\)/);
+  assert.match(html, /CadavreCore\.READINGS_PER_POEM - readingsUsed\(item\.id\)/);
+  assert.match(html, /const WALL_READINGS_KEY = "cadavreWallReadings"/);
+  for (const id of ["editDialog", "editTitle", "editPoem", "editConfirm"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /<title>Exquisite Corpse — the wall<\/title>/);
+  assert.match(html, /className = "pin-title"/);
+});
