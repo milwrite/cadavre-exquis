@@ -128,8 +128,50 @@
 
     .nav-link:hover { border-color: var(--bone); color: var(--bone); }
     /* "The Wall" set in the same cut-out print as the title, at the title's scale */
-    .wall-title { width: min(100%, 11rem); font-size: 0; line-height: 1; }
+    .wall-title { position: relative; isolation: isolate; width: min(100%, 11rem); font-size: 0; line-height: 1; }
     .wall-title img { display: block; width: 100%; height: auto; aspect-ratio: 678 / 168; }
+    /* Each cut letter is laid up as a faded brick. The wash is masked to the image's
+       own alpha, so it fires the paper of every tile and its frame but never the gaps
+       between them, and `multiply` is what does it: anything times near-black stays
+       near-black, so the clay settles into the paper while the ink of the letterform
+       is left neutral and the cut-out stays a cut-out. (A `color` wash was the other
+       candidate — it costs no luminance at all, but it tints the letterform with it
+       and the whole title drifts pink.) Measured on the real pixels, ink holds
+       7.2:1 against the palest brick and 7.7:1 against the deepest — every one of
+       them clears AAA, where the bone original sat at 10.7:1.
+       Duplicated in index.html / wall.html — change both together. */
+    @supports ((mask-image: url("assets/title-wall-1.png")) or (-webkit-mask-image: url("assets/title-wall-1.png"))) {
+      /* The firing, struck one brick at a time. The hard stops sit in the gaps
+         between the cut tiles — measured off the PNG's own alpha, whose runs are
+         1.0–16.7, 17.3–29.0, 29.7–41.1, 46.2–65.9, 66.5–79.2, 79.9–88.0 and
+         88.7–98.1% — so each letter takes a tone of its own and no seam ever
+         lands on paper. The spread is only 2.5 points of L*: enough that no two
+         bricks are struck alike, far too little to read as stripes. */
+      .wall-title::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        mask-image: url("assets/title-wall-1.png");
+        -webkit-mask-image: url("assets/title-wall-1.png");
+        mask-size: 100% 100%;
+        -webkit-mask-size: 100% 100%;
+        background: linear-gradient(90deg,
+          #A85448 0 16.97%,      /* T */
+          #B76048 16.97% 29.35%, /* h */
+          #9E4E38 29.35% 43.60%, /* e */
+          #B05A42 43.60% 66.23%, /* W */
+          #A24E36 66.23% 79.54%, /* a */
+          #B96448 79.54% 88.35%, /* l */
+          #AA5540 88.35% 100%);  /* l */
+        opacity: 0.35;
+        mix-blend-mode: multiply;
+      }
+      /* Windows High Contrast repaints every background from the system palette,
+         which would lay a solid slab over the letters. Drop the wash there and let
+         the cut-out print stand on its own. */
+      @media (forced-colors: active) { .wall-title::after { display: none; } }
+    }
     .wall-note { margin-top: 0.6rem; font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
     .wall-status { min-height: 1.5em; margin-top: 1rem; font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
     .wall-status.err { color: var(--wine-bright); }
