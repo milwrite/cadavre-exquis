@@ -77,7 +77,8 @@
     .page {
       width: min(100%, var(--wide));
       margin: 0 auto;
-      padding: clamp(1.1rem, 3vh, 2rem) clamp(1rem, 3vw, 2rem) clamp(1.5rem, 4vh, 3rem);
+      /* the masthead starts a hand's width down the viewport, so the eye lands mid-screen */
+      padding: clamp(2rem, 8vh, 5rem) clamp(1rem, 3vw, 2rem) clamp(1.5rem, 4vh, 3rem);
     }
 
     a { color: inherit; text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 0.18em; }
@@ -144,12 +145,12 @@
 
     .table-setting {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 1.1rem 1.5rem;
+      align-items: start;
     }
 
     .setting-field { display: flex; min-width: 0; flex-direction: column; gap: 0.15rem; }
-    .setting-field.model-route { grid-column: 1 / -1; }
     .setting-label { font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
 
     .table-setting select {
@@ -385,28 +386,32 @@
       align-items: center;
       justify-content: space-between;
       gap: 1rem 2rem;
-      margin-top: clamp(3.5rem, 8vh, 6rem);
-      padding-top: 1.6rem;
-      border-top: 1px solid var(--crease);
+      margin-top: clamp(2.2rem, 5vh, 3.5rem);
     }
 
     .solo-text { max-width: 34rem; }
     .solo-text h2 { font-size: var(--t-lead); margin-bottom: 0.3rem; }
     .solo-text p { color: var(--bone-soft); font-size: 1rem; text-wrap: pretty; }
 
-    .solo-link {
+    /* the two links off the table, set as buttons like "begin" */
+    .solo-link, .nav-link {
+      display: inline-block;
       font-family: var(--sans);
       font-size: 0.85rem;
       font-weight: 500;
-      color: var(--bone);
+      letter-spacing: 0.01em;
+      line-height: 1.2;
+      color: #fff;
       text-decoration: none;
-      border: 1px solid var(--edge);
+      background: var(--wine);
+      border: 1px solid var(--wine);
       border-radius: 2px;
       padding: 0.6em 1.1em;
       white-space: nowrap;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
     }
 
-    .solo-link:hover { border-color: var(--bone); color: var(--bone); }
+    .solo-link:hover, .nav-link:hover { background: var(--wine-bright); border-color: var(--wine-bright); }
 
     /* ── the wall: the newest three pins, each set as on wall.html — the
        reading on the left, the whole poem to its right, never cut ── */
@@ -418,21 +423,6 @@
 
     .wall-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.6rem 1.5rem; }
     .wall-head a { padding-bottom: 0.15rem; }
-    /* a way back, styled as a control rather than a footnote */
-    .nav-link {
-      display: inline-block;
-      font-family: var(--sans);
-      font-size: 0.85rem;
-      font-weight: 500;
-      color: var(--bone);
-      text-decoration: none;
-      border: 1px solid var(--edge);
-      border-radius: 2px;
-      padding: 0.6em 1.1em;
-      white-space: nowrap;
-    }
-
-    .nav-link:hover { border-color: var(--bone); color: var(--bone); }
     /* "The Wall" set in the same cut-out print as the title, at the title's scale */
     .wall-title { position: relative; isolation: isolate; width: min(100%, 9.5rem); font-size: 0; line-height: 1; }
     .wall-title img { display: block; width: 100%; height: auto; aspect-ratio: 678 / 168; }
@@ -629,6 +619,16 @@
             <span id="modelReadiness" class="model-readiness" role="status" aria-live="polite">warming the other hand…</span>
           </label>
           <label class="setting-field">
+            <span class="setting-label">words per turn</span>
+            <select id="maxWords" aria-label="words per turn">
+              <option value="1">one</option>
+              <option value="2">two</option>
+              <option value="3" selected>up to three</option>
+              <option value="4">up to four</option>
+              <option value="5">up to five</option>
+            </select>
+          </label>
+          <label class="setting-field">
             <span class="setting-label">players</span>
             <select id="playerCount" aria-label="number of players">
               <option value="2" selected>two</option>
@@ -642,16 +642,6 @@
               <option value="1">one</option>
               <option value="2" selected>two</option>
               <option value="3">three</option>
-            </select>
-          </label>
-          <label class="setting-field">
-            <span class="setting-label">words per turn</span>
-            <select id="maxWords" aria-label="words per turn">
-              <option value="1">one</option>
-              <option value="2">two</option>
-              <option value="3" selected>up to three</option>
-              <option value="4">up to four</option>
-              <option value="5">up to five</option>
             </select>
           </label>
         </div>
@@ -710,9 +700,9 @@
     <section class="wall" id="wallSec" hidden aria-label="the wall">
       <div class="wall-head">
         <h2 class="wall-title"><img src="assets/title-wall-1.png" alt="The Wall" width="678" height="168"></h2>
-        <a class="nav-link" href="wall.html">see the whole wall</a>
+        <a class="nav-link" href="wall.html">see the wall</a>
       </div>
-      <p class="wall-note" id="wallNote">the newest corpses pinned from any table</p>
+      <p class="wall-note" id="wallNote">newly pinned corpses</p>
       <div class="wall-grid" id="wallList"></div>
     </section>
 
@@ -1679,8 +1669,8 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       list.innerHTML = "";
       el("wallSec").hidden = wall.length === 0;
       el("wallNote").textContent = legacyWall.length
-        ? "the newest corpses pinned from any table, plus earlier pins kept in this browser"
-        : "the newest corpses pinned from any table";
+        ? "newly pinned corpses, plus earlier pins kept in this browser"
+        : "newly pinned corpses";
       wall.slice(0, WALL_PREVIEW).forEach((item) => list.appendChild(renderWallItem(item)));
     }
 

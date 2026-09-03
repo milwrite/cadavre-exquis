@@ -123,6 +123,44 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   controls removed. The parlor now carries an "open sheet" section above the wall (the footer
   keeps only the source link) and the wall link reads "see the whole wall".
 
+## 2026-09-03 · the wall staggered, the table in twos, a copy pass
+- Both pages set every pin the same way: the close reading on the left two-thirds, the whole
+  poem on its faint sheet in the right third, flush left in its pane, never cut or paged
+  (`grid-template-areas: "reading poem" "meta meta"` from 56rem; poem above reading below it).
+  The parlor previews only the newest three pins as those full cards (`WALL_PREVIEW = 3`), each
+  footed with name, date, and "see it on the wall"; votes, rename, and unpin stay on `wall.html`.
+  The five-line cut and its "continue reading" link are gone. The card CSS is duplicated in
+  `index.html` and `wall.html` — change both together (tests pin the grid in each).
+- The parlor's first screen: the masthead starts `clamp(2rem, 8vh, 5rem)` down the viewport;
+  the table's four settings sit in two rows of two (the other hand | words per turn, then
+  players | the model sits at seat); "Solo play" sits just under "begin" with no rule above it.
+  "play solo" and "see the wall" are filled wine buttons like "begin" (one shared rule).
+- Copy: the intro opens "is a parlor game in which players add images or a few words to a
+  sheet of paper, fold it to hide previous turns, and hand it off to the next player" and ends
+  "until someone decides to end the game"; the solo section reads "Solo play / Play a solo
+  round with a language model in a fullscreen view."; the wall note is "newly pinned corpses".
+- Same day, other hands: poems on a faint sheet wash (`--sheet-wash`), the larger italic
+  "Close reading" head, "The Wall" cut letters laid up as faded brick, the epigraph credited
+  "Paris, 1925", and a model-neutral meta description.
+- Verified locally with Playwright against a stubbed wall (`/api/cadavre/wall` with three pins,
+  one without a reading, one with a long wrapping line) at 1280 and 600 wide; `npm test` green
+  (28 page, 7 relay, 11 Worker tests).
+
+### Next session — review, then push where relevant
+- [ ] Open `index.html` and `wall.html` locally (`python3 -m http.server`, or `cd worker &&
+      npm run dev`) and read the first screen at a laptop height and on a phone: the masthead
+      headroom, the two-by-two table with the long DeepSeek route name in a half-width select,
+      Solo play under begin, and the three wall cards. Revert anything that reads wrong.
+- [ ] Play one round through to the reveal and pin it, so the preview shows a live card whose
+      quotes light the poem's words; check the wall page card for the same pin.
+- [ ] Push `master` (GitHub Pages rebuilds from it): `git push
+      "https://x-access-token:$(gh auth token --user milwrite)@github.com/milwrite/cadavre-exquis.git" master`.
+- [ ] Deploy the Worker so https://cail-cadavre.ailab-452.workers.dev matches: `cd worker &&
+      npm run deploy` (runs check + tests first).
+- [ ] Port the same card, first-screen, and copy changes to the inference-arcade fork
+      (`gvgai-web` `web/public/cadavre.html` + `cadavre-wall.html`; Railway deploys on push to
+      master) — it still has the poem-left cards, the six-pin cut preview, and the old copy.
+
 ## Automation
 - [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 12:00 (noon)**.
   Runs headless Claude Code against `CONTINUE.md`, advances one step, commits.
