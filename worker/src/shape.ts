@@ -24,7 +24,9 @@ export type Limits = {
   maxChars: number;        // total content across messages
 };
 
-export const LIMITS: Limits = { maxTokens: 400, defaultTokens: 120, maxMessages: 12, maxChars: 12000 };
+// The open sheet sends its whole transcript, one message a line, so a poem of
+// forty lines is eighty-odd messages; maxChars still bounds what any turn can cost.
+export const LIMITS: Limits = { maxTokens: 400, defaultTokens: 120, maxMessages: 120, maxChars: 12000 };
 
 // Verified through the gateway 2026-09-02: each provider family has its own switch.
 export const THINKING_OFF: Record<string, Partial<ChatRequest>> = {

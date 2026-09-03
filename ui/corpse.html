@@ -164,6 +164,18 @@
   #full-prompt{ white-space:pre-wrap; font-family:var(--mono); font-size:.78rem; line-height:1.5; color:var(--reading);
     border:1px dashed var(--crease); padding:.6rem; margin-top:.5rem; display:none; }
 
+  .pbtn.primary{ color:var(--ink); background:var(--bone); border-color:var(--bone); }
+  .pbtn.primary:hover:not(:disabled){ background:#fff; border-color:#fff; }
+  #hint a{ color:var(--bone); text-decoration:underline; text-underline-offset:.18em; }
+  dialog{ background:var(--ink); color:var(--bone); border:1px solid var(--crease); padding:1.6rem 1.7rem; width:min(24rem, 92vw); margin:auto; }
+  dialog::backdrop{ background:rgba(0,0,0,.72); }
+  dialog p{ font-family:var(--poem); color:var(--bone-soft); margin:0 0 1rem; }
+  dialog .pin-status{ font-family:var(--sans); font-size:.8125rem; color:var(--dim); }
+  dialog input{ font:inherit; font-family:var(--poem); font-size:1.2rem; color:var(--bone); background:transparent; border:0; border-bottom:1px solid var(--crease); border-radius:0; padding:.3em .1em; width:100%; margin-bottom:1rem; }
+  dialog input:focus{ outline:none; border-bottom-color:var(--bone); }
+  dialog .row{ display:flex; justify-content:flex-end; gap:.6rem; }
+  @media print{ #panel,#panel-tab,#hint,#edge{ display:none !important; } }
+
   @media (prefers-reduced-motion: reduce){
     .rise,#reading-col.show,#edge.waiting::before,#hint .breathe{ animation:none; }
     .rise{opacity:1; transform:none} #reading-col.show{opacity:1}
@@ -213,7 +225,21 @@
     <h2>Turns</h2>
     <button class="pbtn" id="regen" disabled>rewrite the last line</button>
     <button class="pbtn" id="reread" disabled>read it again</button>
+
+    <h2>Keep</h2>
+    <button class="pbtn" id="save-md" disabled>save as markdown</button>
+    <button class="pbtn" id="print-poem" disabled>print</button>
+    <button class="pbtn" id="pin-wall" disabled>pin to the wall</button>
   </aside>
+  <dialog id="pin-dialog">
+    <p>pin this corpse to the wall</p>
+    <input id="pin-name" type="text" placeholder="your name, or an alias" aria-label="your name">
+    <p id="pin-status" class="pin-status" hidden></p>
+    <div class="row">
+      <button class="pbtn" id="pin-cancel" type="button">cancel</button>
+      <button class="pbtn primary" id="pin-confirm" type="button">pin it</button>
+    </div>
+  </dialog>
 
 <script src="config.local.js"></script>
 <script>
@@ -260,6 +286,13 @@ if(CFG.readyEndpoint){
     if(!isHttpEndpoint(CFG.readyEndpoint)) throw new Error("bad scheme");
   } catch { CFG.readyEndpoint = DEFAULTS.readyEndpoint; }
 }
+const WALL_API = (() => {
+  // A same-origin host (the CUNY AI Lab Worker) names its own wall in config.local.js.
+  const configured = String(CFG.wallEndpoint || "");
+  try { if(configured && isHttpEndpoint(configured)) return configured; } catch {}
+  return REMOTE_API + "/wall";
+})();
+const WALL_TOKENS_KEY = "cadavreWallDeleteTokens";   // shared with the parlor; wall.html reads it to unpin and rename
 const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 /* The game lives in the system prompt, so this works against a base or a tuned
@@ -592,6 +625,8 @@ const messages = [{ role: "system", content: composeSystem() }];
 let closed = false;
 let last = null;   // { userText, reply, lineEl, avoided:[] } — the current growing edge
 let poemTokens = [];   // { norm, el } per poem word, collected at close for the reading links
+let readingText = "";   // the close reading as last rendered, kept for export and the wall
+const TURN_TOKENS = 80, READING_TOKENS = 400;   // a fold is a few words; the reading needs the room
 
 /* ── the poem ↔ reading link ─────────────────────────────────────────────────
    The close reading quotes the poem's exact words, so its quotes can reach back
@@ -637,13 +672,67 @@ function renderReadingLinked(targetEl, text, tokens){
 }
 function setRegenEnabled(on){ $("regen").disabled = !on; }
 function setRereadEnabled(on){ $("reread").disabled = !on; }
-function setKeepEnabled(){ /* keeping poems lives on the parlor and the wall */ }
+function setKeepEnabled(on){ ["save-md", "print-poem", "pin-wall"].forEach(id => { $(id).disabled = !on; }); }
+const poemText = () => [...poemEl.querySelectorAll(".line")].map(l => l.textContent.trim()).join("\n");
 
-const keepFocus = (e) => {
+/* ── keeping a closed poem: a markdown file, the printer, or the shared wall ── */
+$("save-md").addEventListener("click", () => {
+  const md = `# Exquisite Corpse\n\n${poemText()}\n\n` +
+    (readingText ? `## Close reading\n\n${readingText}\n\n` : "") +
+    `— played ${new Date().toLocaleDateString()} · model \`${CFG.model}\`\n`;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([md], { type: "text/markdown" }));
+  a.download = `exquisite-corpse-${Date.now()}.md`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+$("print-poem").addEventListener("click", () => window.print());
+
+function readWallTokens(){ try { return JSON.parse(localStorage.getItem(WALL_TOKENS_KEY) || "{}"); } catch { return {}; } }
+function saveWallToken(id, token){
+  const tokens = readWallTokens(); tokens[id] = token;
+  try { localStorage.setItem(WALL_TOKENS_KEY, JSON.stringify(tokens)); } catch {}
+}
+$("pin-wall").addEventListener("click", () => {
+  $("pin-status").hidden = true;
+  $("pin-dialog").showModal();
+  $("pin-name").focus();
+});
+$("pin-cancel").addEventListener("click", () => $("pin-dialog").close());
+$("pin-name").addEventListener("keydown", (e) => { if(e.key === "Enter"){ e.preventDefault(); pinToWall(); } });
+$("pin-confirm").addEventListener("click", pinToWall);
+async function pinToWall(){
+  const confirm = $("pin-confirm"), status = $("pin-status");
+  const poem = poemText();
+  if(!closed || !poem || confirm.disabled) return;
+  confirm.disabled = true;
+  status.hidden = false; status.textContent = "pinning…";
+  try {
+    const res = await fetch(WALL_API, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: $("pin-name").value.trim() || "anonymous", poem, analysis: readingText }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok || !data.item || !data.deleteToken){
+      throw new Error((data.error && (data.error.message || data.error)) || "the shared wall did not accept this corpse");
+    }
+    saveWallToken(data.item.id, data.deleteToken);
+    $("pin-dialog").close();
+    $("pin-wall").disabled = true;   // one pin per poem
+    note(`pinned to the wall. <a href="../wall.html#pin-${encodeURIComponent(data.item.id)}">see it there</a>`);
+  } catch(err){
+    status.textContent = err.message || "the shared wall is unavailable";
+  } finally {
+    confirm.disabled = false;
+  }
+}
+
+// A declaration, so the synchronous warm-up path (no models endpoint) can call it before this line.
+function keepFocus(e){
   if (closed) return;
   if (e && panel.contains(e.target)) return;   // don't steal focus from the panel
   entry.focus();
-};
+}
 document.addEventListener("click", keepFocus);
 window.addEventListener("load", () => keepFocus());
 
@@ -667,14 +756,14 @@ function note(html, isErr){
   hint.innerHTML = isErr ? `<span class="err">${html}</span>` : html;
 }
 
-async function request(msgs, temperature = 0.9){
+async function request(msgs, temperature = 0.9, maxTokens = TURN_TOKENS){
   const res = await fetch(CFG.endpoint, {
     method: "POST",
     headers: Object.assign({ "Content-Type": "application/json" },
       CFG.apiKey ? { "Authorization": "Bearer " + CFG.apiKey } : {}),
     body: JSON.stringify({
       model: CFG.model, messages: msgs,
-      temperature, top_p: 0.95, stream: false,
+      max_tokens: maxTokens, temperature, top_p: 0.95, stream: false,
     }),
   });
   if(!res.ok) throw new Error("model returned " + res.status);
@@ -695,13 +784,13 @@ function setWaiting(on){
   entry.disabled = on;
 }
 
-async function send(text){
+async function send(text, maxTokens = TURN_TOKENS){
   messages.push({ role: "user", content: text });
   setWaiting(true);
   try {
     for(let attempt = 0; attempt < 3; attempt++){
       try {
-        const reply = await request(messages, 0.9);
+        const reply = await request(messages, 0.9, maxTokens);
         messages.push({ role: "assistant", content: reply });
         return reply;
       } catch(err){
@@ -725,7 +814,8 @@ function parseReading(reply){
   return parts.slice(1).join("\n\n").trim() || parts[0];
 }
 function renderReading(reply){
-  renderReadingLinked(readingEl, parseReading(reply), poemTokens);
+  readingText = parseReading(reply);
+  renderReadingLinked(readingEl, readingText, poemTokens);
   readingEl.classList.add("show");
   readingEl.scrollIntoView({ behavior: "smooth", block: "center" });
 }
@@ -774,7 +864,7 @@ async function reread(){
   if(messages[messages.length - 1]?.role === "assistant") prev = messages.pop().content;
   setWaiting(true); setRereadEnabled(false);
   try {
-    const reply = await request(messages, 1.0);
+    const reply = await request(messages, 1.0, READING_TOKENS);
     messages.push({ role: "assistant", content: reply });
     renderReading(reply);
   } catch(err){
@@ -795,7 +885,7 @@ entry.addEventListener("keydown", async (e) => {
   if(text === "."){
     entry.value = "";
     let reply;
-    try { reply = await send("."); }
+    try { reply = await send(".", READING_TOKENS); }
     catch(err){ entry.value = "."; return note("the other hand is still reconnecting. press enter to try again", true); }
     reveal(reply);
     return;

@@ -31,3 +31,16 @@ test("the open sheet inline script parses", () => {
     assert.doesNotThrow(() => new vm.Script(source));
   });
 });
+
+test("the open sheet budgets a fold and a reading, and can keep a closed poem", () => {
+  assert.match(html, /const TURN_TOKENS = 80, READING_TOKENS = 400/);
+  assert.match(html, /max_tokens: maxTokens, temperature, top_p: 0\.95, stream: false/);
+  assert.match(html, /send\("\.", READING_TOKENS\)/);
+  assert.match(html, /request\(messages, 1\.0, READING_TOKENS\)/);
+  assert.match(html, /<h2>Keep<\/h2>/);
+  for (const id of ["save-md", "print-poem", "pin-wall", "pin-dialog", "pin-name"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /return REMOTE_API \+ "\/wall";/);
+  assert.match(html, /const WALL_TOKENS_KEY = "cadavreWallDeleteTokens"/);
+  assert.match(html, /analysis: readingText/);
+  assert.match(html, /\.\.\/wall\.html#pin-\$\{encodeURIComponent\(data\.item\.id\)\}/);
+});
