@@ -211,7 +211,7 @@
     <textarea id="poem-edit" aria-label="edit the poem" spellcheck="false"></textarea>
     <div id="edge">
       <input id="entry" autocomplete="off" autocapitalize="off" autocorrect="off"
-             spellcheck="false" aria-label="your one or two words" placeholder="warming the other hand…" disabled>
+             spellcheck="false" aria-label="your words for this turn" placeholder="warming the other hand…" disabled>
     </div>
     <div id="reading-col">
       <h2 class="reading-head">Close reading</h2>
@@ -219,7 +219,7 @@
     </div>
     <div id="pinned" role="status" aria-live="polite"></div>
   </main>
-  <div id="hint">One or two words, then Enter. A single period closes the poem.</div>
+  <div id="hint">Enter hands the line to the other hand. A single period closes the poem.</div>
   <button id="panel-tab" type="button" aria-expanded="false" aria-controls="panel"><span class="tab-open">the table</span><span class="tab-close">fold away</span></button>
   <aside id="panel" aria-label="controls">
     <h2>The other hand</h2>
@@ -406,6 +406,23 @@ const edge = document.getElementById("edge");
 const entry = document.getElementById("entry");
 const hint = document.getElementById("hint");
 const HINT_DEFAULT = hint.innerHTML;
+
+/* The ghost cue in the entry. Three stock cues, each a valid turn trailing off,
+   then the turn length the current prompt actually enforces, phrased by the
+   same helper the parlor uses. It rotates every time the entry is handed back.
+   Under a custom prompt the base game's cap no longer holds, so the settings
+   cue steps aside and only the stock cues turn. */
+const WORD_CAP = 2;                         // BASE_GAME_PROMPT: "one or two words"
+const STOCK_CUES = ["red door…", "salt…", "a hinge…"];
+let cueIndex = 0;
+function nextCue(){
+  const cues = state.override == null
+    ? STOCK_CUES.concat(CadavreCore.capPhrase(WORD_CAP) + "…")
+    : STOCK_CUES;
+  const cue = cues[cueIndex % cues.length];
+  cueIndex++;
+  entry.placeholder = cue;
+}
 const $ = id => document.getElementById(id);
 const panel = $("panel");
 const panelTab = $("panel-tab");
@@ -461,7 +478,7 @@ function acceptReadyModel(data, status){
   modelRouteEl.setAttribute("aria-busy", "false");
   modelStatusEl.textContent = status || "ready";
   entry.disabled = false;
-  entry.placeholder = "one or two words";
+  nextCue();
   note(HINT_DEFAULT);
   keepFocus();
   return data || { ready:true, model:CFG.model, provider:"direct" };
@@ -773,7 +790,7 @@ document.addEventListener("click", keepFocus);
 window.addEventListener("load", () => keepFocus());
 
 function addLine(text, isModel){
-  entry.placeholder = "";                      // the ghost cue has done its job
+  if (isModel) nextCue();                      // the entry comes back with a fresh cue
   const div = document.createElement("div");
   div.className = "line rise" + (isModel ? " other" : "");   // mark the other hand
   text.split(/\s+/).filter(Boolean).forEach((w, j) => {      // one word per span, for the reading links
