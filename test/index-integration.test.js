@@ -50,6 +50,18 @@ test("the table stays closed until a generated readiness check succeeds", () => 
   assert.doesNotMatch(html, /the model isn’t answering|is it running\?/);
 });
 
+test("openings, second lines, and redone turns are steered away from repetition", () => {
+  assert.match(html, /const OPENING_FRAMES = \[/);
+  assert.match(html, /const REPLY_FRAMES = \[/);
+  assert.match(html, /const setAside = new Map\(\);/);
+  assert.match(html, /if \(popped\.isModel\) setAside\.set\(popped\.turn/);
+  assert.match(html, /SET ASIDE\\nThe table set these lines aside for this fold/);
+  assert.match(html, /const warmth = tried\.length \|\| early \? 1\.05 : 0\.8;/);
+  assert.match(html, /temperature: options\.temperature \?\? 0\.8/);
+  assert.match(html, /VARIETY\n\nAvoid stock poetic vocabulary/);
+  assert.equal((html.match(/setAside\.clear\(\);/g) || []).length, 2);
+});
+
 test("the canonical page never sends hidden folds to the model", () => {
   assert.doesNotMatch(html, /EARLIER FOLDS/);
   assert.doesNotMatch(html, /contributions\.slice\(-7, -1\)/);

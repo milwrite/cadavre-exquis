@@ -111,6 +111,11 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   wall preview fades its last lines and links "continue reading on the wall, N more lines";
   a poem only one line over the preview is shown whole. Both cut-out headings carry alt text
   ("Exquisite Corpse", "The Wall"); the accessibility tree names them as h1 and h2.
+- 2026-09-03: variety. The model's opening and its reply to the first line each get one
+  random frame (ten openings, eight replies); "redo turn" records the popped model line
+  under its turn index and the next attempt is told, under SET ASIDE, not to repeat or
+  paraphrase it and to change its move; those turns run at temperature 1.05. The play
+  prompt's VARIETY clause bans stock vocabulary and asks for a different opening word.
 
 ## Automation
 - [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 12:00 (noon)**.

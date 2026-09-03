@@ -87,6 +87,11 @@ npm test                                             # Node game-rule tests + Py
   "reveal poem" and end on its own line; the reveal drops the in-flight reply.
   `shapeNote()` adds a SHAPE paragraph to the play prompt keyed to the fold count,
   asking for a closable line once the poem is long. Keep both when editing the prompt.
+- **Openings and redone turns are steered.** `OPENING_FRAMES` / `REPLY_FRAMES` add one
+  random frame to the model's first two turns; `setAside` (keyed by turn index) records
+  every model line popped by "redo turn" and lists it in the next prompt as SET ASIDE;
+  those turns run at temperature 1.05 instead of 0.8. The system prompt's VARIETY
+  clause bans stock poetic vocabulary. A human line clears set-asides for later turns.
 - **Both UIs are single self-contained files, no build step.** Each inlines all
   CSS (one `<style>`) and JS (one `<script>`); no bundler, no shared stylesheet,
   system-font stacks only. The shared ink/bone design tokens (`:root` custom
