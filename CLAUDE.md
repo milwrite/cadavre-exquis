@@ -99,13 +99,19 @@ npm test                                             # Node game-rule tests + Py
   system-font stacks only. The shared ink/bone design tokens (`:root` custom
   properties) are **re-declared per file** — the identity is convention, so
   change both together. `index.html` uses the wine accent (`--wine`, "the
-  model's hand"); `ui/corpse.html` is deliberately monochrome but shares the scale,
+  model's hand"); `ui/corpse.html` keeps its verse monochrome (its buttons are the parlor's wine, like every
+  action button on every page; only back links, cancels, chips, and vote toggles stay
+  outlined) but shares the scale,
   the flush-left column, and the sans chrome; its settings live behind a paper tab
   (`#panel-tab`) on the right edge. The reveal renders
   the poem as per-word `<span>`s and links the close reading to it by parsing the
   reading's **quoted phrases** and matching them to those words — so the reading
   prompt's "quote the exact words you point to" is a load-bearing UI contract,
   not just a style instruction.
+  The close-reading prompt itself lives in `assets/cadavre-core.js`
+  (`readingMessages`, `stripPoemFromReading`, `READINGS_PER_POEM`) and every page asks for
+  a reading the same way, from the poem as it stands — the open sheet never sends "." to
+  the game prompt; closing is a client act, and only the human may close (`NEVER_CLOSE`).
 - The corpse system prompt's canonical source is the Open WebUI export
   `exquisite-corpse-*.json` (`params.system`); `deploy/build_ollama_model.py`
   reads it to wrap a GGUF for Ollama.
