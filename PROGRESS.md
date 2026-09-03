@@ -116,6 +116,12 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   under its turn index and the next attempt is told, under SET ASIDE, not to repeat or
   paraphrase it and to change its move; those turns run at temperature 1.05. The play
   prompt's VARIETY clause bans stock vocabulary and asks for a different opening word.
+- The open sheet (`ui/corpse.html`) joins the system: verse flush left in a centred 36rem
+  column at the writing scale, the reveal widening to poem-left / reading-right from 60rem,
+  the hint and panel in the sans at readable sizes, and the controls tab is a paper scrap on
+  the right edge ("the table" / "fold away") instead of a three-dot glyph. Dead Keep/Library
+  controls removed. The parlor now carries an "open sheet" section above the wall (the footer
+  keeps only the source link) and the wall link reads "see the whole wall".
 
 ## Automation
 - [x] **Scheduled continuation** — `scripts/continue.sh` via crontab, **daily 12:00 (noon)**.

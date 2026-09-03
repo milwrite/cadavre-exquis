@@ -9,11 +9,20 @@ const html = fs.readFileSync(path.join(__dirname, "../ui/corpse.html"), "utf8");
 test("the open sheet warms a verified route before accepting a first turn", () => {
   assert.match(html, /id="entry"[\s\S]*placeholder="warming the other hand…" disabled/);
   assert.match(html, /readyEndpoint: REMOTE_API \+ "\/ready"/);
-  assert.match(html, /model: "ollama:kimi-k2\.5"/);
+  assert.match(html, /model: "ollama:deepseek-v4-flash"/);
   assert.match(html, /async function warmSelectedModel/);
   assert.match(html, /entry\.disabled = false/);
   assert.match(html, /for\(let attempt = 0; attempt < 3; attempt\+\+\)/);
   assert.doesNotMatch(html, /can’t reach the model|is it running\?/);
+});
+
+test("the open sheet is flush left in a centred column, with a paper tab for the table", () => {
+  assert.match(html, /main\{ width:min\(var\(--measure\), 100%\); margin:auto; text-align:left; \}/);
+  assert.match(html, /main\.revealed\{[^}]*grid-template-columns:minmax\(0,1fr\) minmax\(0,1\.25fr\)/);
+  assert.match(html, /<button id="panel-tab" type="button" aria-expanded="false" aria-controls="panel"><span class="tab-open">the table<\/span>/);
+  assert.match(html, /#panel-tab\{[^}]*writing-mode:vertical-rl;/);
+  assert.match(html, /<h2 class="reading-head">Close reading<\/h2>/);
+  assert.doesNotMatch(html, /reading-seam|text-transform:uppercase|id="keep"|id="library"|⋯/);
 });
 
 test("the open sheet inline script parses", () => {

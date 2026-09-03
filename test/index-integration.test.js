@@ -77,7 +77,9 @@ test("the canonical page's inline scripts parse", () => {
 test("the parlor previews the wall, five lines a pin, and sends readers to wall.html", () => {
   assert.match(html, /const WALL_PREVIEW_LINES = 5;/);
   assert.match(html, /lines\.slice\(0, WALL_PREVIEW_LINES\)/);
-  assert.match(html, /href="wall\.html">every pinned corpse<\/a>/);
+  assert.match(html, /href="wall\.html">see the whole wall<\/a>/);
+  assert.match(html, /class="solo-link" href="ui\/corpse\.html">open the sheet<\/a>/);
+  assert.match(html, /\.stage\.is-playing ~ \.solo, \.stage\.is-playing ~ \.wall \{ display: none; \}/);
   assert.match(html, /wall\.html#pin-\$\{encodeURIComponent\(item\.id\)\}/);
   assert.match(html, /wallTokens\[data\.item\.id\] = data\.deleteToken/);
   assert.match(html, /setRevealStatus\(`pinned to the wall\./);
