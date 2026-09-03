@@ -179,7 +179,7 @@
     .wall-list { display: grid; gap: 1.4rem; margin-top: 1.6rem; }
     .wall-more { margin-top: 1.6rem; }
 
-    /* ── one card per corpse: the reading on the left, the whole poem to its right ── */
+    /* ── one card per corpse: the whole poem on the left, its reading to the right ── */
     .pin {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
@@ -224,10 +224,10 @@
     .pin-vote-status { flex-basis: 100%; color: var(--wine-bright); }
 
     @media (min-width: 56rem) {
-      /* the reading leads and the poem sits to its right: the reveal's two columns, staggered */
-      .pin { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); grid-template-areas: "reading poem" "meta meta"; column-gap: clamp(1.5rem, 4vw, 3rem); align-items: start; }
-      .pin-reading-pane { grid-area: reading; }
-      .pin-poem-pane { grid-area: poem; border-left: 1px solid var(--crease-soft); padding-left: clamp(1.5rem, 4vw, 3rem); }
+      /* the poem leads in the left third, its reading beside it: the reveal's two columns */
+      .pin { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); grid-template-areas: "poem reading" "meta meta"; column-gap: clamp(1.5rem, 4vw, 3rem); align-items: start; }
+      .pin-poem-pane { grid-area: poem; }
+      .pin-reading-pane { grid-area: reading; border-left: 1px solid var(--crease-soft); padding-left: clamp(1.5rem, 4vw, 3rem); }
       .pin-meta { grid-area: meta; }
     }
 

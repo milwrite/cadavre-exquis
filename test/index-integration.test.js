@@ -77,8 +77,8 @@ test("the canonical page's inline scripts parse", () => {
 test("the parlor previews the newest three pins whole, as wall.html sets them, and sends readers there", () => {
   assert.match(html, /const WALL_PREVIEW = 3;/);
   assert.doesNotMatch(html, /WALL_PREVIEW_LINES|pin-poem\.cut|continue reading on the wall/);
-  assert.match(html, /grid-template-columns: minmax\(0, 2fr\) minmax\(0, 1fr\); grid-template-areas: "reading poem" "meta meta"/);
-  assert.match(html, /\.pin-poem-pane \{ grid-area: poem; border-left/);
+  assert.match(html, /grid-template-columns: minmax\(0, 1fr\) minmax\(0, 2fr\); grid-template-areas: "poem reading" "meta meta"/);
+  assert.match(html, /\.pin-reading-pane \{ grid-area: reading; border-left/);
   assert.match(html, /renderReadingLinked\(reading, item\.analysis, tokens\)/);
   assert.match(html, /No close reading was kept with this corpse\./);
   assert.match(html, /class="nav-link" href="wall\.html">see the wall<\/a>/);

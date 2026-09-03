@@ -124,9 +124,9 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   keeps only the source link) and the wall link reads "see the whole wall".
 
 ## 2026-09-03 · the wall staggered, the table in twos, a copy pass
-- Both pages set every pin the same way: the close reading on the left two-thirds, the whole
-  poem on its faint sheet in the right third, flush left in its pane, never cut or paged
-  (`grid-template-areas: "reading poem" "meta meta"` from 56rem; poem above reading below it).
+- Both pages set every pin the same way: the whole poem on its faint sheet in the left third,
+  flush left in its pane, never cut or paged, the close reading in the right two-thirds
+  (`grid-template-areas: "poem reading" "meta meta"` from 56rem; poem above reading below it).
   The parlor previews only the newest three pins as those full cards (`WALL_PREVIEW = 3`), each
   footed with name, date, and "see it on the wall"; votes, rename, and unpin stay on `wall.html`.
   The five-line cut and its "continue reading" link are gone. The card CSS is duplicated in
@@ -153,7 +153,7 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
       Solo play under begin, and the three wall cards. Revert anything that reads wrong.
 - [ ] Play one round through to the reveal and pin it, so the preview shows a live card whose
       quotes light the poem's words; check the wall page card for the same pin.
-- [ ] Push `master` (GitHub Pages rebuilds from it): `git push
+- [x] `master` pushed 2026-09-03 (GitHub Pages rebuilds from it). For later pushes: `git push
       "https://x-access-token:$(gh auth token --user milwrite)@github.com/milwrite/cadavre-exquis.git" master`.
 - [ ] Deploy the Worker so https://cail-cadavre.ailab-452.workers.dev matches: `cd worker &&
       npm run deploy` (runs check + tests first).

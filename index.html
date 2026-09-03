@@ -414,7 +414,7 @@
     .solo-link:hover, .nav-link:hover { background: var(--wine-bright); border-color: var(--wine-bright); }
 
     /* ── the wall: the newest three pins, each set as on wall.html — the
-       reading on the left, the whole poem to its right, never cut ── */
+       whole poem on the left, its reading to the right, never cut ── */
     .wall {
       margin-top: clamp(3.5rem, 8vh, 6rem);
       padding-top: 2rem;
@@ -507,10 +507,10 @@
     .pin-meta a { color: var(--wine-bright); text-decoration-color: var(--wine); }
 
     @media (min-width: 56rem) {
-      /* the reading leads and the poem sits to its right: the reveal's two columns, staggered */
-      .pin { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); grid-template-areas: "reading poem" "meta meta"; column-gap: clamp(1.5rem, 4vw, 3rem); align-items: start; }
-      .pin-reading-pane { grid-area: reading; }
-      .pin-poem-pane { grid-area: poem; border-left: 1px solid var(--crease-soft); padding-left: clamp(1.5rem, 4vw, 3rem); }
+      /* the poem leads in the left third, its reading beside it: the reveal's two columns */
+      .pin { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); grid-template-areas: "poem reading" "meta meta"; column-gap: clamp(1.5rem, 4vw, 3rem); align-items: start; }
+      .pin-poem-pane { grid-area: poem; }
+      .pin-reading-pane { grid-area: reading; border-left: 1px solid var(--crease-soft); padding-left: clamp(1.5rem, 4vw, 3rem); }
       .pin-meta { grid-area: meta; }
     }
 

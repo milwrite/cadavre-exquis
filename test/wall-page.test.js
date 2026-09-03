@@ -16,9 +16,9 @@ test("the wall page resolves its endpoint like the parlor and anchors each pin",
   assert.match(html, /id="loadWallMore"/);
 });
 
-test("every pin is one card: the reading left, the whole poem flush left to its right, never paged", () => {
-  assert.match(html, /grid-template-columns: minmax\(0, 2fr\) minmax\(0, 1fr\); grid-template-areas: "reading poem" "meta meta"/);
-  assert.match(html, /\.pin-poem-pane \{ grid-area: poem; border-left/);
+test("every pin is one card: the whole poem flush left, its reading to the right, never paged", () => {
+  assert.match(html, /grid-template-columns: minmax\(0, 1fr\) minmax\(0, 2fr\); grid-template-areas: "poem reading" "meta meta"/);
+  assert.match(html, /\.pin-reading-pane \{ grid-area: reading; border-left/);
   assert.match(html, /\.pin-poem-pane \{ min-width: 0; \}/);
   assert.doesNotMatch(html, /\.pin-poem-pane \{ display: flex; justify-content: center; \}/);
   assert.match(html, /pin-poem-pane/);

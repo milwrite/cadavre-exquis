@@ -71,8 +71,8 @@ npm test                                             # Node game-rule tests + Py
   builds the revealed poem from its own state — only the close reading needs
   the model.
 - **The wall has its own page.** `wall.html` shows every pin as one card — the
-  always-open reading on the left, the whole poem to its right (flush left in its
-  pane, never cut or paged) — with votes, rename, and unpinning for the hand that
+  whole poem on the left (flush left in its pane, never cut or paged), its
+  always-open reading to the right — with votes, rename, and unpinning for the hand that
   holds the delete token; `index.html` previews only the newest three pins in the
   same card (no votes) and links into `wall.html#pin-<id>`. The card CSS is
   duplicated across the two files, so change both together. Both resolve the wall endpoint the same way
