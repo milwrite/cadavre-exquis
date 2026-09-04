@@ -53,17 +53,25 @@ test("the open sheet budgets a fold and a reading, and can keep a closed poem", 
   assert.match(html, /\.\.\/wall\.html#pin-\$\{encodeURIComponent\(item\.id\)\}/);
 });
 
-test("the open sheet's ghost cue streams each cue, then cycles to the next", () => {
-  assert.match(html, /const STOCK_CUES = \["red door…", "salt…", "a hinge…", CadavreCore\.capPhrase\(5\) \+ "…", "type anything to begin…"\]/);
+test("the open sheet's ghost cue streams, erases, and takes the other hand's cues once it warms", () => {
+  assert.match(html, /const STOCK_CUES = \["red door…", "salt…", "a hinge…"\]\.concat\(CUE_REMINDERS\)/);
+  assert.match(html, /const CUE_REMINDERS = \[CadavreCore\.capPhrase\(5\) \+ "…", "type anything to begin…"\]/);
   assert.match(html, /entry\.placeholder = cue\.slice\(0, shown\)/);
   assert.match(html, /shown--; cueTimer = setTimeout\(tick, CUE_ERASE\)/);
   assert.match(html, /else cueTimer = setTimeout\(nextCue, CUE_PAUSE\)/);
-  assert.match(html, /if \(cueIndex >= cues\.length\)\{ cueIndex = 0; askForCues\(\); \}/);
-  assert.match(html, /request\(\[\{ role: "user", content: CUE_ASK \}\], 1\.0, 60\)/);
-  assert.match(html, /if \(fresh\.length >= 3\)\{ cues = fresh; cueIndex = 0; \}/);
   assert.match(html, /prefers-reduced-motion: reduce/);
-  assert.match(html, /entry\.disabled = false;\n\s*nextCue\(\);/);
+  assert.match(html, /"warming and verifying…";\n\s*askForCues\(\);.*\n/);
+  assert.match(html, /entry\.disabled = false;\n\s*askForCues\(\);.*\n\s*nextCue\(\);/);
+  assert.match(html, /Offer ten cues in the spirit of/);
+  assert.match(html, /cues = fresh\.concat\(CUE_REMINDERS\); cueIndex = 0; cuesFromModel = true;/);
   assert.match(html, /if \(isModel\) nextCue\(\);/);
   assert.match(html, /<div id="hint">Enter hands the line to the other hand\. A single period closes the poem\.<\/div>/);
   assert.doesNotMatch(html, /entry\.placeholder = "one or two words"|One or two words, then Enter|WORD_CAP/);
+});
+
+test("the poem editor grows to the poem instead of scrolling inside itself", () => {
+  assert.match(html, /#poem-edit\{[^}]*resize:none; overflow:hidden;/);
+  assert.match(html, /poemEdit\.style\.height = poemEdit\.scrollHeight \+ "px"/);
+  assert.match(html, /poemEdit\.addEventListener\("input", growEditor\)/);
+  assert.match(html, /editBtn\.textContent = "done editing";\n\s*growEditor\(\);/);
 });

@@ -172,7 +172,7 @@
   #brand{ position:fixed; top:max(1rem, 2.5vh); left:max(1.1rem, 3vw); width:min(14rem, 40vw); z-index:2; font-size:0; line-height:1; }
   #brand img{ display:block; width:100%; height:auto; }
   /* the finished poem, edited in its own place */
-  #poem-edit{ display:none; width:100%; min-height:12rem; font-family:var(--poem); font-size:var(--t-line); line-height:1.35; letter-spacing:.003em; color:var(--bone); background:transparent; border:0; border-bottom:1px solid var(--crease); border-radius:0; resize:vertical; padding:0; }
+  #poem-edit{ display:none; width:100%; min-height:12rem; font-family:var(--poem); font-size:var(--t-line); line-height:1.35; letter-spacing:.003em; color:var(--bone); background:transparent; border:0; border-bottom:1px solid var(--crease); border-radius:0; resize:none; overflow:hidden; padding:0; }
   #poem-edit:focus{ outline:none; border-bottom-color:var(--bone); }
   main.editing #poem{ display:none; } main.editing #poem-edit{ display:block; }
   main.revealed #poem-edit{ padding:1rem 1.2rem; background:rgba(231,224,208,.05); border-radius:2px; border-bottom:0; }
@@ -407,26 +407,27 @@ const entry = document.getElementById("entry");
 const hint = document.getElementById("hint");
 const HINT_DEFAULT = hint.innerHTML;
 
-/* The ghost cue in the entry. Five cues, each typed out a letter at a time:
-   three stock turns trailing off, the turn length phrased by the same helper
-   the parlor uses, and a plain invitation. Once a cue has finished streaming
-   it holds, then the next one streams in, round and round, until the player
-   types. Whenever the entry is handed back the cycle starts on a fresh cue.
-   After the stock cues have gone round once, the other hand is asked for a
-   few of its own in the same spirit; from then on those take the turns, and
-   each time they run out the hand is asked again. If it cannot answer, the
-   stock cues keep going. Under reduced motion each cue lands whole and simply
-   takes turns. */
-const STOCK_CUES = ["red door…", "salt…", "a hinge…", CadavreCore.capPhrase(5) + "…", "type anything to begin…"];
+/* The ghost cue in the entry. Each cue types out a letter at a time, holds,
+   erases quickly, rests on an empty line, then the next one types in, round
+   and round, until the player types. Whenever the entry is handed back the
+   cycle starts on a fresh cue. The stock set is three turns trailing off, the
+   turn length phrased by the same helper the parlor uses, and a plain
+   invitation. When the other hand starts warming up it is asked for ten cues
+   of its own in the same spirit; once they arrive they take the stock turns'
+   place, with the two reminders kept at the end. If the hand cannot answer,
+   the stock cues keep going. Under reduced motion each cue lands whole and
+   simply takes turns. */
+const CUE_REMINDERS = [CadavreCore.capPhrase(5) + "…", "type anything to begin…"];
+const STOCK_CUES = ["red door…", "salt…", "a hinge…"].concat(CUE_REMINDERS);
 const CUE_TICK = 110, CUE_HOLD = 2200, CUE_ERASE = 28, CUE_PAUSE = 700;
 const CUE_STILL = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const CUE_ASK = "Offer six cues in the spirit of these: red door, salt, a hinge. " +
+const CUE_ASK = "Offer ten cues in the spirit of these: red door, salt, a hinge. " +
   "Each one to five words, lowercase, concrete, no punctuation, one per line. Nothing else.";
-let cues = STOCK_CUES, cueIndex = 0, cueTimer = 0, cueAsking = false;
+let cues = STOCK_CUES, cueIndex = 0, cueTimer = 0, cueAsking = false, cuesFromModel = false;
 function stopCue(){ clearTimeout(cueTimer); cueTimer = 0; }
 function nextCue(){
   stopCue();
-  if (cueIndex >= cues.length){ cueIndex = 0; askForCues(); }   // gone round once: ask for new ones
+  if (cueIndex >= cues.length) cueIndex = 0;
   const cue = cues[cueIndex];
   cueIndex++;
   let shown = CUE_STILL ? cue.length : 0, erasing = false;
@@ -442,15 +443,15 @@ function nextCue(){
   tick();
 }
 async function askForCues(){
-  if (cueAsking || modelReadyFor !== CFG.model) return;
+  if (cueAsking || cuesFromModel) return;
   cueAsking = true;
   try {
-    const reply = await request([{ role: "user", content: CUE_ASK }], 1.0, 60);
+    const reply = await request([{ role: "user", content: CUE_ASK }], 1.0, 100);
     const fresh = Array.from(new Set(reply.toLowerCase().split(/\n+/)
       .map(line => line.replace(/^[\s\d.\-•*]+/, "").replace(/[^\p{L}\p{M}' ]+/gu, " ").trim().replace(/\s+/g, " "))
       .filter(line => { const n = line.split(" ").length; return line && n >= 1 && n <= 5; })))
-      .slice(0, 6).map(line => line + "…");
-    if (fresh.length >= 3){ cues = fresh; cueIndex = 0; }
+      .slice(0, 10).map(line => line + "…");
+    if (fresh.length >= 3){ cues = fresh.concat(CUE_REMINDERS); cueIndex = 0; cuesFromModel = true; }
   } catch {}                                            // the stock cues keep going
   finally { cueAsking = false; }
 }
@@ -513,6 +514,7 @@ function acceptReadyModel(data, status){
   modelRouteEl.setAttribute("aria-busy", "false");
   modelStatusEl.textContent = status || "ready";
   entry.disabled = false;
+  askForCues();                                   // a second chance if the warm-up ask did not land
   nextCue();
   note(HINT_DEFAULT);
   keepFocus();
@@ -529,6 +531,7 @@ async function warmSelectedModel({ force = false } = {}){
   entry.disabled = true;
   modelRouteEl.setAttribute("aria-busy", "true");
   modelStatusEl.textContent = "warming and verifying…";
+  askForCues();                                   // the hand's own cues, gathered while it warms
   note("warming the other hand <span class=\"breathe\">·</span>");
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 32000);
@@ -945,6 +948,11 @@ async function fetchReading(first = false){
 /* ── editing the finished poem: a textarea in the poem's place ──────────── */
 const editBtn = $("edit-poem"), poemEdit = $("poem-edit");
 let editing = false;
+function growEditor(){                       // the editor takes the poem's height, never a scrollbar
+  poemEdit.style.height = "auto";
+  poemEdit.style.height = poemEdit.scrollHeight + "px";
+}
+poemEdit.addEventListener("input", growEditor);
 editBtn.addEventListener("click", () => {
   const main = document.querySelector("main");
   if(!editing){
@@ -952,6 +960,7 @@ editBtn.addEventListener("click", () => {
     poemEdit.value = poemText();
     main.classList.add("editing");
     editBtn.textContent = "done editing";
+    growEditor();
     poemEdit.focus();
     return;
   }
