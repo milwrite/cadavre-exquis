@@ -412,24 +412,47 @@ const HINT_DEFAULT = hint.innerHTML;
    the parlor uses, and a plain invitation. Once a cue has finished streaming
    it holds, then the next one streams in, round and round, until the player
    types. Whenever the entry is handed back the cycle starts on a fresh cue.
-   Under reduced motion each cue lands whole and simply takes turns. */
-const CUES = ["red door…", "salt…", "a hinge…", CadavreCore.capPhrase(5) + "…", "type anything to begin…"];
-const CUE_TICK = 45, CUE_HOLD = 1600;
+   After the stock cues have gone round once, the other hand is asked for a
+   few of its own in the same spirit; from then on those take the turns, and
+   each time they run out the hand is asked again. If it cannot answer, the
+   stock cues keep going. Under reduced motion each cue lands whole and simply
+   takes turns. */
+const STOCK_CUES = ["red door…", "salt…", "a hinge…", CadavreCore.capPhrase(5) + "…", "type anything to begin…"];
+const CUE_TICK = 110, CUE_HOLD = 2200, CUE_ERASE = 28, CUE_PAUSE = 700;
 const CUE_STILL = matchMedia("(prefers-reduced-motion: reduce)").matches;
-let cueIndex = 0, cueTimer = 0;
+const CUE_ASK = "Offer six cues in the spirit of these: red door, salt, a hinge. " +
+  "Each one to five words, lowercase, concrete, no punctuation, one per line. Nothing else.";
+let cues = STOCK_CUES, cueIndex = 0, cueTimer = 0, cueAsking = false;
 function stopCue(){ clearTimeout(cueTimer); cueTimer = 0; }
 function nextCue(){
   stopCue();
-  const cue = CUES[cueIndex % CUES.length];
+  if (cueIndex >= cues.length){ cueIndex = 0; askForCues(); }   // gone round once: ask for new ones
+  const cue = cues[cueIndex];
   cueIndex++;
-  let shown = CUE_STILL ? cue.length : 0;
+  let shown = CUE_STILL ? cue.length : 0, erasing = false;
   const tick = () => {
     if (entry.value) return stopCue();                 // the player has taken over
     entry.placeholder = cue.slice(0, shown);
-    if (shown < cue.length){ shown++; cueTimer = setTimeout(tick, CUE_TICK); }
-    else cueTimer = setTimeout(nextCue, CUE_STILL ? CUE_HOLD * 2 : CUE_HOLD);
+    if (CUE_STILL) cueTimer = setTimeout(nextCue, CUE_HOLD * 2);
+    else if (!erasing && shown < cue.length){ shown++; cueTimer = setTimeout(tick, CUE_TICK); }
+    else if (!erasing){ erasing = true; cueTimer = setTimeout(tick, CUE_HOLD); }   // hold, then erase
+    else if (shown > 0){ shown--; cueTimer = setTimeout(tick, CUE_ERASE); }        // erase quickly
+    else cueTimer = setTimeout(nextCue, CUE_PAUSE);                                // an empty beat, then the next
   };
   tick();
+}
+async function askForCues(){
+  if (cueAsking || modelReadyFor !== CFG.model) return;
+  cueAsking = true;
+  try {
+    const reply = await request([{ role: "user", content: CUE_ASK }], 1.0, 60);
+    const fresh = Array.from(new Set(reply.toLowerCase().split(/\n+/)
+      .map(line => line.replace(/^[\s\d.\-•*]+/, "").replace(/[^\p{L}\p{M}' ]+/gu, " ").trim().replace(/\s+/g, " "))
+      .filter(line => { const n = line.split(" ").length; return line && n >= 1 && n <= 5; })))
+      .slice(0, 6).map(line => line + "…");
+    if (fresh.length >= 3){ cues = fresh; cueIndex = 0; }
+  } catch {}                                            // the stock cues keep going
+  finally { cueAsking = false; }
 }
 entry.addEventListener("input", () => {
   if (entry.value) stopCue();

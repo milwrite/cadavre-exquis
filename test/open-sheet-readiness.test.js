@@ -54,9 +54,13 @@ test("the open sheet budgets a fold and a reading, and can keep a closed poem", 
 });
 
 test("the open sheet's ghost cue streams each cue, then cycles to the next", () => {
-  assert.match(html, /const CUES = \["red door…", "salt…", "a hinge…", CadavreCore\.capPhrase\(5\) \+ "…", "type anything to begin…"\]/);
+  assert.match(html, /const STOCK_CUES = \["red door…", "salt…", "a hinge…", CadavreCore\.capPhrase\(5\) \+ "…", "type anything to begin…"\]/);
   assert.match(html, /entry\.placeholder = cue\.slice\(0, shown\)/);
-  assert.match(html, /else cueTimer = setTimeout\(nextCue, /);
+  assert.match(html, /shown--; cueTimer = setTimeout\(tick, CUE_ERASE\)/);
+  assert.match(html, /else cueTimer = setTimeout\(nextCue, CUE_PAUSE\)/);
+  assert.match(html, /if \(cueIndex >= cues\.length\)\{ cueIndex = 0; askForCues\(\); \}/);
+  assert.match(html, /request\(\[\{ role: "user", content: CUE_ASK \}\], 1\.0, 60\)/);
+  assert.match(html, /if \(fresh\.length >= 3\)\{ cues = fresh; cueIndex = 0; \}/);
   assert.match(html, /prefers-reduced-motion: reduce/);
   assert.match(html, /entry\.disabled = false;\n\s*nextCue\(\);/);
   assert.match(html, /if \(isModel\) nextCue\(\);/);
