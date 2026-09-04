@@ -407,22 +407,34 @@ const entry = document.getElementById("entry");
 const hint = document.getElementById("hint");
 const HINT_DEFAULT = hint.innerHTML;
 
-/* The ghost cue in the entry. Three stock cues, each a valid turn trailing off,
-   then the turn length the current prompt actually enforces, phrased by the
-   same helper the parlor uses. It rotates every time the entry is handed back.
-   Under a custom prompt the base game's cap no longer holds, so the settings
-   cue steps aside and only the stock cues turn. */
-const WORD_CAP = 2;                         // BASE_GAME_PROMPT: "one or two words"
-const STOCK_CUES = ["red door…", "salt…", "a hinge…"];
-let cueIndex = 0;
+/* The ghost cue in the entry. Five cues, each typed out a letter at a time:
+   three stock turns trailing off, the turn length phrased by the same helper
+   the parlor uses, and a plain invitation. Once a cue has finished streaming
+   it holds, then the next one streams in, round and round, until the player
+   types. Whenever the entry is handed back the cycle starts on a fresh cue.
+   Under reduced motion each cue lands whole and simply takes turns. */
+const CUES = ["red door…", "salt…", "a hinge…", CadavreCore.capPhrase(5) + "…", "type anything to begin…"];
+const CUE_TICK = 45, CUE_HOLD = 1600;
+const CUE_STILL = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let cueIndex = 0, cueTimer = 0;
+function stopCue(){ clearTimeout(cueTimer); cueTimer = 0; }
 function nextCue(){
-  const cues = state.override == null
-    ? STOCK_CUES.concat(CadavreCore.capPhrase(WORD_CAP) + "…")
-    : STOCK_CUES;
-  const cue = cues[cueIndex % cues.length];
+  stopCue();
+  const cue = CUES[cueIndex % CUES.length];
   cueIndex++;
-  entry.placeholder = cue;
+  let shown = CUE_STILL ? cue.length : 0;
+  const tick = () => {
+    if (entry.value) return stopCue();                 // the player has taken over
+    entry.placeholder = cue.slice(0, shown);
+    if (shown < cue.length){ shown++; cueTimer = setTimeout(tick, CUE_TICK); }
+    else cueTimer = setTimeout(nextCue, CUE_STILL ? CUE_HOLD * 2 : CUE_HOLD);
+  };
+  tick();
 }
+entry.addEventListener("input", () => {
+  if (entry.value) stopCue();
+  else if (!cueTimer) nextCue();                       // cleared the line: the cue returns
+});
 const $ = id => document.getElementById(id);
 const panel = $("panel");
 const panelTab = $("panel-tab");

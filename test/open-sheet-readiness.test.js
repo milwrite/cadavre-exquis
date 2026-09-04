@@ -53,11 +53,13 @@ test("the open sheet budgets a fold and a reading, and can keep a closed poem", 
   assert.match(html, /\.\.\/wall\.html#pin-\$\{encodeURIComponent\(item\.id\)\}/);
 });
 
-test("the open sheet's ghost cue rotates through stock cues and the prompt's own turn length", () => {
-  assert.match(html, /const STOCK_CUES = \["red door…", "salt…", "a hinge…"\]/);
-  assert.match(html, /CadavreCore\.capPhrase\(WORD_CAP\) \+ "…"/);
+test("the open sheet's ghost cue streams each cue, then cycles to the next", () => {
+  assert.match(html, /const CUES = \["red door…", "salt…", "a hinge…", CadavreCore\.capPhrase\(5\) \+ "…", "type anything to begin…"\]/);
+  assert.match(html, /entry\.placeholder = cue\.slice\(0, shown\)/);
+  assert.match(html, /else cueTimer = setTimeout\(nextCue, /);
+  assert.match(html, /prefers-reduced-motion: reduce/);
   assert.match(html, /entry\.disabled = false;\n\s*nextCue\(\);/);
   assert.match(html, /if \(isModel\) nextCue\(\);/);
   assert.match(html, /<div id="hint">Enter hands the line to the other hand\. A single period closes the poem\.<\/div>/);
-  assert.doesNotMatch(html, /entry\.placeholder = "one or two words"|One or two words, then Enter/);
+  assert.doesNotMatch(html, /entry\.placeholder = "one or two words"|One or two words, then Enter|WORD_CAP/);
 });
