@@ -49,6 +49,17 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   injected failing test → "repair prompt"; cleaned up, suite back to 38/38 OK);
   `bash -n` clean. No data/pipeline change — automation hardening only.
 
+- [x] **Path migration completed in-repo** (2026-09-05) — the 2026-08-07 move to
+  `~/inference-arcade/` only updated `scripts/continue.sh` + the crontab; the old
+  `/home/milwrite/exquisite-corpse` path survived in `CONTINUE.md` (the very
+  `cd` the cron agent follows), `AGENTS.md`, and `scripts/vllm_serve.sh`'s
+  `CORPSE_LORA` default — masked by a compatibility symlink, so nothing failed
+  *yet*. Fixed all three; `vllm_serve.sh` now derives the adapter path from its
+  own location (`$(dirname "$0")/..`) so a future move can't strand it again
+  (env override unchanged). Verified: `bash -n` clean, resolved path contains
+  `adapter_model.safetensors`, repo-wide grep finds no stale refs, suite 49/49.
+  `/home/milwrite/vllm-serve` in CLAUDE.md is a real dir (not a symlink) — left as is.
+
 ## Tests
 - [x] **Regression suite for pure pipeline logic** (2026-07-21, extended 2026-07-22) —
   `tests/test_pipeline.py`, **34 tests, stdlib `unittest` only** (no new dep;

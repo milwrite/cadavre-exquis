@@ -14,7 +14,10 @@ set -uo pipefail
 export VLLM_USE_FLASHINFER_SAMPLER="${VLLM_USE_FLASHINFER_SAMPLER:-0}"
 export VLLM_ATTENTION_BACKEND="${VLLM_ATTENTION_BACKEND:-FLASH_ATTN}"
 
-CORPSE_LORA="${CORPSE_LORA:-/home/milwrite/exquisite-corpse/outputs/lora}"
+# Adapter path derives from this script's location, so the repo can move again
+# without leaving another stale absolute path behind.
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+CORPSE_LORA="${CORPSE_LORA:-$REPO_DIR/outputs/lora}"
 
 exec /home/milwrite/vllm-serve/bin/vllm serve unsloth/gemma-4-E4B-it \
   --host 127.0.0.1 --port 1234 \

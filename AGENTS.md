@@ -94,5 +94,5 @@ Pipeline stages and what each enforces:
 - **Secrets:** the browser API key lives only in gitignored `ui/config.local.js`; model exports
   were PII-scrubbed before the first public push. Keep it that way.
 - Local dev path is `/Users/zacharymuhlbauer/dev/cadavre-exquis`; `CONTINUE.md`/`scripts/continue.sh`
-  reference `/home/milwrite/exquisite-corpse` — that's the GPU box (RTX 5090) where training runs.
+  reference `/home/milwrite/inference-arcade/exquisite-corpse` — that's the GPU box (RTX 5090) where training runs.
 - Git commits: detailed but ≤100 chars, all lowercase. Never add a co-author sign-off.

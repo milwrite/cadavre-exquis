@@ -1,13 +1,13 @@
 # CONTINUE — runbook for the scheduled "continue the project" agent
 
 You are resuming an in-flight project in a **fresh session**. Work in
-`/home/milwrite/exquisite-corpse`. Be incremental and idempotent: advance the
+`/home/milwrite/inference-arcade/exquisite-corpse`. Be incremental and idempotent: advance the
 project by **one meaningful step**, verify it, update `PROGRESS.md`, commit,
 and stop. Do not restart from scratch. Do not re-download what already exists.
 
 ## 1. Orient (always do this first)
 ```bash
-cd /home/milwrite/exquisite-corpse
+cd /home/milwrite/inference-arcade/exquisite-corpse
 cat PROGRESS.md                      # what's done / what's next / follow-ups
 for f in data/raw/*.jsonl; do printf "%-28s " "$f"; wc -l < "$f"; done
 wc -l data/interim/poems.jsonl data/processed/next_line.*.jsonl 2>/dev/null
