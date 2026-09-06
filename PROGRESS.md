@@ -20,8 +20,11 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - [x] Native browser: save → dashboard → reflection; settings save/reload; private pin; reopen and continue the same poem to revision 3. Phone-width dashboard rendering passed; the inspected dashboard and restored poem had no browser warnings/errors. This evidence uses a fixture model and local identity, not production CUNY.
 - [x] Private account Worker deployed at 100%: `e2d0c030-c736-4995-a1d2-fe85babf0e86` (`dbddac1`); namespace `dae0fd009a144b75997d6276494bd451`, D1 tables, named entrypoints and exact bindings read back.
 - [x] Independent agent review found endpoint override, formatting, prompt accumulation, model selection and hydration issues; fixes reviewed and focused regressions passed. Delayed-read browser check verified disabled play during hydration and after failure; multiline readback retained exact indentation/stanzas and unlisted model.
-- [ ] Cadavre receiver deployment, Doorway PR/main release, and authenticated live acceptance.
-- Review: Cadavre PR #5 and Doorway PR #127. Doorway CI run `34020356566` passed; rollout still awaits receiver/ingress releases and live acceptance.
+- [x] Cadavre receiver deployed at 100%: `ff69068e-ae51-4293-89b3-5fc8a2294ee3` (`c40b1ba`); live health and unsigned account denial verified.
+- [x] Doorway PR #127 merged as `00849b7`, deployed at 100% as `739799be-587b-4c2e-b539-ab5523b266a7`; production account bindings and mounted anonymous 401 envelopes read back.
+- [x] Doorway PR #128 merged as `fa99418e`, deployed at 100% as `6db27d4e-6933-4508-b075-8dc7c5cb67c6`. Main checks and exact serving-version/binding readback passed. Full workflow remains red on the pre-existing PDF Accessibility readiness 503; the account probes remain enforced.
+- [ ] Authenticated live acceptance: complete real CUNY sign-in, then production inference, save/reload/settings, private pin/reopen, and latest-model reflection.
+- Review/evidence: Cadavre PR #5, Doorway PRs #127 and #128, and `docs/accounts/acceptance.md`.
 
 See `docs/accounts/workflows.md` and `docs/accounts/adapters.md` for modular workflows and exact limits. Corpus/training source is unchanged; no corpus regeneration is needed for this web-only change.
 

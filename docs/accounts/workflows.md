@@ -18,13 +18,15 @@ Owner: Zach Muhlbauer; implementation coordinated in this task. User action: sig
 4. **Recent-work reflection.** User requests synthesis; account service snapshots source revisions and last model, calls the CAIL Gateway once, and stores result with source IDs, model, generation time, and stale status. Failure leaves prior synthesis intact.
 5. **Jeopardy and Cloze adapters.** `milwrite/jeopardy-generator` (local `jeopardy-lm`, latest remote push 2026-09-02) is newer than `zmuhls/jeopardy-lm` (2026-04-17). Cloze source is `milwrite/cloze-reader` (2026-07-09), distinct from the Quimbot paper repository. Exercise both schema adapters against the same real local account service; keep their live runtime migrations separate from the Cadavre test case.
 
-## Source reconciliation
+## Source reconciliation at implementation start
 
 Cadavre Worker serving `/health` reports release `7d96fd7`; Cloudflare serving version `5ce54af9-3ad0-4a12-9cc6-1547e39cd874`. Work starts from that source in an isolated worktree. Existing uncommitted readiness changes stay in the original checkout.
 
 Inference Arcade Railway project `1cc0c2e2-8d24-4892-9dbd-8017527db591`, environment `42723200-0c0f-4eff-bcdc-a769c9ffc856`, service `10cca17e-5ca6-4570-b9a8-1cd58503ab8e`: deployment `3b9e6f80-c6d7-44cc-833f-d792b1b6841a` SUCCESS at source `711e0483`. Signed-out auth API returns 401. These reads do not prove authenticated behavior. Railway is unchanged.
 
 Remote CUNY-AI-Lab/cail-knowledge-base `f3ffbacc` supplies current Tool Integration Contract and Shared Primitives. Doorway base is remote main `48f995f2`. Identity 5.2.5. These verified current sources supersede older local notes describing different deployment states.
+
+Current deployment and acceptance evidence is maintained in [acceptance.md](acceptance.md).
 
 ## Deployment order and acceptance
 
