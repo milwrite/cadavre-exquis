@@ -402,3 +402,18 @@ the shipped adapter saw.
    the adapter's *gap* actually widened (2.06 → 2.27 nats). **The retrain's
    target to beat: tuned NLL/tok < 3.6581 on val sha256 `481b0a3dd556`** (same
    command, same seed → identical 400 examples).
+   **Retrain packaged as one operator command (2026-09-06)** — `scripts/retrain.sh`
+   runs the whole cycle: green-suite + val-fingerprint preflight (aborts if val
+   drifted from the pinned `481b0a3dd556`, so the 3.6581 comparison stays valid;
+   `FORCE=1` overrides), archives the shipped adapter to
+   `outputs/lora-shipped-20260715` **before** training overwrites `outputs/lora`
+   (train_qlora.py's hardcoded output = production, the dir `vllm_serve.sh` now
+   serves), stops the vLLM host and waits for VRAM to actually release (CUDA
+   teardown outlives the pid), trains with the shipped recipe (E4B, r=16, 2500
+   steps; `STEPS=…` to override), restarts `vllm_serve.sh` (which picks up the
+   new adapter with zero config change — note the *currently running* pre-restart
+   host still serves the HF copy, not the local dir), waits for :1234 health,
+   then runs `eval_nll.py --n 400 --seed 11` and prints the restore path if the
+   number regressed. Verified non-destructively: `bash -n` clean, suite 49/49,
+   val fingerprint confirmed == pin. The GPU-holding decision itself stays with
+   the operator — the cron agent must not run this script.
