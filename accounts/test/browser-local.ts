@@ -29,6 +29,6 @@ const mf=new Miniflare(convertV4MiniflareOptions({port:8792,workers:[
  {name:'admission',modules:true,compatibilityDate:'2026-09-06',script:`import {WorkerEntrypoint} from 'cloudflare:workers';export class AdmissionResolver extends WorkerEntrypoint{resolveMembership(){return {ok:true,expiresAt:'2099-01-01T00:00:00.000Z',revision:1,accessRole:'member',budgetScope:'person'};}}export default{fetch(){return new Response('local admission double');}}`},
 ]}));
 const db=await mf.getD1Database('DB','accounts');
-const schema=await readFile('migrations/0001_accounts.sql','utf8');for(const sql of schema.split(';').map(s=>s.trim()).filter(Boolean))await db.prepare(sql).run();
+const schema=(await Promise.all(['0001_accounts.sql','0002_application_catalog.sql'].map(file=>readFile('migrations/'+file,'utf8')))).join('\n');for(const sql of schema.split(';').map(s=>s.trim()).filter(Boolean))await db.prepare(sql).run();
 console.log('Local acceptance ready: '+await mf.ready);
 for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>void mf.dispose().then(()=>process.exit()));

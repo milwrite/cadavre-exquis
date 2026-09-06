@@ -1,5 +1,5 @@
-export const APPS = ['cadavre', 'jeopardy', 'cloze'] as const;
-export type AppId = typeof APPS[number];
+import { application, isApp, type AppId } from './applications.ts';
+export { APPS, isApp, type AppId } from './applications.ts';
 export type Contribution = { role: 'user' | 'assistant'; content: string; model?: string };
 export type EntryContent = {
   schemaVersion: 1;
@@ -12,7 +12,6 @@ export type EntryContent = {
 export type EntryInput = { id: string; app: AppId; kind: string; title: string; content: EntryContent; expectedRevision: number };
 export type EntryRow = {id: string; app: AppId; kind: string; title: string; content: string; pinned: number; revision: number; created_at: number; updated_at: number};
 export class InputError extends Error {}
-export const isApp = (value: unknown): value is AppId => APPS.some(app => app === value);
 export const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value && typeof value === 'object' && !Array.isArray(value));
 export function exact(input: unknown, allowed: string[]): Record<string, unknown> {
   if (!isRecord(input) || Object.keys(input).some(k => !allowed.includes(k))) throw new InputError('Unexpected fields.');
@@ -66,8 +65,8 @@ export function parseContent(value: unknown): EntryContent {
 export function parseEntry(value: unknown, scope?: AppId): EntryInput {
   const v = exact(value, ['id','app','kind','title','content','expectedRevision']);
   if (!isApp(v.app) || (scope && v.app !== scope)) throw new InputError('This application cannot save that record.');
-  if (v.kind !== ({cadavre:'poem',jeopardy:'board',cloze:'exercise'} as const)[v.app]) throw new InputError('Invalid record kind.');
-  return {id:entryId(v.id),app:v.app,kind:({cadavre:"poem",jeopardy:"board",cloze:"exercise"} as const)[v.app],title:boundedText(v.title,120,true),content:parseContent(v.content),expectedRevision:revision(v.expectedRevision)};
+  if (v.kind !== application(v.app).kind) throw new InputError('Invalid record kind.');
+  return {id:entryId(v.id),app:v.app,kind:application(v.app).kind,title:boundedText(v.title,120,true),content:parseContent(v.content),expectedRevision:revision(v.expectedRevision)};
 }
 export function publicEntry(row: EntryRow, includeContent = false) {
   return {id:row.id, app:row.app, kind:row.kind, title:row.title, pinned:Boolean(row.pinned), revision:row.revision, createdAt:row.created_at, updatedAt:row.updated_at, ...(includeContent ? {content:JSON.parse(row.content) as EntryContent} : {})};

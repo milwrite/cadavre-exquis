@@ -21,7 +21,7 @@
     activeSave=(async()=>{
       try{
         const result=await api('/entries','PUT',{id,app:'cadavre',kind:'poem',title:adapter.title||content.text.trim().split('\n')[0].slice(0,100)||'Untitled poem',content,expectedRevision:revision});
-        revision=result.item.revision;previous=serialized;say(modelWarning?'Poem saved. Model history could not be updated; reflections may use an earlier model.':'Saved privately · My work');return true;
+        revision=result.item.revision;previous=serialized;say(modelWarning?'Poem saved. Model history could not be updated.':'Saved privately · My work');return true;
       }catch(error){say(error.message+' Your current poem is still here. Use Save privately to retry.');return false;}
       finally{saving=false;button.disabled=false;}
     })();
@@ -36,7 +36,7 @@
   });
   window.CadavreWork={
     id:()=>id,
-    modelRecorded(value){if(value===false){modelWarning=true;say("The turn is available, but model history could not be updated. Reflections may use an earlier model.");}},
+    modelRecorded(value){if(value===false){modelWarning=true;say("The turn is available, but model history could not be updated.");}},
     changed(){if(!adapter||loading)return;clearTimeout(timer);timer=setTimeout(()=>void save(),400);},
     async mount(value){
       adapter=value;

@@ -1,5 +1,11 @@
 # Account pilot acceptance — 2026-09-06
 
+## Current scope update
+
+The user refined My work into a quiet, tool-agnostic CUNY AI Lab workspace, with Cadavre as the pilot and a reusable new-application integration contract. They explicitly removed the model-reflection feature. Reflection evidence below describes the previous implementation and is not an active feature or remaining acceptance requirement. Current validation: 10 account/D1/DO tests, including populated catalog migration and scoped all-app search, pass; 13 Cadavre tests pass. Updated actual Doorway→Cadavre→account boundary passes with one model call and a404 from the retired reflection endpoint. Independent review found no security or migration defect. UI/live release checks for this refinement are recorded below when complete.
+
+## Previous pilot evidence
+
 Owner: Zach Muhlbauer. Requested outcome: CUNY sign-in, private Cadavre save/resume and dashboard, retained archive and pins, settings readback, and a reflection using the latest completed model. Older Inference Arcade accounts and Railway services remain untouched.
 
 ## Source and independent review

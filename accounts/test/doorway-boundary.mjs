@@ -28,7 +28,7 @@ const mf=new Miniflare(convertV4MiniflareOptions({workers:[
 {name:'admission',modules:true,compatibilityDate:'2026-09-06',script:`import {WorkerEntrypoint} from 'cloudflare:workers';export class AdmissionResolver extends WorkerEntrypoint{resolveMembership(){return ${JSON.stringify(membership)};}}export default{fetch(){return new Response();}}`}
 ]}));
 try{
- const db=await mf.getD1Database('DB','accounts');for(const sql of (await readFile('migrations/0001_accounts.sql','utf8')).split(';').map(s=>s.trim()).filter(Boolean))await db.prepare(sql).run();
+ const db=await mf.getD1Database('DB','accounts');for(const sql of ((await Promise.all(['0001_accounts.sql','0002_application_catalog.sql'].map(file=>readFile('migrations/'+file,'utf8')))).join('\n')).split(';').map(s=>s.trim()).filter(Boolean))await db.prepare(sql).run();
  const receiver={fetch:async(input,init)=>{try{const request=new Request(input,{...init,duplex:'half'});assert.equal(request.headers.get('cookie'),null);assert.notEqual(request.headers.get('x-cail-identity-jwt'),'forged');return await mf.dispatchFetch(request.url,{method:request.method,headers:request.headers,body:request.body,duplex:'half'});}catch(error){console.error('Local receiver:',error.message);throw error;}}};
  const config={admissionContract:ADMISSION_CONTRACT,canonicalOrigin:origin,policy:parsePolicy(JSON.parse(await readFile(join(source,'config/route-policy.json'),'utf8'))),identity:{signingKey:privateKey,signingKid:'boundary-test',jwksJson,ownershipSalt:'local-only',operationalSalt:'local-only'},session:{secret:crypto.getRandomValues(new Uint8Array(32)),idleSeconds:86400,absoluteSeconds:604800},admissionResolver:{resolveMembership:async()=>membership},cadavre:receiver,workAccounts:receiver};
  const cookie=(await issueSessionCookie(config,{subject:'cail-'+'e'.repeat(32),operationalSubject:'cail-v1-'+'f'.repeat(32),authTime:Math.floor(Date.now()/1000)})).split(';')[0];
@@ -37,7 +37,7 @@ try{
  let response=await call('/cadavre/api/cadavre/chat','POST',{model:'test/poetry',stream:false,workId:id,messages:[{role:'user',content:'Paper lantern'}]});assert.equal(response.status,200,await response.clone().text());assert.equal((await response.json()).workModelRecorded,true);
  response=await call('/cadavre/api/work/entries','PUT',{id,app:'cadavre',kind:'poem',title:'Boundary lantern',expectedRevision:0,content:{schemaVersion:1,contributions:[{role:'user',content:'Paper lantern'},{role:'assistant',content:'The lantern follows the river.',model:'test/poetry'}],text:'Paper lantern\nThe lantern follows the river.',reading:'',settings:{},record:{}}});assert.equal(response.status,201,await response.clone().text());
  const dashboard=await (await call('/my-work/api/dashboard')).json();assert.equal(dashboard.apps.cadavre.recent[0].id,id);assert.equal(dashboard.lastModel.model,'test/poetry');
- response=await call('/my-work/api/reflection','POST',{});assert.equal(response.status,200,await response.clone().text());assert.equal(calls,2);
+ response=await call('/my-work/api/reflection','POST',{});assert.equal(response.status,404,await response.clone().text());assert.equal(calls,1);
  assert.equal((await call('/my-work/api/entries/'+id)).status,200);
- console.log('PASS: real Doorway session -> matching identities -> Cadavre inference -> account RPC -> D1/DO save -> hub readback and reflection; exactly two model calls.');
+ console.log('PASS: real Doorway session -> matching identities -> Cadavre inference -> account RPC -> D1/DO save -> hub readback; reflection unavailable; exactly one model call.');
 }finally{await mf.dispose();await rm(temporary,{recursive:true,force:true});}

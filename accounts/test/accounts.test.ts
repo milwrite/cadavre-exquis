@@ -24,7 +24,7 @@ before(async()=>{
     {name:'admission',modules:true,compatibilityDate:'2026-09-06',script:`import {WorkerEntrypoint} from 'cloudflare:workers';export class AdmissionResolver extends WorkerEntrypoint{resolveMembership({subject}){if(subject==='${subject('d')}')return {ok:false};if(subject==='${subject('e')}')return {ok:false,code:'not_admitted',retryable:false};if(subject==='${subject('f')}')return {ok:true,expiresAt:'2099-02-31T00:00:00.000Z',revision:1,accessRole:'member',budgetScope:'person'};return {ok:true,expiresAt:subject==='${subject('c')}'?'2020-01-01T00:00:00.000Z':'2099-01-01T00:00:00.000Z',revision:1,accessRole:'member',budgetScope:'person'};}}export default {fetch(){return new Response('local Admission double');}}`},
   ]}));
   const db=await mf.getD1Database('DB','accounts');
-  const schema=await readFile('migrations/0001_accounts.sql','utf8');
+  const schema=(await Promise.all(['0001_accounts.sql','0002_application_catalog.sql'].map(file=>readFile('migrations/'+file,'utf8')))).join('\n');
   for(const sql of schema.split(';').map(s=>s.trim()).filter(Boolean))await db.prepare(sql).run();
 });
 after(async()=>{await mf?.dispose();});
@@ -57,20 +57,18 @@ test('five recent unpinned items with independently pinned work and lossless arc
   const archive=await (await call('/entries?app=cadavre')).json() as {items:unknown[]};assert.equal(archive.items.length,8);
 });
 test('settings are persisted with optimistic concurrency and credentials are rejected from metadata',async()=>{
-  const change={displayName:'Local acceptance',reflectionEnabled:true,defaultApp:'cloze',expectedRevision:1};
+  const change={displayName:'Local acceptance',defaultApp:'cloze',expectedRevision:1};
   assert.equal((await call('/profile','PATCH',change)).status,200);assert.equal((await call('/profile','PATCH',change)).status,409);
   const p=await (await call('/profile')).json() as {profile:{displayName:string;defaultApp:string}};assert.equal(p.profile.defaultApp,'cloze');assert.equal(p.profile.displayName,change.displayName);
   const bad=entry();bad.content.record={apiKey:'never-save'};assert.equal((await call('/entries','PUT',bad)).status,400);
 });
-test('reflection uses the server-observed latest model and preserves prior synthesis on provider failure',async()=>{
-  const model=await mf.dispatchFetch(origin+'/model',{headers:{'x-cail-identity-jwt':jwts['a:cadavre']}});assert.equal(model.status,200);
-  assert.equal((await call('/reflection','POST',{},'a','hub',{'x-cail-gateway-identity-jwt':jwts['b:gateway']})).status,401);
-  const reflected=await call('/reflection','POST',{});assert.equal(reflected.status,200,await reflected.text());assert.deepEqual(usedModels,['test/most-recent']);
-  const db=await mf.getD1Database('DB','accounts');await db.prepare('UPDATE reflections SET requested_at=0 WHERE subject=?').bind(subject('a')).run();providerFails=true;
-  assert.equal((await call('/reflection','POST',{})).status,502);
-  const d=await (await call('/dashboard')).json() as {reflection:{text:string;state:string;model:string}};assert.ok(d.reflection.text.includes('light'));assert.equal(d.reflection.state,'failed');assert.equal(d.reflection.model,'test/most-recent');
+test('removed reflection endpoint cannot invoke a model and catalog is scoped',async()=>{
+  assert.equal((await call('/reflection','POST',{})).status,404);
+  assert.deepEqual(usedModels,[]);
+  const catalog=await (await call('/applications','GET',undefined,'a','cadavre')).json() as {applications:{id:string}[];labLinks:unknown[]};
+  assert.deepEqual(catalog.applications.map(app=>app.id),['cadavre']);assert.deepEqual(catalog.labLinks,[]);
 });
-test('deletion cascades owned records, removes synthesis, and export never contains identity subjects',async()=>{
+test('deletion cascades owned records and export never contains identity subjects',async()=>{
   const exported=await (await call('/export')).json();assert.ok(!JSON.stringify(exported).includes(subject('a')));
   assert.equal((await call('/account-data','DELETE',{confirmation:'DELETE MY WORK'})).status,200);
   const db=await mf.getD1Database('DB','accounts');for(const table of ['entries','model_runs','reflections','entry_events']){const row=await db.prepare('SELECT COUNT(*) AS n FROM '+table+' WHERE subject=?').bind(subject('a')).first<{n:number}>();assert.equal(row?.n,0);}
@@ -85,8 +83,22 @@ test('late model completions cannot recreate deleted account data',async()=>{
   const db=await mf.getD1Database('DB','accounts');
   const count=await db.prepare('SELECT COUNT(*) AS n FROM model_runs WHERE subject=?').bind(subject('b')).first<{n:number}>();assert.equal(count?.n,0);
 });
-test('named app exports remain scoped and reflection is a hub operation',async()=>{
+test('named app exports remain scoped',async()=>{
   for(const app of ['cadavre','cloze'])assert.equal((await call('/entries','PUT',entry(app),'b',app)).status,201);
   const exported=await (await call('/export','GET',undefined,'b','cadavre')).json() as {entries:{app:string}[]};assert.deepEqual(exported.entries.map(e=>e.app),['cadavre']);
   assert.equal((await call('/reflection','POST',{},'b','cadavre')).status,404);
+});
+
+test('all-application library search preserves subject and adapter scope',async()=>{
+  const needle='Cross-tool needle';
+  for(const app of ['cadavre','cloze'])assert.equal((await call('/entries','PUT',entry(app,needle),'b',app)).status,201);
+  assert.equal((await call('/entries','PUT',entry('cadavre',needle),'a')).status,201);
+  const all=await (await call('/entries?app=all&q=needle','GET',undefined,'b')).json() as {items:{app:string}[]};
+  assert.deepEqual(all.items.map(e=>e.app).sort(),['cadavre','cloze']);
+  const scoped=await (await call('/entries?app=all&q=needle','GET',undefined,'b','cloze')).json() as {items:{app:string}[]};
+  assert.deepEqual(scoped.items.map(e=>e.app),['cloze']);
+  const p=await (await call('/profile','GET',undefined,'b')).json() as {profile:{revision:number}};
+  assert.equal((await call('/profile','PATCH',{displayName:'All apps',defaultApp:'all',expectedRevision:p.profile.revision},'b')).status,200);
+  const saved=await (await call('/profile','GET',undefined,'b')).json() as {profile:{defaultApp:string}};assert.equal(saved.profile.defaultApp,'all');
+  const invalid={...entry(),app:'unregistered'};assert.equal((await call('/entries','PUT',invalid)).status,400);
 });

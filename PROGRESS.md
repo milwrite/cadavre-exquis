@@ -13,7 +13,7 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 - [x] User decisions: CAIL/CUNY sign-in only; display five recent unpinned items per app and retain older records; leave existing Inference Arcade accounts behind.
 - [x] Isolated source from deployed Cadavre release `7d96fd7`; current org knowledge-base and Doorway contracts reconciled. Railway unchanged.
-- [x] Shared per-subject AccountCoordinator and D1 schema, named Cadavre/Jeopardy/Cloze entrypoints, revisions, archive/private pins, settings, export/deletion and explicit last-model reflection implemented.
+- [x] Shared per-subject AccountCoordinator and D1 schema, named Cadavre/Jeopardy/Cloze entrypoints, revisions, archive/private pins, settings, export/deletion implemented; model-reflection feature subsequently removed at user request.
 - [x] New remote D1 `cail-work-accounts` (`46735c0b-e986-4cce-a13d-1e81008c939e`) created and migration 0001 applied.
 - [x] Local account integration tests (8), Worker tests (13), types and dry bundles pass. Full Doorway checks pass in its isolated worktree.
 - [x] Actual Doorway caller → Cadavre receiver → account D1/DO boundary passes locally with local signing/Admission/model doubles; save, readback and reflection make exactly two model calls.
@@ -23,10 +23,20 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - [x] Cadavre receiver deployed at 100%: `ff69068e-ae51-4293-89b3-5fc8a2294ee3` (`c40b1ba`); live health and unsigned account denial verified.
 - [x] Doorway PR #127 merged as `00849b7`, deployed at 100% as `739799be-587b-4c2e-b539-ab5523b266a7`; production account bindings and mounted anonymous 401 envelopes read back.
 - [x] Doorway PR #128 merged as `fa99418e`, deployed at 100% as `6db27d4e-6933-4508-b075-8dc7c5cb67c6`. Main checks and exact serving-version/binding readback passed. Full workflow remains red on the pre-existing PDF Accessibility readiness 503; the account probes remain enforced.
-- [ ] Authenticated live acceptance: complete real CUNY sign-in, then production inference, save/reload/settings, private pin/reopen, and latest-model reflection.
+- [ ] Authenticated live acceptance: complete real CUNY sign-in, then production inference, save/reload/settings, private pin/reopen, and saved-work resume.
 - Review/evidence: Cadavre PR #5, Doorway PRs #127 and #128, and `docs/accounts/acceptance.md`.
 
 See `docs/accounts/workflows.md` and `docs/accounts/adapters.md` for modular workflows and exact limits. Corpus/training source is unchanged; no corpus regeneration is needed for this web-only change.
+
+## Shared workspace refinement — 2026-09-06
+
+- [x] User scope: Cadavre tests a tool-agnostic account/artifact foundation; future apps integrate using a registry and scoped adapter.
+- [x] Removed reflection UI/generation/endpoint and the account Worker Gateway binding.
+- [x] Administrative navy/teal theme with quieter typography/actions, shared Lab links, searchable all-app library, and registry-driven resume links implemented.
+- [x] 10 account tests, including populated D1 migration preservation and scope/search, pass; 13 Worker tests and one-call actual caller/receiver path pass.
+- [ ] Refined UI deployment and real authenticated acceptance.
+
+See `docs/accounts/integrate-an-application.md`.
 
 ## Decisions (locked)
 - Corpus: aesthetic-first, public-domain-heavy. Surrealist core + modernist breadth.

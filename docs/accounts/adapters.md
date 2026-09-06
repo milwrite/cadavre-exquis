@@ -20,11 +20,11 @@ API mount: `/api/work` at named entrypoints; `/my-work/api` at the hub. Create w
 
 The hub returns five unpinned recent entries per app and a separate private pin list. Archive summaries page in groups of 20. Entry detail returns the latest 20 revision events. The current schema stores current content, with revision-event metadata; it does not claim to restore historical snapshots. Account export is limited to 1,000 entries/8 MB of content per download; individual archive items remain exportable.
 
-## Model observation and reflection module
+## Model provenance and retired reflection feature
 
-Before an app model call, `beginModel(appJwt)` returns the account generation. After successful inference, the trusted app calls `modelCompleted(appJwt, actualModel, entryId, generation)`. Browser-supplied model metadata is not sufficient. Deleting/recreating an account invalidates late completions from the old generation. Auxiliary hints/cues can explicitly opt out of updating the model observation.
+Trusted application adapters can still record the actual model used with `beginModel` and `modelCompleted`; account deletion invalidates late completions. This is provenance, not a model-generation feature in My work. At the user's request, the reflection component, endpoint, generator methods, profile/dashboard fields and Gateway binding are removed. Historical rows are inert and retained; normal account deletion still cascades them.
 
-The hub selects the latest successfully observed model across apps and the five most recently saved items. It supplies only bounded user contributions and clearly labeled mixed-authored text to one Gateway call. The stored reflection records model, generation time and source revisions. Account changes mark it stale; provider failure preserves the earlier reflection; entry deletion removes derived reflection text. Disabling reflections removes stored synthesis. Reflection is user-requested and makes no grade, ability or personal-trait inference.
+Use [the integration guide](integrate-an-application.md) to add a registered application and exact-audience adapter. The shared library supports all-app browsing, pin filters and title search without app-specific panels.
 
 ## Jeopardy workflow
 
@@ -36,8 +36,8 @@ The active chat service tracks context and question types per blank in memory: s
 
 ## Validation modules
 
-1. `accounts`: `npm run check`, `npm run build`, `npm test` use actual workerd, D1 and DO for authorization, two-user isolation, app scope, revisions, archive/pins, settings, export/deletion, last-model reflection and deletion races.
+1. `accounts`: `npm run check`, `npm run build`, `npm test` use actual workerd, D1 and DO for authorization, two-user isolation, app scope, revisions, archive/pins, settings, export/deletion, model provenance and deletion races.
 2. `worker`: `npm run check`, `npm test`, dry deployment bundle.
 3. Cross-repository caller/receiver: from `accounts`, `DOORWAY_SOURCE=/path/to/reviewed/cail-doorway node test/doorway-boundary.mjs`. Uses actual Doorway request/session code, actual product Workers and local D1/DO, with a local signing key and Admission/provider doubles. A Node Request shim only supplies Workers' streamed-body constructor behavior.
 4. `test/browser-local.ts`: local-only caller, actual product Workers/D1/DO and fixture model. Native browser evidence is local acceptance, not a CUNY callback or deployed inference check. Never deploy this caller.
-5. Production acceptance requires the reviewed Doorway release, actual CUNY login/Admission, a real Cadavre model turn, saved-work/settings readback after reload and a reflection. Source, deployment and live verification are separate states.
+5. Production acceptance requires the reviewed Doorway release, actual CUNY login/Admission, a real Cadavre model turn, saved-work/settings readback after reload and reopen checks. Source, deployment and live verification are separate states.

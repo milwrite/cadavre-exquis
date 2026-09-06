@@ -1,8 +1,8 @@
 import { DurableObject } from 'cloudflare:workers';
 import { isCailSubject } from '@cuny-ai-lab/cail-identity';
-import { APPS, exact, boundedText, entryId, isApp, parseEntry, publicEntry, revision, InputError, type AppId, type EntryRow, type EntryContent } from './contract.ts';
+import { APPS, exact, boundedText, entryId, isApp, parseEntry, publicEntry, revision, InputError, type AppId, type EntryRow } from './contract.ts';
 
-type Profile = {display_name:string; reflection_enabled:number; default_app:AppId; revision:number; work_revision:number; created_at:number};
+type Profile = {display_name:string; reflection_enabled:number; default_app:AppId|'all'; revision:number; work_revision:number; created_at:number};
 type Reply = {status:number; json:string};
 const ok = (value:unknown, status=200): Reply => ({status,json:JSON.stringify(value)});
 const fail = (code:string,message:string,status:number): Reply => ok({error:{code,message}},status);
@@ -32,16 +32,15 @@ export class AccountCoordinator extends DurableObject<Env> {
       const bump = () => db.prepare('UPDATE accounts SET work_revision=work_revision+1, updated_at=? WHERE subject=?').bind(now,subject);
       const record = (id:string) => db.prepare(`SELECT * FROM entries WHERE subject=? AND id=?${scope ? ' AND app=?' : ''}`).bind(...(scope ? [subject,id,scope] : [subject,id])).first<EntryRow>();
       try {
-        if (path === '/profile' && method === 'GET') return ok({profile:{displayName:profile.display_name,reflectionEnabled:Boolean(profile.reflection_enabled),defaultApp:profile.default_app,revision:profile.revision,createdAt:profile.created_at,signIn:'CUNY'}});
+        if (path === '/profile' && method === 'GET') return ok({profile:{displayName:profile.display_name,defaultApp:profile.default_app,revision:profile.revision,createdAt:profile.created_at,signIn:'CUNY'}});
         if (path === '/profile' && method === 'PATCH') {
-          const v = exact(input,['displayName','reflectionEnabled','defaultApp','expectedRevision']);
+          const v = exact(input,['displayName','defaultApp','expectedRevision']);
           if (revision(v.expectedRevision) !== profile.revision) return fail('revision_conflict','Settings changed in another tab. Reload before saving.',409);
-          if (typeof v.reflectionEnabled !== 'boolean' || !isApp(v.defaultApp)) throw new InputError('Invalid account settings.');
+          if ((v.defaultApp !== 'all' && !isApp(v.defaultApp))) throw new InputError('Invalid account settings.');
           const name = boundedText(v.displayName,80);
-          const statements = [db.prepare('UPDATE accounts SET display_name=?,reflection_enabled=?,default_app=?,revision=revision+1,updated_at=? WHERE subject=? AND revision=?').bind(name,Number(v.reflectionEnabled),v.defaultApp,now,subject,profile.revision)];
-          if (!v.reflectionEnabled) statements.push(db.prepare('DELETE FROM reflections WHERE subject=?').bind(subject));
+          const statements = [db.prepare('UPDATE accounts SET display_name=?,default_app=?,revision=revision+1,updated_at=? WHERE subject=? AND revision=?').bind(name,v.defaultApp,now,subject,profile.revision)];
           await db.batch(statements);
-          return ok({profile:{displayName:name,reflectionEnabled:v.reflectionEnabled,defaultApp:v.defaultApp,revision:profile.revision+1,createdAt:profile.created_at,signIn:'CUNY'}});
+          return ok({profile:{displayName:name,defaultApp:v.defaultApp,revision:profile.revision+1,createdAt:profile.created_at,signIn:'CUNY'}});
         }
         if (path === '/dashboard' && method === 'GET') {
           const apps: Record<string,unknown> = {};
@@ -54,20 +53,24 @@ export class AccountCoordinator extends DurableObject<Env> {
             const totals = count.results[0] as {total:number;pinned:number|null};
             apps[app] = {recent:recent.results.map(r=>publicEntry(r as EntryRow)),pinned:pinned.results.map(r=>publicEntry(r as EntryRow)),total:totals.total,pinnedTotal:totals.pinned || 0};
           }
-          const reflection = scope ? null : await db.prepare('SELECT state,model,text,generated_at,source_revision,source_json,failure_code,requested_at FROM reflections WHERE subject=?').bind(subject).first();
           const lastModel = await db.prepare(`SELECT model,app,completed_at FROM model_runs WHERE subject=?${scope ? ' AND app=?' : ''} ORDER BY completed_at DESC,id DESC LIMIT 1`).bind(...(scope ? [subject,scope] : [subject])).first();
-          return ok({apps,reflection:reflection ? {...reflection,stale:reflection.source_revision !== profile.work_revision,sources:JSON.parse(String(reflection.source_json)),source_json:undefined} : null,lastModel,reflectionEnabled:Boolean(profile.reflection_enabled)});
+          return ok({apps,lastModel});
         }
         if (path === '/entries' && method === 'GET') {
           const q = new URLSearchParams(query);
-          const app = scope || q.get('app');
-          if (!isApp(app)) throw new InputError('Select an application.');
+          const app = scope || q.get('app') || 'all';
+          if (app !== 'all' && !isApp(app)) throw new InputError('Select an application.');
           const offset = Number(q.get('offset') || 0);
           if (!Number.isSafeInteger(offset) || offset < 0 || offset > 1000000) throw new InputError('Invalid archive page.');
           const pin = q.get('pinned');
           if (pin !== null && pin !== '1' && pin !== '0') throw new InputError('Invalid pin filter.');
-          const clause = pin === null ? '' : ` AND pinned=${pin}`;
-          const result = await db.prepare(`SELECT ${summaryColumns} FROM entries WHERE subject=? AND app=?${clause} ORDER BY updated_at DESC,id DESC LIMIT 21 OFFSET ?`).bind(subject,app,offset).all<EntryRow>();
+          const search = boundedText(q.get('q') || '',120).trim();
+          const clauses = ['subject=?'];
+          const bindings:(string|number)[] = [subject];
+          if (app !== 'all') {clauses.push('app=?');bindings.push(app);}
+          if (pin !== null) {clauses.push('pinned=?');bindings.push(Number(pin));}
+          if (search) {clauses.push('instr(lower(title),lower(?))>0');bindings.push(search);}
+          const result = await db.prepare(`SELECT ${summaryColumns} FROM entries WHERE ${clauses.join(' AND ')} ORDER BY updated_at DESC,id DESC LIMIT 21 OFFSET ?`).bind(...bindings,offset).all<EntryRow>();
           return ok({items:result.results.slice(0,20).map(r=>publicEntry(r)),nextOffset:result.results.length > 20 ? offset+20 : null});
         }
         if (path === '/entries' && method === 'PUT') {
@@ -118,7 +121,7 @@ export class AccountCoordinator extends DurableObject<Env> {
           const entries = await db.prepare(`SELECT * FROM entries WHERE subject=?${scope ? ' AND app=?' : ''} ORDER BY created_at,id LIMIT 1001`).bind(...(scope ? [subject,scope] : [subject])).all<EntryRow>();
           // Bound export; callers can page the archive for unusually large accounts.
           if (entries.results.length > 1000) return fail('export_too_large','Export individual items from the archive.',413);
-          return ok({schemaVersion:1,exportedAt:now,profile:{displayName:profile.display_name,reflectionEnabled:Boolean(profile.reflection_enabled),defaultApp:profile.default_app},entries:entries.results.map(r=>publicEntry(r,true))});
+          return ok({schemaVersion:1,exportedAt:now,profile:{displayName:profile.display_name,defaultApp:profile.default_app},entries:entries.results.map(r=>publicEntry(r,true))});
         }
         if (path === '/account-data' && method === 'DELETE' && scope === null) {
           const v = exact(input,['confirmation']);
@@ -149,41 +152,6 @@ export class AccountCoordinator extends DurableObject<Env> {
         db.prepare('UPDATE accounts SET work_revision=work_revision+1 WHERE subject=?').bind(subject),
       ]);
       return true;
-    });
-  }
-  async prepareReflection(subject:string): Promise<Reply> {
-    return this.serial(async()=>{
-      const db = this.env.DB.withSession('first-primary');
-      const profile = await db.prepare('SELECT reflection_enabled,work_revision FROM accounts WHERE subject=?').bind(subject).first<Profile>();
-      if (!profile?.reflection_enabled) return fail('reflection_disabled','Enable reflections in settings first.',403);
-      const prior = await db.prepare('SELECT state,requested_at FROM reflections WHERE subject=?').bind(subject).first<{state:string;requested_at:number}>();
-      if (prior && Date.now()-prior.requested_at < 60000) return fail('reflection_busy','Wait a minute before requesting another reflection.',429);
-      const last = await db.prepare('SELECT model FROM model_runs WHERE subject=? ORDER BY completed_at DESC,id DESC LIMIT 1').bind(subject).first<{model:string}>();
-      if (!last) return fail('model_missing','Complete a model turn before asking for a reflection.',409);
-      const items = await db.prepare('SELECT * FROM entries WHERE subject=? ORDER BY updated_at DESC,id DESC LIMIT 5').bind(subject).all<EntryRow>();
-      if (!items.results.length) return fail('work_missing','Save some work before asking for a reflection.',409);
-      const sources = items.results.map(r=>({id:r.id,app:r.app,title:r.title,revision:r.revision}));
-      const contributions = items.results.map(r=>{
-        const c = JSON.parse(r.content) as EntryContent;
-        return {title:r.title,app:r.app,contributions:c.contributions.filter(m=>m.role==='user').slice(-20).map(m=>m.content.slice(0,1000)),text:c.text.slice(0,2000)};
-      });
-      const attempt = crypto.randomUUID();
-      await db.prepare(`INSERT INTO reflections(subject,state,attempt_id,requested_at,model,source_revision,source_json) VALUES(?,'pending',?,?,?,?,?) ON CONFLICT(subject) DO UPDATE SET state='pending',attempt_id=excluded.attempt_id,requested_at=excluded.requested_at,failure_code=NULL`).bind(subject,attempt,Date.now(),last.model,profile.work_revision,JSON.stringify(sources)).run();
-      return ok({attempt,model:last.model,sourceRevision:profile.work_revision,sources,contributions});
-    });
-  }
-  async finishReflection(subject:string, attempt:string, plan:{model:string;sourceRevision:number;sources:unknown}, text:string|null): Promise<Reply> {
-    return this.serial(async()=>{
-      const db = this.env.DB.withSession('first-primary');
-      const profile = await db.prepare('SELECT work_revision,reflection_enabled FROM accounts WHERE subject=?').bind(subject).first<Profile>();
-      if (!profile?.reflection_enabled) return fail('reflection_cancelled','The reflection was cancelled.',409);
-      const stale = profile.work_revision !== plan.sourceRevision;
-      if (text && !stale) {
-        const changed = await db.prepare("UPDATE reflections SET state='complete',model=?,source_revision=?,source_json=?,text=?,generated_at=?,failure_code=NULL WHERE subject=? AND attempt_id=?").bind(plan.model,plan.sourceRevision,JSON.stringify(plan.sources),text,Date.now(),subject,attempt).run();
-        return changed.meta.changes ? ok({completed:true}) : fail('reflection_cancelled','The reflection was cancelled.',409);
-      }
-      await db.prepare("UPDATE reflections SET state='failed',failure_code=? WHERE subject=? AND attempt_id=?").bind(stale?'work_changed':'model_unavailable',subject,attempt).run();
-      return fail(stale?'work_changed':'model_unavailable',stale?'Your work changed during the reflection. Request a fresh one.':'The most recently used model could not complete the reflection. Your previous reflection is kept.',stale?409:502);
     });
   }
 }
