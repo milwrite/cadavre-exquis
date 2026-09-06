@@ -13,9 +13,9 @@ Owner: Zach Muhlbauer; implementation coordinated in this task. User action: sig
 ## Modular workflows
 
 1. **Identity and account setup.** Exact-audience CAIL Identity verification, current Admission resolver check, first-visit profile, settings revisions, export and deletion of this service's data. Caller/receiver: Doorway → account hub and Cadavre → account service. Gateway leg verified separately and subject-matched.
-2. **D1 work repository.** App-scoped entries, structured contributions, related records, optimistic revisions, private pins, paged archive. No global user coordination bottleneck. Future adapters use named app entrypoints and cannot choose another account.
+2. **D1 work repository.** App-scoped entries, structured contributions, related records, optimistic revisions, private pins, paged archive. No global user coordination bottleneck. Future adapters use the generic WorkerAccounts entrypoint with trusted binding props and cannot choose another account.
 3. **Cadavre and dashboard.** Public preview links to CUNY sign-in. Authenticated `/cadavre/` and `/my-work/` share Doorway's session. Solo and parlor saves preserve author roles, model and settings; reopen/edit/export from My work. Saving never publishes on the wall.
-4. **Application integration.** One registered application definition supplies the name, record kind, launch/resume paths and connection status; an exact-audience named adapter grants app-scoped access. The tool-agnostic schema, library and dashboard need no app-specific UI rewrite. See [integrate-an-application.md](integrate-an-application.md).
+4. **Application integration.** Each integrated ailab-452.workers.dev Worker registers its deployment-owned manifest in D1; trusted binding props supply its exact audience and app scope. There is no fixed or planned application list. The tool-agnostic schema, library and dashboard need no app-specific UI rewrite. See [integrate-an-application.md](integrate-an-application.md).
 5. **Jeopardy and Cloze adapters.** `milwrite/jeopardy-generator` (local `jeopardy-lm`, latest remote push 2026-09-02) is newer than `zmuhls/jeopardy-lm` (2026-04-17). Cloze source is `milwrite/cloze-reader` (2026-07-09), distinct from the Quimbot paper repository. Exercise both schema adapters against the same real local account service; keep their live runtime migrations separate from the Cadavre test case.
 
 ## Source reconciliation at implementation start
@@ -30,7 +30,7 @@ Current deployment and acceptance evidence is maintained in [acceptance.md](acce
 
 ## Deployment order and acceptance
 
-D1 schema → account service with named app entrypoints → Cadavre receiver → Doorway ingress via its PR/main release path. Verify each receiver before enabling the caller. No OIDC client or callback changes are needed.
+D1 schema → account service with the generic WorkerAccounts entrypoint with trusted binding props → Cadavre receiver → Doorway ingress via its PR/main release path. Verify each receiver before enabling the caller. No OIDC client or callback changes are needed.
 
 Required evidence: real local Worker/D1/DO integration with two identities, concurrent/stale edits, app/subject isolation, archive and pin semantics, settings readback, deletion/export, registered-app validation and all-app library search; rendered Cadavre → dashboard → reopen flow. Real CUNY login, active Admission, deployed cross-service inference, and reload persistence are separate live acceptance boundaries. Local test issuers and provider doubles must be identified. Pending live verification keeps the rollout incomplete.
 
@@ -44,4 +44,4 @@ The owner reran the 13 Worker tests, 8 account tests and actual caller/receiver 
 
 The shared dashboard follows the current CUNY AI Lab Administration navy, teal and pale-blue palette, including its `cail-desk-theme` preference. Quieter type and text actions replace large calls to action. My work, Library, Applications and Settings share one shell, with verified Lab access, Model Access, Administration, Model Registry and Lab website links. Administrator access stays enforced by the destination. Recent work spans applications, filters by app, and keeps five unpinned items per app; pins and older items remain in the searchable library. Planned integrations have no unverified Open link.
 
-Migration0002 preserves the populated account/entry/event/model/history graph while removing database app enums. Runtime registration and named entrypoints continue to reject unknown apps and cross-app access. The migration is tested against a populated real D1 database, including exact readback, foreign-key checks and cascades.
+Migration0002 preserves the populated account/entry/event/model/history graph while removing database app enums. D1 registration and trusted binding props continue to reject unknown apps and cross-app access. The migration is tested against a populated real D1 database, including exact readback, foreign-key checks and cascades.

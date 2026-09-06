@@ -45,9 +45,4 @@ export class WorkerAccounts extends WorkerEntrypoint<Bindings> {
     return {recorded:await this.env.ACCOUNTS.getByName(subject).modelCompleted(subject,this.app,model,entryId,generation)};
   }
 }
-// Compatibility receiver retained only until the already-deployed caller switches.
-export class CadavreAccounts extends WorkerAccounts {
-  get app(){return 'cadavre';}
-  async register(){return {registered:true,id:this.app,version:0};}
-}
 export default {fetch(request:Request,env:Bindings){return handle(request,env,null);}};
