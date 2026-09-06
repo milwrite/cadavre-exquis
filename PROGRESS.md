@@ -282,4 +282,4 @@ Core (surreal/modernist) = poetrydb + gutenberg = **6067** poems; GPC is padding
 - Generic WorkerAccounts binding props own exact audience, record kind and canonical Worker launch/reopen routes. D1 registry is versioned and rejects collisions.
 - Fixed Cadavre static-asset redirects losing the CUNY mount, and introduced its own stable `/cadavre/play/` route.
 - 11 account tests, 13 Worker tests and real Doorway/Worker/static-assets/storage boundary passed; independent review reran the important path.
-- Deployment and authenticated acceptance remain in progress.
+- Deployed: account f94c9f62-0ba2-4cf3-a74e-983431f4947a (e2e2da1), Cadavre cc6bedd6-7c3d-4be6-842f-e6d6c7c523f5 (ffd5259), both 100%. Generic caller registration verified live. Firefox directory passed; save/reopen acceptance awaits the active browser.
