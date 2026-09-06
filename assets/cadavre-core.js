@@ -263,7 +263,26 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     return text.slice(i).replace(/^[\s.,;:—–-]+/, "").trim() || text;
   }
 
+  function connectionConfig(defaults, supplied, href) {
+    const url = new URL(href);
+    const campusMount = /^(?:tools\.ailab\.gc\.cuny\.edu|localhost|127\.0\.0\.1)$/.test(url.hostname) && /^\/cadavre(?:\/|$)/.test(url.pathname);
+    const signed = campusMount || supplied?.authenticated === true;
+    const expected = {endpoint:'/cadavre/api/cadavre/chat',modelsEndpoint:'/cadavre/api/cadavre/models',readyEndpoint:'',wallEndpoint:'/cadavre/api/cadavre/wall',workEndpoint:'/cadavre/api/work',apiKey:''};
+    if (signed && (supplied?.authenticated !== true || Object.entries(expected).some(([key,value]) => supplied[key] !== value) || typeof supplied.model !== 'string' || !supplied.model)) throw new Error('CUNY configuration is unavailable. Reload this page before continuing.');
+    const config = Object.assign({}, defaults, supplied || {});
+    if (!signed && url.searchParams.get('endpoint')) config.endpoint=url.searchParams.get('endpoint');
+    if (url.searchParams.get('model')) config.model=url.searchParams.get('model');
+    return config;
+  }
+
+  function withEditedPoem(messages, editedText) {
+    if (editedText === null) return messages;
+    return messages.map((message,index) => index===0 ? {...message,content:message.content+'\nThe current edited poem, to continue as supplied by the user:\n'+editedText} : message);
+  }
+
   return Object.freeze({
+    connectionConfig,
+    withEditedPoem,
     READING_PROMPT,
     READINGS_PER_POEM,
     readingMessages,

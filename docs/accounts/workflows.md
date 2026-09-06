@@ -31,3 +31,9 @@ Remote CUNY-AI-Lab/cail-knowledge-base `f3ffbacc` supplies current Tool Integrat
 D1 schema → account service with named app entrypoints → Cadavre receiver → Doorway ingress via its PR/main release path. Verify each receiver before enabling the caller. No OIDC client or callback changes are needed.
 
 Required evidence: real local Worker/D1/DO integration with two identities, concurrent/stale edits, app/subject isolation, archive and pin semantics, settings readback, deletion/export, exact last-model reflection and failure recovery; rendered Cadavre → dashboard → reopen flow. Real CUNY login, active Admission, deployed cross-service inference, and reload persistence are separate live acceptance boundaries. Local test issuers and provider doubles must be identified. Pending live verification keeps the rollout incomplete.
+
+## Independent review and source regressions
+
+An independently authorized review agent examined both source trees and reran account and caller/receiver checks. It held release for signed URL endpoint overrides, loss of poem whitespace, accumulated prompt context, silent catalog model substitution, regeneration context, and early enabling before saved-work hydration. These are corrected: signed connection configuration fails closed, authenticated assets enforce same-origin connections, exact line text is retained, inference context is request-only for both continuation/regeneration, the selected model is preserved, and hydration finishes before play is enabled. The reviewer passed the final source changes.
+
+The owner reran the 13 Worker tests, 8 account tests and actual caller/receiver test. Browser regression evidence includes a deliberately unlisted model, an ignored endpoint-override URL, a delayed catalog, exact multiline continuation/readback, and a delayed missing-item load that kept play disabled before and after failure. Local identity/Admission/model doubles remain explicit; these are not live CUNY claims.

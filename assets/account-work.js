@@ -54,9 +54,10 @@
       if(saved&&config().authenticated){
         loading=true;say('Opening saved work…');
         try{const result=await api('/entries/'+encodeURIComponent(saved));id=result.item.id;revision=result.item.revision;adapter.title=result.item.title;await adapter.restore(result.item.content);previous=JSON.stringify(adapter.snapshot());say('Saved work reopened. New turns update this item.');}
-        catch(error){say(error.message);button.disabled=true;return;}
+        catch(error){say(error.message);button.disabled=true;return false;}
         finally{loading=false;}
       }
+      return true;
     },
     async newWork(){if(!await save())return false;id=crypto.randomUUID();revision=0;previous='';modelWarning=false;if(adapter)adapter.title='';return true;},
   };

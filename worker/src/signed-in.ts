@@ -44,7 +44,7 @@ export async function signedIn(request:Request,env:SignedBindings,legacy:(reques
     }
     if(path.startsWith('/api/'))return legacy(translated);
     const asset=await env.ASSETS.fetch(translated);
-    return new Response(asset.body,{status:asset.status,headers:{...Object.fromEntries(asset.headers),...noStore}});
+    return new Response(asset.body,{status:asset.status,headers:{...Object.fromEntries(asset.headers),...noStore,'content-security-policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"}});
   }catch(error){
     if(error instanceof AuthFailure)return error.response;
     if(error instanceof InputError)return Response.json({error:{code:'invalid_request',message:error.message}},{status:400,headers:noStore});

@@ -293,10 +293,9 @@ const DEFAULTS = LOCAL_PAGE ? {
   apiKey: "",
 };
 const params = new URLSearchParams(location.search);
-const paramConnection = {};
-if(params.get("endpoint")) paramConnection.endpoint = params.get("endpoint");
-if(params.get("model")) paramConnection.model = params.get("model");
-const CFG = Object.assign({}, DEFAULTS, window.CORPSE_CONFIG || {}, paramConnection);
+let CFG;
+try { CFG = CadavreCore.connectionConfig(DEFAULTS,window.CORPSE_CONFIG,location.href); }
+catch(error){const notice=document.createElement('p');notice.setAttribute('role','alert');notice.textContent=error.message;document.body.prepend(notice);throw error;}
 
 function isHttpEndpoint(value){
   return /^https?:$/.test(new URL(value, location.href).protocol);
@@ -444,6 +443,7 @@ function nextCue(){
   tick();
 }
 async function askForCues(){
+  if(CFG.authenticated)return;
   if (cueAsking || cuesFromModel) return;
   cueAsking = true;
   try {
@@ -523,7 +523,7 @@ function acceptReadyModel(data, status){
 }
 
 async function warmSelectedModel({ force = false } = {}){
-  const directConnection = params.has("endpoint") || !CFG.readyEndpoint;
+  const directConnection = (!CFG.authenticated && params.has("endpoint")) || !CFG.readyEndpoint;
   if(directConnection) return acceptReadyModel(null, "configured route ready");
   if(!force && modelReadyFor === CFG.model) return { ready:true, model:CFG.model, cached:true };
   if(!force && modelReadyPromise) return modelReadyPromise;
@@ -614,15 +614,20 @@ function renderModelOptions(catalog){
 
   const requested = [CFG.model, catalog?.default, catalog?.defaultModel]
     .find(id => available.some(route => route.id === id));
-  CFG.model = requested || available[0].id;
+  if(!CFG.authenticated)CFG.model = requested || available[0].id;
+  selectRequestedModel();
   modelRouteEl.value = CFG.model;
-  modelRouteEl.disabled = available.length < 2;
+  modelRouteEl.disabled = modelRouteEl.options.length < 2;
   modelRouteEl.setAttribute("aria-busy", "false");
   modelStatusEl.textContent = `${available.length} model${available.length === 1 ? "" : "s"} available`;
 }
 
+function selectRequestedModel(){
+  if(!Array.from(modelRouteEl.options).some(o=>o.value===CFG.model)){const option=document.createElement('option');option.value=CFG.model;option.textContent=CFG.model+' (selected model)';modelRouteEl.append(option);}
+  modelRouteEl.value=CFG.model;
+}
 async function loadModelOptions(){
-  const customConnection = params.has("endpoint") || params.has("model");
+  const customConnection = (!CFG.authenticated && params.has("endpoint")) || params.has("model");
   if(!CFG.modelsEndpoint || customConnection){
     const endpointUrl = new URL(CFG.endpoint, location.href);
     const directLocal = LOCAL_PAGE
@@ -655,7 +660,6 @@ modelRouteEl.addEventListener("change", async () => {
   modelReadyFor = "";
   await warmSelectedModel({ force:true });
 });
-loadModelOptions();
 
 const steerEl = $("steer");
 steerEl.value = state.steer || "";
@@ -711,6 +715,7 @@ toggleFull.addEventListener("click", () => {
 syncPromptView();
 
 const messages = [{ role: "system", content: composeSystem() }];
+let editedPoemContext = null;
 let closed = false;
 let last = null;   // { userText, reply, lineEl, avoided:[] } — the current growing edge
 let poemTokens = [];   // { norm, el } per poem word, collected at close for the reading links
@@ -765,7 +770,7 @@ function setKeepEnabled(on){ ["save-md", "print-poem", "pin-wall"].forEach(id =>
 function setCloseEnabled(on){ $("close-poem").disabled = !on; }
 // A reply with no word in it, or a trailing period, is the other hand trying to close the poem.
 const tidyReply = (t) => { const s = String(t || "").trim().replace(/[.…\s]+$/u, "").trim(); return /[\p{L}\p{N}]/u.test(s) ? s : ""; };
-const poemText = () => [...poemEl.querySelectorAll(".line")].map(l => l.textContent.trim()).join("\n");
+const poemText = () => [...poemEl.querySelectorAll(".line")].map(l => l.textContent).join("\n");
 
 /* ── keeping a closed poem: a markdown file, the printer, or the shared wall ── */
 $("save-md").addEventListener("click", () => {
@@ -832,13 +837,11 @@ function addLine(text, isModel){
   if (isModel) nextCue();                      // the entry comes back with a fresh cue
   const div = document.createElement("div");
   div.className = "line rise" + (isModel ? " other" : "");   // mark the other hand
-  text.split(/\s+/).filter(Boolean).forEach((w, j) => {      // one word per span, for the reading links
-    if (j) div.appendChild(document.createTextNode(" "));
-    const span = document.createElement("span");
-    span.className = "w";
-    span.textContent = w;
-    div.appendChild(span);
+  text.split(/(\s+)/).filter(part=>part!=='').forEach(part=>{
+    if(/^\s+$/.test(part))div.appendChild(document.createTextNode(part));
+    else {const span=document.createElement('span');span.className='w';span.textContent=part;div.appendChild(span);}
   });
+  if(!text)div.style.minHeight='1em';
   poemEl.appendChild(div);
   div.scrollIntoView({ behavior: "smooth", block: "center" });
   return div;
@@ -883,7 +886,7 @@ async function send(text, maxTokens = TURN_TOKENS){
   try {
     for(let attempt = 0; attempt < 3; attempt++){
       try {
-        const reply = await request(messages, 0.9, maxTokens);
+        const reply = await request(CadavreCore.withEditedPoem(messages,editedPoemContext), 0.9, maxTokens);
         messages.push({ role: "assistant", content: reply, ...(CFG.authenticated ? {model:CFG.model} : {}) });
         return reply;
       } catch(err){
@@ -967,24 +970,15 @@ editBtn.addEventListener("click", () => {
     poemEdit.focus();
     return;
   }
-  const lines = poemEdit.value.split(/\r?\n/).map(l => l.trim());
-  while(lines.length && !lines[lines.length - 1]) lines.pop();
-  if(!lines.some(Boolean)) return note("a poem needs at least one line", true);
+  const lines = poemEdit.value.split(/\r?\n/);
+  if(!lines.some(line=>line.trim())) return note("a poem needs at least one line", true);
   editing = false;
   main.classList.remove("editing");
   editBtn.textContent = "edit the poem";
   const others = [...poemEl.querySelectorAll(".line")].map(l => l.classList.contains("other"));
   poemEl.innerHTML = "";
-  lines.forEach((text, i) => {
-    const div = document.createElement("div");
-    div.className = "line settled" + (others.length === lines.length && others[i] ? " other" : "");
-    text.split(/\s+/).filter(Boolean).forEach((w, j) => {
-      if(j) div.appendChild(document.createTextNode(" "));
-      const span = document.createElement("span"); span.className = "w"; span.textContent = w; div.appendChild(span);
-    });
-    if(!text) div.appendChild(document.createTextNode(" "));   // a stanza break
-    poemEl.appendChild(div);
-  });
+  lines.forEach((text,i)=>{const div=addLine(text,others.length===lines.length&&others[i]);div.classList.remove('rise');div.classList.add('settled');});
+  editedPoemContext=poemText();
   poemTokens = collectTokens();
   if(readingText) renderReadingLinked(readingEl, readingText, poemTokens);
     window.CadavreWork?.changed();
@@ -1004,6 +998,7 @@ function showPinned(item){
 async function regenerate(){
   if(!last || entry.disabled) return;
   const rejected = last.reply;
+  const rejectedMessage=messages[messages.length-1];
   if(messages[messages.length - 1]?.role === "assistant") messages.pop();
   last.lineEl.remove();
   setWaiting(true); setRegenEnabled(false);
@@ -1013,12 +1008,12 @@ async function regenerate(){
     const req = messages.concat([{ role: "user",
       content: `Previous attempt${avoid.length > 1 ? "s" : ""}: ${list}. `
         + `Give a different next line — one or two words only, do not repeat those.` }]);
-    const reply = tidyReply(await request(req, 1.0));
+    const reply = tidyReply(await request(CadavreCore.withEditedPoem(req,editedPoemContext), 1.0));
     if(!reply) throw new Error("the other hand offered only a period");
     messages.push({ role: "assistant", content: reply, ...(CFG.authenticated ? {model:CFG.model} : {}) });
     last = { userText: last.userText, reply, lineEl: addLine(reply, true), avoided: avoid };
   } catch(err){
-    messages.push({ role: "assistant", content: rejected });   // restore on failure
+    messages.push(rejectedMessage);   // restore original attribution on failure
     last = { userText: last.userText, reply: rejected, lineEl: addLine(rejected, true), avoided: last.avoided };
     note("the other hand is still reconnecting. try again shortly", true);
   } finally {
@@ -1073,25 +1068,31 @@ entry.addEventListener("keydown", async (e) => {
 $("regen").addEventListener("click", regenerate);
 $("reread").addEventListener("click", () => fetchReading(false));
 $("close-poem").addEventListener("click", closePoem);
-window.CadavreWork?.mount({
+async function initializeWork(){
+entry.disabled=true;
+if(CFG.authenticated&&!window.CadavreWork){note('Saved-work controls could not load. Reload this page.',true);return;}
+const opened=await window.CadavreWork?.mount({
   snapshot: () => ({schemaVersion:1,contributions:messages.filter(m=>m.role!=="system").map(m=>({role:m.role,content:m.content,...(m.model?{model:m.model}:{})})),text:poemText(),reading:readingText,settings:{steer:state.steer||"",tags:state.tags||[],systemPrompt:messages[0].content,...(state.override!==null?{override:state.override}:{}),model:CFG.model},record:{surface:"solo",closed}}),
   restore: async (content) => {
     messages.splice(1,messages.length-1,...content.contributions);
     if(content.settings.systemPrompt) messages[0].content=content.settings.systemPrompt;
-    if(content.settings.model)CFG.model=content.settings.model;
+    if(content.settings.model){CFG.model=content.settings.model;modelReadyFor=CFG.model;selectRequestedModel();}
     poemEl.querySelectorAll(".line").forEach(line=>line.remove());
     // Render the saved edited text exactly; original attributed contributions
     // remain in the record and the model receives the current poem as context.
-    content.text.split("\n").filter(Boolean).forEach(line=>addLine(line));
-    if(content.text!==content.contributions.map(m=>m.content).join("\n")) messages[0].content += "\nThe current edited poem, to continue as supplied by the user:\n" + content.text;
+    content.text.split("\n").forEach(line=>addLine(line));
+    editedPoemContext=content.text!==content.contributions.map(m=>m.content).join("\n")?content.text:null;
     readingText=content.reading;closed=false;last=null;
-    entry.disabled=false;setCloseEnabled(Boolean(content.text));
+    setCloseEnabled(Boolean(content.text));
     state.steer=content.settings.steer||"";steerEl.value=state.steer;
     if(Array.isArray(content.settings.tags))state.tags=content.settings.tags;
     state.override=content.settings.override??null;overrideOn.checked=state.override!==null;
     renderChips();syncPromptView();
   },
 });
+if(opened!==false)await loadModelOptions();
+}
+void initializeWork();
 </script>
 </body>
 </html>
