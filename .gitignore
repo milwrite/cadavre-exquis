@@ -14,3 +14,7 @@ data/processed/*.jsonl
 !data/processed/dataset_card.md
 ui/config.local.js
 unsloth_compiled_cache/
+
+# Account pilot build/runtime dependencies
+node_modules
+worker/dist-worker/

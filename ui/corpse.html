@@ -269,6 +269,7 @@
 
 <script src="../assets/cadavre-core.js"></script>
 <script src="config.local.js"></script>
+<script src="../assets/account-work.js"></script>
 <script>
 /* ── config ───────────────────────────────────────────────────────────────
    Layered: defaults < ui/config.local.js (gitignored; 404s harmlessly when
@@ -446,7 +447,7 @@ async function askForCues(){
   if (cueAsking || cuesFromModel) return;
   cueAsking = true;
   try {
-    const reply = await request([{ role: "user", content: CUE_ASK }], 1.0, 100);
+    const reply = await request([{ role: "user", content: CUE_ASK }], 1.0, 100, false);
     const fresh = Array.from(new Set(reply.toLowerCase().split(/\n+/)
       .map(line => line.replace(/^[\s\d.\-•*]+/, "").replace(/[^\p{L}\p{M}' ]+/gu, " ").trim().replace(/\s+/g, " "))
       .filter(line => { const n = line.split(" ").length; return line && n >= 1 && n <= 5; })))
@@ -821,7 +822,7 @@ async function pinToWall(){
 // A declaration, so the synchronous warm-up path (no models endpoint) can call it before this line.
 function keepFocus(e){
   if (closed) return;
-  if (e && panel.contains(e.target)) return;   // don't steal focus from the panel
+  if (e && (panel.contains(e.target) || e.target.closest("#account-work"))) return;   // don't steal focus from the panel
   entry.focus();
 }
 document.addEventListener("click", keepFocus);
@@ -847,18 +848,19 @@ function note(html, isErr){
   hint.innerHTML = isErr ? `<span class="err">${html}</span>` : html;
 }
 
-async function request(msgs, temperature = 0.9, maxTokens = TURN_TOKENS){
+async function request(msgs, temperature = 0.9, maxTokens = TURN_TOKENS, recordModel = true){
   const res = await fetch(CFG.endpoint, {
     method: "POST",
     headers: Object.assign({ "Content-Type": "application/json" },
       CFG.apiKey ? { "Authorization": "Bearer " + CFG.apiKey } : {}),
     body: JSON.stringify({
       model: CFG.model, messages: msgs,
-      max_tokens: maxTokens, temperature, top_p: 0.95, stream: false,
+      ...(CFG.authenticated ? {workId: CadavreWork.id(), recordModel} : {max_tokens:maxTokens}), temperature, top_p: 0.95, stream: false,
     }),
   });
   if(!res.ok) throw new Error("model returned " + res.status);
   const data = await res.json();
+  if(CFG.authenticated&&recordModel)window.CadavreWork?.modelRecorded(data.workModelRecorded);
   if(data.model){
     CFG.model = data.model;
     modelReadyFor = data.model;
@@ -882,10 +884,10 @@ async function send(text, maxTokens = TURN_TOKENS){
     for(let attempt = 0; attempt < 3; attempt++){
       try {
         const reply = await request(messages, 0.9, maxTokens);
-        messages.push({ role: "assistant", content: reply });
+        messages.push({ role: "assistant", content: reply, ...(CFG.authenticated ? {model:CFG.model} : {}) });
         return reply;
       } catch(err){
-        if(attempt === 2) throw err;
+        if(CFG.authenticated || attempt === 2) throw err;
         note("the other hand is reconnecting <span class=\"breathe\">·</span>");
         await new Promise(resolve => setTimeout(resolve, 750 * (2 ** attempt)));
       }
@@ -930,6 +932,7 @@ async function fetchReading(first = false){
     const reply = await request(CadavreCore.readingMessages(poem), 0.8, READING_TOKENS);
     readingText = CadavreCore.stripPoemFromReading(reply, poem);
     renderReadingLinked(readingEl, readingText, poemTokens);
+    window.CadavreWork?.changed();
     readingEl.classList.add("show");
     readingEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
     if(!first){
@@ -984,6 +987,7 @@ editBtn.addEventListener("click", () => {
   });
   poemTokens = collectTokens();
   if(readingText) renderReadingLinked(readingEl, readingText, poemTokens);
+    window.CadavreWork?.changed();
   note("poem edited. read it again for a fresh reading, or pin it to the wall");
 });
 
@@ -1011,14 +1015,14 @@ async function regenerate(){
         + `Give a different next line — one or two words only, do not repeat those.` }]);
     const reply = tidyReply(await request(req, 1.0));
     if(!reply) throw new Error("the other hand offered only a period");
-    messages.push({ role: "assistant", content: reply });
+    messages.push({ role: "assistant", content: reply, ...(CFG.authenticated ? {model:CFG.model} : {}) });
     last = { userText: last.userText, reply, lineEl: addLine(reply, true), avoided: avoid };
   } catch(err){
     messages.push({ role: "assistant", content: rejected });   // restore on failure
     last = { userText: last.userText, reply: rejected, lineEl: addLine(rejected, true), avoided: last.avoided };
     note("the other hand is still reconnecting. try again shortly", true);
   } finally {
-    setWaiting(false); setRegenEnabled(!!last); keepFocus();
+    setWaiting(false); setRegenEnabled(!!last); keepFocus(); window.CadavreWork?.changed();
   }
 }
 
@@ -1063,11 +1067,31 @@ entry.addEventListener("keydown", async (e) => {
   const modelEl = addLine(reply, true);   // the other hand
   last = { userText: text, reply, lineEl: modelEl, avoided: [] };
   setRegenEnabled(true); setCloseEnabled(true);
+  window.CadavreWork?.changed();
 });
 
 $("regen").addEventListener("click", regenerate);
 $("reread").addEventListener("click", () => fetchReading(false));
 $("close-poem").addEventListener("click", closePoem);
+window.CadavreWork?.mount({
+  snapshot: () => ({schemaVersion:1,contributions:messages.filter(m=>m.role!=="system").map(m=>({role:m.role,content:m.content,...(m.model?{model:m.model}:{})})),text:poemText(),reading:readingText,settings:{steer:state.steer||"",tags:state.tags||[],systemPrompt:messages[0].content,...(state.override!==null?{override:state.override}:{}),model:CFG.model},record:{surface:"solo",closed}}),
+  restore: async (content) => {
+    messages.splice(1,messages.length-1,...content.contributions);
+    if(content.settings.systemPrompt) messages[0].content=content.settings.systemPrompt;
+    if(content.settings.model)CFG.model=content.settings.model;
+    poemEl.querySelectorAll(".line").forEach(line=>line.remove());
+    // Render the saved edited text exactly; original attributed contributions
+    // remain in the record and the model receives the current poem as context.
+    content.text.split("\n").filter(Boolean).forEach(line=>addLine(line));
+    if(content.text!==content.contributions.map(m=>m.content).join("\n")) messages[0].content += "\nThe current edited poem, to continue as supplied by the user:\n" + content.text;
+    readingText=content.reading;closed=false;last=null;
+    entry.disabled=false;setCloseEnabled(Boolean(content.text));
+    state.steer=content.settings.steer||"";steerEl.value=state.steer;
+    if(Array.isArray(content.settings.tags))state.tags=content.settings.tags;
+    state.override=content.settings.override??null;overrideOn.checked=state.override!==null;
+    renderChips();syncPromptView();
+  },
+});
 </script>
 </body>
 </html>

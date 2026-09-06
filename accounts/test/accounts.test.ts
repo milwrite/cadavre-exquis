@@ -1,0 +1,89 @@
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
+import { generateKeyPair, exportJWK, SignJWT } from 'jose';
+const origin='https://tools.ailab.gc.cuny.edu';
+const subject=(letter:string)=>'cail-'+letter.repeat(32);
+let mf:Miniflare;
+let jwts:Record<string,string>={};
+let usedModels:string[]=[];
+let providerFails=false;
+async function call(path:string,method='GET',body?:unknown,who='a',app='hub',overrideHeaders:Record<string,string>={}) {
+  const route=app==='hub'?'/my-work/api'+path:'/api/work'+path;
+  return mf.dispatchFetch(origin+route,{method,headers:{origin,'content-type':'application/json','x-test-app':app,'x-cail-identity-jwt':jwts[who+':'+app], 'x-cail-gateway-identity-jwt':jwts[who+':gateway'],...overrideHeaders},body:body===undefined?undefined:JSON.stringify(body)});
+}
+const entry=(app='cadavre', title='Paper lantern')=>({id:crypto.randomUUID(),app,kind:app==='cadavre'?'poem':app==='jeopardy'?'board':'exercise',title,expectedRevision:0,content:{schemaVersion:1,contributions:[{role:'user',content:'Paper lantern crosses the river.'},{role:'assistant',content:'Its light finds another shore.',model:'test/poetry'}],text:'Paper lantern crosses the river.\nIts light finds another shore.',reading:'A change in perspective.',settings:{temperature:.8},record:{}}});
+before(async()=>{
+  const {publicKey,privateKey}=await generateKeyPair('RS256',{extractable:true});
+  const jwk=await exportJWK(publicKey);jwk.kid='local-test';jwk.alg='RS256';jwk.use='sig';
+  for(const who of ['a','b','c'])for(const app of ['hub','cadavre','jeopardy','cloze','gateway'])jwts[who+':'+app]=await new SignJWT({}).setProtectedHeader({alg:'RS256',kid:'local-test'}).setSubject(subject(who)).setIssuer(origin+'/cail-sso').setAudience('cail:'+(app==='hub'?'work-accounts':app)).setIssuedAt().setExpirationTime('10m').sign(privateKey);
+  mf=new Miniflare(convertV4MiniflareOptions({workers:[
+    {name:'caller',modules:true,compatibilityDate:'2026-09-06',script:`export default {async fetch(r,e){const app=r.headers.get('x-test-app');const path=new URL(r.url).pathname;if(path==='/begin')return Response.json(await e.CADAVRE.beginModel(r.headers.get('x-cail-identity-jwt')));if(path==='/late')return Response.json(await e.CADAVRE.modelCompleted(r.headers.get('x-cail-identity-jwt'),'test/late',null,Number(r.headers.get('x-generation')))); if(new URL(r.url).pathname==='/model'){const jwt=r.headers.get('x-cail-identity-jwt');const {generation}=await e.CADAVRE.beginModel(jwt);return Response.json(await e.CADAVRE.modelCompleted(jwt,'test/most-recent',null,generation));} return (app==='cadavre'?e.CADAVRE:app==='jeopardy'?e.JEOPARDY:app==='cloze'?e.CLOZE:e.HUB).fetch(r);}}`,serviceBindings:{HUB:'accounts',CADAVRE:{name:'accounts',entrypoint:'CadavreAccounts'},JEOPARDY:{name:'accounts',entrypoint:'JeopardyAccounts'},CLOZE:{name:'accounts',entrypoint:'ClozeAccounts'}}},
+    {name:'accounts',modules:true,compatibilityDate:'2026-09-06',compatibilityFlags:['nodejs_compat','enable_request_signal'],scriptPath:'dist/index.js',bindings:{CAIL_IDENTITY_JWKS:JSON.stringify({keys:[jwk]}),RELEASE:'local-test'},d1Databases:['DB'],durableObjects:{ACCOUNTS:{className:'AccountCoordinator',useSQLite:true}},serviceBindings:{ADMISSION_RESOLVER:{name:'admission',entrypoint:'AdmissionResolver'},GATEWAY:async(request:Request)=>{const body=await request.json() as {model:string};usedModels.push(body.model);return Response.json(providerFails?{error:{message:'test failure'}}:{model:body.model,choices:[{message:{content:'The user returns to images of light and movement. Try varying the verb in the next poem.'}}]},{status:providerFails?503:200});}}},
+    {name:'admission',modules:true,compatibilityDate:'2026-09-06',script:`import {WorkerEntrypoint} from 'cloudflare:workers';export class AdmissionResolver extends WorkerEntrypoint{resolveMembership({subject}){return {ok:true,expiresAt:subject==='${subject('c')}'?'2020-01-01T00:00:00.000Z':'2099-01-01T00:00:00.000Z',revision:1,accessRole:'member',budgetScope:'person'};}}export default {fetch(){return new Response('local Admission double');}}`},
+  ]}));
+  const db=await mf.getD1Database('DB','accounts');
+  const schema=await readFile('migrations/0001_accounts.sql','utf8');
+  for(const sql of schema.split(';').map(s=>s.trim()).filter(Boolean))await db.prepare(sql).run();
+});
+after(async()=>{await mf?.dispose();});
+test('actual Worker verifier rejects absent/wrong audience identity, expired membership and cross-origin writes',async()=>{
+  assert.equal((await call('/profile','GET',undefined,'a','hub',{'x-cail-identity-jwt':''})).status,401);
+  assert.equal((await call('/profile','GET',undefined,'a','hub',{'x-cail-identity-jwt':jwts['a:cadavre']})).status,401);
+  assert.equal((await call('/profile','GET',undefined,'c')).status,403);
+  assert.equal((await call('/profile','PATCH',{},'a','hub',{origin:'https://foreign.example'})).status,403);
+  assert.equal((await call('/profile')).status,200);
+});
+test('real D1/DO save, ownership isolation, simultaneous revision conflict and scoped app entrypoints',async()=>{
+  const value=entry();assert.equal((await call('/entries','PUT',value,'a','cadavre')).status,201);
+  assert.equal((await call('/entries/'+value.id,'GET',undefined,'b')).status,404);
+  assert.equal((await call('/entries/'+value.id,'GET',undefined,'a','cloze')).status,404);
+  assert.equal((await call('/entries','PUT',entry('cloze'),'a','cadavre')).status,400);
+  const edits=await Promise.all(['first','second'].map(title=>call('/entries','PUT',{...value,title,expectedRevision:1},'a','cadavre')));
+  assert.deepEqual(edits.map(r=>r.status).sort(),[200,409]);
+  const saved=await (await call('/entries/'+value.id)).json() as {item:{revision:number}};assert.equal(saved.item.revision,2);
+  for(const app of ['jeopardy','cloze'])assert.equal((await call('/entries','PUT',entry(app),'a',app)).status,201);
+});
+test('five recent unpinned items with independently pinned work and lossless archive',async()=>{
+  const values=Array.from({length:7},(_,i)=>entry('cadavre','Saved '+i));
+  for(const value of values)assert.equal((await call('/entries','PUT',value)).status,201);
+  assert.equal((await call('/entries/'+values[0].id+'/pin','PATCH',{pinned:true,expectedRevision:1})).status,200);
+  const dashboard=await (await call('/dashboard')).json() as {apps:{cadavre:{recent:unknown[];pinned:unknown[];total:number}}};
+  assert.equal(dashboard.apps.cadavre.recent.length,5);assert.equal(dashboard.apps.cadavre.pinned.length,1);assert.equal(dashboard.apps.cadavre.total,8);
+  const archive=await (await call('/entries?app=cadavre')).json() as {items:unknown[]};assert.equal(archive.items.length,8);
+});
+test('settings are persisted with optimistic concurrency and credentials are rejected from metadata',async()=>{
+  const change={displayName:'Local acceptance',reflectionEnabled:true,defaultApp:'cloze',expectedRevision:1};
+  assert.equal((await call('/profile','PATCH',change)).status,200);assert.equal((await call('/profile','PATCH',change)).status,409);
+  const p=await (await call('/profile')).json() as {profile:{displayName:string;defaultApp:string}};assert.equal(p.profile.defaultApp,'cloze');assert.equal(p.profile.displayName,change.displayName);
+  const bad=entry();bad.content.record={apiKey:'never-save'};assert.equal((await call('/entries','PUT',bad)).status,400);
+});
+test('reflection uses the server-observed latest model and preserves prior synthesis on provider failure',async()=>{
+  const model=await mf.dispatchFetch(origin+'/model',{headers:{'x-cail-identity-jwt':jwts['a:cadavre']}});assert.equal(model.status,200);
+  assert.equal((await call('/reflection','POST',{},'a','hub',{'x-cail-gateway-identity-jwt':jwts['b:gateway']})).status,401);
+  const reflected=await call('/reflection','POST',{});assert.equal(reflected.status,200,await reflected.text());assert.deepEqual(usedModels,['test/most-recent']);
+  const db=await mf.getD1Database('DB','accounts');await db.prepare('UPDATE reflections SET requested_at=0 WHERE subject=?').bind(subject('a')).run();providerFails=true;
+  assert.equal((await call('/reflection','POST',{})).status,502);
+  const d=await (await call('/dashboard')).json() as {reflection:{text:string;state:string;model:string}};assert.ok(d.reflection.text.includes('light'));assert.equal(d.reflection.state,'failed');assert.equal(d.reflection.model,'test/most-recent');
+});
+test('deletion cascades owned records, removes synthesis, and export never contains identity subjects',async()=>{
+  const exported=await (await call('/export')).json();assert.ok(!JSON.stringify(exported).includes(subject('a')));
+  assert.equal((await call('/account-data','DELETE',{confirmation:'DELETE MY WORK'})).status,200);
+  const db=await mf.getD1Database('DB','accounts');for(const table of ['entries','model_runs','reflections','entry_events']){const row=await db.prepare('SELECT COUNT(*) AS n FROM '+table+' WHERE subject=?').bind(subject('a')).first<{n:number}>();assert.equal(row?.n,0);}
+});
+
+test('late model completions cannot recreate deleted account data',async()=>{
+  const headers={'x-cail-identity-jwt':jwts['b:cadavre']};
+  const {generation}=await (await mf.dispatchFetch(origin+'/begin',{headers})).json() as {generation:number};
+  assert.equal((await call('/account-data','DELETE',{confirmation:'DELETE MY WORK'},'b')).status,200);
+  const late=await (await mf.dispatchFetch(origin+'/late',{headers:{...headers,'x-generation':String(generation)}})).json() as {recorded:boolean};
+  assert.equal(late.recorded,false);
+  const db=await mf.getD1Database('DB','accounts');
+  const count=await db.prepare('SELECT COUNT(*) AS n FROM model_runs WHERE subject=?').bind(subject('b')).first<{n:number}>();assert.equal(count?.n,0);
+});
+test('named app exports remain scoped and reflection is a hub operation',async()=>{
+  for(const app of ['cadavre','cloze'])assert.equal((await call('/entries','PUT',entry(app),'b',app)).status,201);
+  const exported=await (await call('/export','GET',undefined,'b','cadavre')).json() as {entries:{app:string}[]};assert.deepEqual(exported.entries.map(e=>e.app),['cadavre']);
+  assert.equal((await call('/reflection','POST',{},'b','cadavre')).status,404);
+});

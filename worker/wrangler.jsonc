@@ -11,8 +11,9 @@
   "observability": { "enabled": true },
   "assets": {
     "directory": "./dist",
+    "binding": "ASSETS",
     // Only these paths run the script first; every other path is asset-first.
-    "run_worker_first": ["/api/*", "/health", "/ui/config.local.js"]
+    "run_worker_first": ["/api/*", "/health", "/ui/config.local.js", "/cadavre", "/cadavre/*"]
   },
   // Workers AI on the lab's own account. No provider key is needed for @cf/ models.
   "ai": { "binding": "AI" },
@@ -27,7 +28,13 @@
     { "name": "READING_LIMIT", "namespace_id": "74102", "simple": { "limit": 6, "period": 60 } },
     { "name": "WALL_LIMIT", "namespace_id": "74103", "simple": { "limit": 5, "period": 60 } }
   ],
+  "services": [
+    { "binding": "WORK_ACCOUNTS", "service": "cail-work-accounts", "entrypoint": "CadavreAccounts" },
+    { "binding": "ADMISSION_RESOLVER", "service": "cail-tools-admission", "entrypoint": "AdmissionResolver" },
+    { "binding": "GATEWAY", "service": "cail-model-api" }
+  ],
   "vars": {
+    "CAIL_IDENTITY_JWKS": "{\"keys\":[{\"kty\":\"RSA\",\"n\":\"wJQeOnxN8QFTmdrcGOCxnkQ7Gkmb_f-HSQOqy0pRnAZrMrr0wjXBUjFdhMdJyw47TRIZhlAeLSF89hDBff_cwJKGxBAY3KkpxYjXt4ndQz4dHT9RiiX6EvIpsCNWJc818okjYNnSNShtUbCg4w8EJnpIiprQaC7HO5A3JoVni62ghAXfOhZIrTHGlq2kqBtxBQTVk7lpk_YxvJVth5MA0HQgekoLJ0SYy84p5gXZzqo-6oFXTMnZ_DSH_X6NqvPyW9pnYS7znc2yqD8NflOca5iHOn78SZDiL9kyto_vXueqSiLuCGdWjs5RqV5mFjBVUKKDKwS_6UnjSfjf6XpFiw\",\"e\":\"AQAB\",\"alg\":\"RS256\",\"use\":\"sig\",\"kid\":\"a4d816154d18135a15c2ee76998a57eb\"}]}",
     "RELEASE": "dev",
     "CAIL_LOG_ENV": "preview",
     // Public catalog of what the CAIL Gateway exposes; the page menu is drawn from it.
