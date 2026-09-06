@@ -1,5 +1,5 @@
-import { application, isApp, type AppId } from './applications.ts';
-export { APPS, isApp, type AppId } from './applications.ts';
+import { isApp, type AppId } from './applications.ts';
+export { isApp, type AppId } from './applications.ts';
 export type Contribution = { role: 'user' | 'assistant'; content: string; model?: string };
 export type EntryContent = {
   schemaVersion: 1;
@@ -65,8 +65,8 @@ export function parseContent(value: unknown): EntryContent {
 export function parseEntry(value: unknown, scope?: AppId): EntryInput {
   const v = exact(value, ['id','app','kind','title','content','expectedRevision']);
   if (!isApp(v.app) || (scope && v.app !== scope)) throw new InputError('This application cannot save that record.');
-  if (v.kind !== application(v.app).kind) throw new InputError('Invalid record kind.');
-  return {id:entryId(v.id),app:v.app,kind:application(v.app).kind,title:boundedText(v.title,120,true),content:parseContent(v.content),expectedRevision:revision(v.expectedRevision)};
+  const kind=boundedText(v.kind,40,true);
+  return {id:entryId(v.id),app:v.app,kind,title:boundedText(v.title,120,true),content:parseContent(v.content),expectedRevision:revision(v.expectedRevision)};
 }
 export function publicEntry(row: EntryRow, includeContent = false) {
   return {id:row.id, app:row.app, kind:row.kind, title:row.title, pinned:Boolean(row.pinned), revision:row.revision, createdAt:row.created_at, updatedAt:row.updated_at, ...(includeContent ? {content:JSON.parse(row.content) as EntryContent} : {})};

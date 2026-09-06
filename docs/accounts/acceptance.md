@@ -1,3 +1,11 @@
+## Worker registration correction — 2026-09-06
+
+User scope: integrated Workers in `ailab-452.workers.dev` only; no fixed/planned application list and no model reflection. Cadavre supplies its own manifest through a deployment-controlled generic `WorkerAccounts` service binding. D1 stores discovered registrations. New Workers need an owning integration and registration readback, not dashboard source changes.
+
+Owner: primary agent. User action: open a connected Worker and resume its saved artifact. Receivers: account service then Cadavre caller. Migration 0003 creates an empty registration table; the existing pilot's owning binding manifest is bootstrapped before receiver promotion so its old serving caller can still create records. Caller health then performs real RPC registration. Compatibility receiver is removed after binding readback.
+
+Validation: 11 real workerd/D1/DO tests, including a previously unknown Worker registering through actual service-binding props; wrong audience/app, missing/unsafe props, conflicting/old manifests and retained orphan records. All 13 Cadavre tests and both type/build checks passed. The actual Doorway → Cadavre → account boundary now includes real Cloudflare static assets and catches mount/query loss on clean-URL redirects, plus the stable Worker play route. Identity issuer, Admission and model are local doubles; one model call. Independent reviewer reran the account suite and this boundary successfully. Deployed release and Firefox acceptance follow below when complete.
+
 # Account pilot acceptance — 2026-09-06
 
 ## Current scope update

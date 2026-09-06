@@ -1,3 +1,4 @@
+import {cadavreManifest,fixtureManifest} from './worker-manifest.ts';
 // Local-only acceptance: real product Workers + D1 + DO; local JWT issuer,
 // Admission and model provider doubles. Never deploy this caller.
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
@@ -21,14 +22,12 @@ async function gateway(request:Request){
 const mf=new Miniflare(convertV4MiniflareOptions({port:8792,workers:[
  {name:'local-caller',modules:true,compatibilityDate:'2026-09-06',script:`export default {fetch(r,e){const u=new URL(r.url);const app=u.pathname.startsWith('/cadavre')?'cadavre':'work-accounts';const h=new Headers(r.headers);if(h.get('origin')===u.origin)h.set('origin','${origin}');h.set('x-cail-identity-jwt',app==='cadavre'?e.CADAVRE_JWT:e.HUB_JWT);h.set('x-cail-gateway-identity-jwt',e.GATEWAY_JWT);u.protocol='https:';u.host='tools.ailab.gc.cuny.edu';return (app==='cadavre'?e.CADAVRE:e.HUB).fetch(new Request(u,{method:r.method,headers:h,body:r.body,redirect:'manual'}));}}`,bindings:{CADAVRE_JWT:tokens.cadavre,HUB_JWT:tokens['work-accounts'],GATEWAY_JWT:tokens.gateway},serviceBindings:{CADAVRE:'cadavre',HUB:'accounts'}},
  {name:'accounts',modules:true,compatibilityDate:'2026-09-06',compatibilityFlags:['nodejs_compat','enable_request_signal'],scriptPath:'dist/index.js',bindings:common,d1Databases:['DB'],durableObjects:{ACCOUNTS:{className:'AccountCoordinator',useSQLite:true}},serviceBindings:{ADMISSION_RESOLVER:admission,GATEWAY:gateway}},
- {name:'cadavre',modules:true,compatibilityDate:'2026-08-25',scriptPath:resolve('../worker/dist-worker/index.js'),modulesRoot:resolve('..'),bindings:{...common,CADAVRE_DEFAULT_MODEL:'test/poetry',CADAVRE_MODEL_POLICY:'workers-ai'},durableObjects:{STORE:{className:'CadavreStore',useSQLite:true}},serviceBindings:{WORK_ACCOUNTS:{name:'accounts',entrypoint:'CadavreAccounts'},ADMISSION_RESOLVER:admission,GATEWAY:gateway,ASSETS:async(request:Request)=>{
-  const pathname=new URL(request.url).pathname;const file=resolve('../worker/dist','.'+(pathname==='/'?'/index.html':pathname));
-  if(!file.startsWith(resolve('../worker/dist')+'/'))return new Response('Not found',{status:404});
-  try{return new Response(await readFile(file),{headers:{'content-type':({'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.svg':'image/svg+xml'} as Record<string,string>)[extname(file)]||'application/octet-stream'}});}catch{return new Response('Not found',{status:404});}
- }}},
+ {name:'cadavre',modules:true,compatibilityDate:'2026-08-25',scriptPath:resolve('../worker/dist-worker/index.js'),modulesRoot:resolve('..'),bindings:{...common,CADAVRE_DEFAULT_MODEL:'test/poetry',CADAVRE_MODEL_POLICY:'workers-ai'},durableObjects:{STORE:{className:'CadavreStore',useSQLite:true}},assets:{directory:resolve('../worker/dist'),binding:'ASSETS',run_worker_first:true,routerConfig:{has_user_worker:true}},serviceBindings:{WORK_ACCOUNTS:{name:'accounts',entrypoint:'WorkerAccounts',props:cadavreManifest},ADMISSION_RESOLVER:admission,GATEWAY:gateway
+ }},
  {name:'admission',modules:true,compatibilityDate:'2026-09-06',script:`import {WorkerEntrypoint} from 'cloudflare:workers';export class AdmissionResolver extends WorkerEntrypoint{resolveMembership(){return {ok:true,expiresAt:'2099-01-01T00:00:00.000Z',revision:1,accessRole:'member',budgetScope:'person'};}}export default{fetch(){return new Response('local admission double');}}`},
 ]}));
 const db=await mf.getD1Database('DB','accounts');
-const schema=(await Promise.all(['0001_accounts.sql','0002_application_catalog.sql'].map(file=>readFile('migrations/'+file,'utf8')))).join('\n');for(const sql of schema.split(';').map(s=>s.trim()).filter(Boolean))await db.prepare(sql).run();
+const schema=(await Promise.all(['0001_accounts.sql','0002_application_catalog.sql','0003_registered_workers.sql'].map(file=>readFile('migrations/'+file,'utf8')))).join('\n');for(const sql of schema.split(';').map(s=>s.trim()).filter(Boolean))await db.prepare(sql).run();
+await mf.dispatchFetch('http://localhost:8792/cadavre/api/work/profile');
 console.log('Local acceptance ready: '+await mf.ready);
 for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>void mf.dispose().then(()=>process.exit()));

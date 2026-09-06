@@ -1,18 +1,42 @@
-# Connect an application to My work
+# Connect a CAIL Worker to My work
 
-My work is a shared private library, not a game-specific backend. Cadavre is the first live adapter. The interface discovers names, entry kinds and safe resume links from `accounts/src/applications.ts`; it does not maintain separate per-game UI branches. New applications can store conversations, documents, exercises, boards or other JSON artifacts using the same entry envelope.
+My work stores private recent work and artifacts for integrated Workers under `ailab-452.workers.dev`. Each Worker owns its routes and record schema. The shared dashboard contains no application list, planned products, or application-specific launch paths. D1 `registered_workers` supplies the directory, filters, entry kinds and reopen links. Cadavre is the pilot; other Workers appear only after enrollment.
 
-## Register and scope
+## Register the Worker
 
-Add one definition to `APPLICATIONS`: stable lowercase ID, display name, description, record kind, category, canonical launch URL, optional resume path, and connection state. These URLs are code-owned; never take them from stored content or query parameters. A planned application has no launch/resume link until verified.
+In the owning Worker's deployment configuration, bind to the generic `WorkerAccounts` entrypoint and supply deployment-controlled props:
 
-Export a named class extending `AppAccounts` in `accounts/src/index.ts`, with its constant app ID. Bind the application Worker to this exact named entrypoint. Add its exact route and audience in Doorway through Doorway's reviewed PR/main release path. A browser cannot select another app's adapter or account. The service verifies the exact app audience and current Admission on every request, and names the AccountCoordinator from the verified subject.
+```json
+{
+  "binding": "WORK_ACCOUNTS",
+  "service": "cail-work-accounts",
+  "entrypoint": "WorkerAccounts",
+  "props": {
+    "id": "your-worker-app",
+    "worker": "your-worker-name",
+    "version": 1,
+    "name": "Your application",
+    "description": "A short description of what people can save.",
+    "kind": "artifact",
+    "href": "/your-worker-app/",
+    "resumePath": "/your-worker-app/play/"
+  }
+}
+```
 
-After migration 0002, adding an app does not require a database enum migration. Unregistered applications and incorrect entry kinds remain rejected by code, and scoped adapters cannot read/write/export another application's work. The account hub can aggregate only its authenticated owner's registered apps. Do not expose a generic caller-selected subject or a raw Durable Object ID.
+The Worker origin is derived as `https://<worker>.ailab-452.workers.dev`; arbitrary external origins are not accepted. `href` and `resumePath` are the canonical CUNY-authenticated mounts for that Worker. Doorway must already route that exact mount and issue its exact `cail:<id>` audience. No directory registration grants a Doorway route, membership or administrator privileges.
+
+Call `await env.WORK_ACCOUNTS.register()` during the Worker's integration/readiness check after deploying it. Registration takes no browser metadata or arguments: it reads Cloudflare service-binding `ctx.props`, persists the manifest in D1, and returns its registered ID/version. Verify the directory and actual launch/resume URLs as part of that deployment. Cadavre invokes registration on its existing health check and authenticated requests. Account operations also ensure registration. No shared-service source change or additional database migration is needed to enroll another Worker.
+
+Keep the ID, Worker name and record kind stable. Increment `version` when names or routes change. Registration is idempotent; older serving versions cannot overwrite newer metadata. Reusing a version with different metadata, claiming an existing ID/Worker, or changing its kind is rejected. Only deployers trusted to configure these service bindings can register; browser HTTP requests cannot register or choose their scope. Missing props fail closed.
+
+The generic receiver derives its exact audience from those trusted props, verifies the Doorway JWT and current Admission, and names the per-account Durable Object from the verified opaque subject. Saved content never selects identity or another Worker's adapter. Registering a Worker does not import its existing D1/R2/DO data automatically: the owning adapter explicitly writes the bounded shared envelope or related record. Retired registrations do not erase history; existing work remains readable, editable and exportable without a launch link.
+
+Cloudflare reference: [service-binding props](https://developers.cloudflare.com/workers/runtime-apis/context/#props). CAIL authority: [Tool Integration Contract](https://github.com/CUNY-AI-Lab/cail-knowledge-base/blob/main/05%20Infrastructure/CAIL%20Tool%20Integration%20Contract.md).
 
 ## Save and reopen
 
-Forward the browser's same-origin save request server-side to the named account entrypoint at `/api/work/entries`, with Doorway's app identity header. Preserve Origin validation. Keep identity legs, secrets and raw CUNY identity out of the browser and saved records.
+Forward the browser's same-origin save request server-side to the generic WorkerAccounts entrypoint at `/api/work/entries`, with Doorway's app identity header. Preserve Origin validation. Keep identity legs, secrets and raw CUNY identity out of the browser and saved records.
 
 Use the same UUID v4 on every update. The envelope is:
 

@@ -29,7 +29,11 @@
     { "name": "WALL_LIMIT", "namespace_id": "74103", "simple": { "limit": 5, "period": 60 } }
   ],
   "services": [
-    { "binding": "WORK_ACCOUNTS", "service": "cail-work-accounts", "entrypoint": "CadavreAccounts" },
+    { "binding": "WORK_ACCOUNTS", "service": "cail-work-accounts", "entrypoint": "WorkerAccounts", "props": {
+      "id": "cadavre", "worker": "cail-cadavre", "version": 1,
+      "name": "Cadavre", "description": "Write a poem, one contribution at a time.", "kind": "poem",
+      "href": "/cadavre/", "resumePath": "/cadavre/play/"
+    } },
     { "binding": "ADMISSION_RESOLVER", "service": "cail-tools-admission", "entrypoint": "AdmissionResolver" },
     { "binding": "GATEWAY", "service": "cail-model-api" }
   ],

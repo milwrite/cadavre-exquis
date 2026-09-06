@@ -222,8 +222,9 @@ app.all("/api/*", (c) => c.json({ error: { message: "no such route" } }, 404, no
 app.notFound((c) => c.text("not found", 404));
 
 export default {
-  fetch(request: Request, env: Bindings & SignedBindings, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Bindings & SignedBindings, ctx: ExecutionContext): Promise<Response> {
     const path = new URL(request.url).pathname;
+    if(path==='/health')await env.WORK_ACCOUNTS.register();
     if (path === "/cadavre" || path.startsWith("/cadavre/")) return signedIn(request, env, async (r) => app.fetch(r, env, ctx));
     return Promise.resolve(app.fetch(request, env, ctx));
   },

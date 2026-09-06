@@ -1,7 +1,7 @@
 import { authenticate, AuthFailure, boundedJson, enforceOrigin, ORIGIN, type AuthBindings } from '../../accounts/src/auth.ts';
 import { boundedText, entryId, exact, InputError, isRecord } from '../../accounts/src/contract.ts';
 import { configScript } from './config.ts';
-export type AccountClient = {fetch(request:Request):Promise<Response>;beginModel(jwt:string):Promise<{generation:number}>;modelCompleted(jwt:string,model:string,entryId:string|null,generation:number):Promise<{recorded:boolean}>};
+export type AccountClient = {register():Promise<{registered:boolean;id:string;version:number}>;fetch(request:Request):Promise<Response>;beginModel(jwt:string):Promise<{generation:number}>;modelCompleted(jwt:string,model:string,entryId:string|null,generation:number):Promise<{recorded:boolean}>};
 export type SignedBindings = Env & AuthBindings & {WORK_ACCOUNTS:AccountClient};
 const noStore={'cache-control':'no-store','x-content-type-options':'nosniff'};
 export async function signedIn(request:Request,env:SignedBindings,legacy:(request:Request)=>Promise<Response>):Promise<Response> {
@@ -11,6 +11,7 @@ export async function signedIn(request:Request,env:SignedBindings,legacy:(reques
     enforceOrigin(request);
     const inference=path==='/api/cadavre/chat';
     const {keyring}=await authenticate(request,env,'cail:cadavre',inference);
+    await env.WORK_ACCOUNTS.register();
     if(url.pathname==='/cadavre')return Response.redirect(ORIGIN+'/cadavre/',302);
     const internal=new URL(request.url);internal.pathname=path;
     const translated=new Request(internal,request);
@@ -43,7 +44,22 @@ export async function signedIn(request:Request,env:SignedBindings,legacy:(reques
       return Response.json({...data,workModelRecorded:recorded},{headers:noStore});
     }
     if(path.startsWith('/api/'))return legacy(translated);
-    const asset=await env.ASSETS.fetch(translated);
+    // The stable Worker route serves the existing sheet. Resolve asset clean-URL
+    // redirects internally so the browser never loses its authenticated mount.
+    if(path==='/play')return Response.redirect(ORIGIN+'/cadavre/play/'+url.search,302);
+    const assetUrl=new URL(translated.url);
+    if(path==='/play/' || path==='/play/config.local.js') {
+      if(path.endsWith('config.local.js'))return new Response(configScript(env.CADAVRE_DEFAULT_MODEL,true),{headers:{...noStore,'content-type':'application/javascript'}});
+      assetUrl.pathname='/ui/corpse';
+    }
+    let asset=await env.ASSETS.fetch(new Request(assetUrl,translated));
+    const location=asset.headers.get('location');
+    if(location && asset.status>=300 && asset.status<400){
+      const target=new URL(location,assetUrl);
+      if(target.origin!==assetUrl.origin)return Response.json({error:{code:'invalid_asset_redirect'}},{status:502});
+      return Response.redirect(ORIGIN+'/cadavre'+target.pathname+target.search+target.hash,asset.status);
+    }
+    if(asset.headers.get('content-type')?.includes('text/html'))asset=new HTMLRewriter().on('a[href]',{element(el){const href=el.getAttribute('href');if(href && new URL(href,assetUrl).pathname==='/ui/corpse.html')el.setAttribute('href','/cadavre/play/');}}).transform(asset);
     return new Response(asset.body,{status:asset.status,headers:{...Object.fromEntries(asset.headers),...noStore,'content-security-policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"}});
   }catch(error){
     if(error instanceof AuthFailure)return error.response;

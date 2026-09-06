@@ -1,15 +1,38 @@
-// Registered application metadata is the shared source for storage validation,
-// dashboard navigation and resume links. Each adapter also needs a named,
-// exact-audience WorkerEntrypoint; listing an app never grants it access.
-export const APPLICATIONS = [
-  {id:'cadavre',name:'Cadavre',description:'Write a poem, one contribution at a time.',kind:'poem',category:'Writing',href:'/cadavre/',resumePath:'/cadavre/ui/corpse.html',connection:'connected'},
-  {id:'jeopardy',name:'Jeopardy Generator',description:'Build question boards for play and learning.',kind:'board',category:'Games',href:null,resumePath:null,connection:'planned'},
-  {id:'cloze',name:'Cloze Reader',description:'Read closely through questions, gaps and hints.',kind:'exercise',category:'Reading',href:null,resumePath:null,connection:'planned'},
-] as const;
-export type AppId = typeof APPLICATIONS[number]['id'];
-export const APPS = APPLICATIONS.map(app=>app.id);
-export const isApp = (value:unknown):value is AppId => APPLICATIONS.some(app=>app.id===value);
-export const application = (id:AppId) => APPLICATIONS.find(app=>app.id===id)!;
+// Worker metadata arrives through deployment-controlled service-binding props.
+// No product list or application-specific route belongs in the shared service.
+export type AppId = string;
+export type WorkerManifest = {id:string;worker:string;version:number;name:string;description:string;kind:string;href:string;resumePath:string};
+export const isApp = (value:unknown):value is AppId => typeof value==='string' && /^[a-z][a-z0-9-]{1,62}$/.test(value) && !['all','my-work','work-accounts','gateway','admin','cail-sso'].includes(value);
+export function manifest(value:unknown):WorkerManifest {
+  if(!value || typeof value!=='object' || Array.isArray(value))throw new Error('Missing Worker registration');
+  const v=value as Record<string,unknown>;
+  if(Object.keys(v).some(k=>!['id','worker','version','name','description','kind','href','resumePath'].includes(k)) || !isApp(v.id) || !Number.isSafeInteger(v.version) || Number(v.version)<1)throw new Error('Invalid Worker registration');
+  const text=(key:string,max:number)=>{const value=v[key];if(typeof value!=='string'||!value.trim()||value.length>max||/[\u0000-\u001f\u007f]/.test(value))throw new Error('Invalid Worker metadata');return value;};
+  const worker=text('worker',63);
+  if(!/^[a-z][a-z0-9-]{1,62}$/.test(worker))throw new Error('Invalid Worker name');
+  const path=(key:string)=>{const p=text(key,240);if(!p.startsWith('/'+v.id+'/')|| !/^\/[a-zA-Z0-9/_-]*$/.test(p)||p.includes('//'))throw new Error('Invalid Worker route');return p;};
+  const kind=text('kind',40);if(!/^[a-z][a-z0-9-]*$/.test(kind))throw new Error('Invalid record kind');
+  return {id:v.id,worker,version:Number(v.version),name:text('name',80),description:text('description',240),kind,href:path('href'),resumePath:path('resumePath')};
+}
+export async function registerWorker(db:D1Database,value:unknown) {
+  const m=manifest(value), json=JSON.stringify(m);
+  const current=await db.withSession('first-primary').prepare('SELECT worker,kind,version,manifest FROM registered_workers WHERE id=?').bind(m.id).first<{worker:string;kind:string;version:number;manifest:string}>();
+  if(current){
+    if(current.worker!==m.worker || current.kind!==m.kind || (current.version===m.version && current.manifest!==json))throw new Error('Conflicting Worker registration');
+    if(current.version>=m.version)return {registered:true,id:m.id,version:current.version};
+  }
+  // Monotonic manifest versions prevent old serving isolates reverting routes.
+  await db.prepare(`INSERT INTO registered_workers(id,worker,kind,version,manifest) VALUES(?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET version=excluded.version,manifest=excluded.manifest
+    WHERE registered_workers.worker=excluded.worker AND registered_workers.kind=excluded.kind AND registered_workers.version<excluded.version`).bind(m.id,m.worker,m.kind,m.version,json).run();
+  const row=await db.withSession('first-primary').prepare('SELECT worker,kind,version,manifest FROM registered_workers WHERE id=?').bind(m.id).first<{worker:string;kind:string;version:number;manifest:string}>();
+  if(!row || row.worker!==m.worker || row.kind!==m.kind || (row.version===m.version && row.manifest!==json))throw new Error('Conflicting Worker registration');
+  return {registered:true,id:m.id,version:row.version};
+}
+export async function workerCatalog(db:D1Database,scope:AppId|null) {
+  const rows=await db.withSession('first-primary').prepare('SELECT manifest FROM registered_workers'+(scope?' WHERE id=?':'')+' ORDER BY id').bind(...(scope?[scope]:[])).all<{manifest:string}>();
+  return rows.results.map(row=>{const m=manifest(JSON.parse(row.manifest));return {...m,workerOrigin:'https://'+m.worker+'.ailab-452.workers.dev',connection:'connected'};});
+}
 export const LAB_LINKS = [
   {label:'Lab access',href:'/welcome',description:'Membership and classes'},
   {label:'Model Access',href:'/model-access',description:'Models and account usage'},

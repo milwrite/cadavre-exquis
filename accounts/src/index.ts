@@ -2,7 +2,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import { authenticate, AuthFailure, boundedJson, enforceOrigin, type AuthBindings } from './auth.ts';
 import { InputError, type AppId } from './contract.ts';
 import { page } from './ui.ts';
-import { APPLICATIONS, LAB_LINKS } from './applications.ts';
+import { manifest, registerWorker, workerCatalog, LAB_LINKS } from './applications.ts';
 export { AccountCoordinator } from './store.ts';
 type Bindings = Env & AuthBindings;
 const headers = {'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer'};
@@ -15,7 +15,7 @@ async function handle(request:Request,env:Bindings,scope:AppId|null):Promise<Res
     const path = scope ? url.pathname.replace(/^\/api\/work/,'') : url.pathname.replace(/^\/my-work\/api/,'');
     const {subject}=await authenticate(request,env,audience);
     const store=env.ACCOUNTS.getByName(subject);
-    if (path==='/applications' && request.method==='GET') return Response.json({applications:APPLICATIONS.filter(app=>!scope || app.id===scope),labLinks:scope?[]:LAB_LINKS},{headers});
+    if (path==='/applications' && request.method==='GET') return Response.json({applications:await workerCatalog(env.DB,scope),labLinks:scope?[]:LAB_LINKS},{headers});
     if (!scope && ['/my-work','/my-work/'].includes(url.pathname) && request.method==='GET') return new Response(page,{headers:{...headers,'content-type':'text/html;charset=utf-8','content-security-policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"}});
     const input = ['GET','HEAD'].includes(request.method) ? null : await boundedJson(request);
     return respond(await store.run(subject,scope,request.method,path,input,url.search));
@@ -26,10 +26,12 @@ async function handle(request:Request,env:Bindings,scope:AppId|null):Promise<Res
     return Response.json({error:{code:'service_unavailable',message:'Your work is temporarily unavailable. Try again.'}},{status:503,headers});
   }
 }
-abstract class AppAccounts extends WorkerEntrypoint<Bindings> {
-  abstract app:AppId;
-  fetch(request:Request){return handle(request,this.env,this.app);}
+export class WorkerAccounts extends WorkerEntrypoint<Bindings> {
+  get app():AppId {return manifest(this.ctx.props).id;}
+  register(){return registerWorker(this.env.DB,this.ctx.props);}
+  async fetch(request:Request){await this.register();return handle(request,this.env,this.app);}
   async beginModel(appJwt:string){
+    await this.register();
     const request=new Request('https://tools.ailab.gc.cuny.edu/',{headers:{'x-cail-identity-jwt':appJwt}});
     const {subject}=await authenticate(request,this.env,`cail:${this.app}`);
     const result=await this.env.ACCOUNTS.getByName(subject).run(subject,this.app,'GET','/profile',null,'');
@@ -37,12 +39,15 @@ abstract class AppAccounts extends WorkerEntrypoint<Bindings> {
     return {generation:(JSON.parse(result.json) as {profile:{createdAt:number}}).profile.createdAt};
   }
   async modelCompleted(appJwt:string,model:string,entryId:string|null,generation:number){
+    await this.register();
     const request=new Request('https://tools.ailab.gc.cuny.edu/',{headers:{'x-cail-identity-jwt':appJwt}});
     const {subject}=await authenticate(request,this.env,`cail:${this.app}`);
     return {recorded:await this.env.ACCOUNTS.getByName(subject).modelCompleted(subject,this.app,model,entryId,generation)};
   }
 }
-export class CadavreAccounts extends AppAccounts {app='cadavre' as const;}
-export class JeopardyAccounts extends AppAccounts {app='jeopardy' as const;}
-export class ClozeAccounts extends AppAccounts {app='cloze' as const;}
+// Compatibility receiver retained only until the already-deployed caller switches.
+export class CadavreAccounts extends WorkerAccounts {
+  get app(){return 'cadavre';}
+  async register(){return {registered:true,id:this.app,version:0};}
+}
 export default {fetch(request:Request,env:Bindings){return handle(request,env,null);}};

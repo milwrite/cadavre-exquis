@@ -275,3 +275,11 @@ Core (surreal/modernist) = poetrydb + gutenberg = **6067** poems; GPC is padding
 5. **Legion remote route** — publish the Gemma-4 E4B vLLM host at an HTTPS URL
    Railway can reach, then set `LEGION_VLLM_URL`. The catalog enables
    `legion:exquisite-corpse` after `/v1/models` lists the adapter.
+
+## Worker-driven directory correction
+
+- Removed the fixed/planned application list. Only registered `ailab-452.workers.dev` integrations appear.
+- Generic WorkerAccounts binding props own exact audience, record kind and canonical Worker launch/reopen routes. D1 registry is versioned and rejects collisions.
+- Fixed Cadavre static-asset redirects losing the CUNY mount, and introduced its own stable `/cadavre/play/` route.
+- 11 account tests, 13 Worker tests and real Doorway/Worker/static-assets/storage boundary passed; independent review reran the important path.
+- Deployment and authenticated acceptance remain in progress.

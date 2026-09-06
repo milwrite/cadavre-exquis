@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
 import { isCailSubject } from '@cuny-ai-lab/cail-identity';
-import { APPS, exact, boundedText, entryId, isApp, parseEntry, publicEntry, revision, InputError, type AppId, type EntryRow } from './contract.ts';
+import { exact, boundedText, entryId, isApp, parseEntry, publicEntry, revision, InputError, type AppId, type EntryRow } from './contract.ts';
 
 type Profile = {display_name:string; reflection_enabled:number; default_app:AppId|'all'; revision:number; work_revision:number; created_at:number};
 type Reply = {status:number; json:string};
@@ -36,7 +36,7 @@ export class AccountCoordinator extends DurableObject<Env> {
         if (path === '/profile' && method === 'PATCH') {
           const v = exact(input,['displayName','defaultApp','expectedRevision']);
           if (revision(v.expectedRevision) !== profile.revision) return fail('revision_conflict','Settings changed in another tab. Reload before saving.',409);
-          if ((v.defaultApp !== 'all' && !isApp(v.defaultApp))) throw new InputError('Invalid account settings.');
+          if (v.defaultApp !== 'all' && (!isApp(v.defaultApp) || !await db.prepare('SELECT 1 FROM registered_workers WHERE id=?').bind(v.defaultApp).first())) throw new InputError('Invalid account settings.');
           const name = boundedText(v.displayName,80);
           const statements = [db.prepare('UPDATE accounts SET display_name=?,default_app=?,revision=revision+1,updated_at=? WHERE subject=? AND revision=?').bind(name,v.defaultApp,now,subject,profile.revision)];
           await db.batch(statements);
@@ -44,7 +44,8 @@ export class AccountCoordinator extends DurableObject<Env> {
         }
         if (path === '/dashboard' && method === 'GET') {
           const apps: Record<string,unknown> = {};
-          for (const app of scope ? [scope] : APPS) {
+          const known=await db.prepare('SELECT id AS app FROM registered_workers UNION SELECT app FROM entries WHERE subject=?').bind(subject).all<{app:string}>();
+          for (const app of scope ? [scope] : known.results.map(row=>row.app)) {
             const [recent, pinned, count] = await db.batch([
               db.prepare(`SELECT ${summaryColumns} FROM entries WHERE subject=? AND app=? AND pinned=0 ORDER BY updated_at DESC,id DESC LIMIT 5`).bind(subject,app),
               db.prepare(`SELECT ${summaryColumns} FROM entries WHERE subject=? AND app=? AND pinned=1 ORDER BY updated_at DESC,id DESC LIMIT 20`).bind(subject,app),
@@ -75,7 +76,9 @@ export class AccountCoordinator extends DurableObject<Env> {
         }
         if (path === '/entries' && method === 'PUT') {
           const value = parseEntry(input,scope || undefined);
+          const registered=await db.prepare('SELECT kind FROM registered_workers WHERE id=?').bind(value.app).first<{kind:string}>();
           const existing = await record(value.id);
+          if (value.kind !== (registered?.kind || existing?.kind)) throw new InputError('This Worker or record kind is not registered.');
           if (!existing && value.expectedRevision !== 0) return fail('not_found','That saved item is unavailable.',404);
           if (existing && (existing.app !== value.app || existing.revision !== value.expectedRevision)) return fail('revision_conflict','This item changed in another tab. Reopen it before saving.',409);
           // An ID belonging to another owner or app must never be claimed.
