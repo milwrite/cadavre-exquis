@@ -26,8 +26,15 @@ export async function authenticate(request:Request,env:AuthBindings,audience:str
     access = await Promise.race([env.ADMISSION_RESOLVER.resolveMembership({subject:identity.subject}),new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new Error('timeout')),2000);})]);
   } catch {denied('admission_unavailable','Lab access could not be checked. Try again.',503);}
   finally {if (timer) clearTimeout(timer);}
-  if (!access.ok) denied('admission_required','Active CAIL access is required.',403);
-  if (!Number.isFinite(Date.parse(access.expiresAt)) || !Number.isSafeInteger(access.revision) || !['member','admin'].includes(access.accessRole) || !['person','person-plus','admin'].includes(access.budgetScope)) denied('admission_unavailable','Lab access could not be checked. Try again.',503);
+  const raw=access as unknown;
+  if (!raw || typeof raw!=='object' || Array.isArray(raw)) denied('admission_unavailable','Lab access could not be checked. Try again.',503);
+  const fields=Object.keys(raw);
+  if (!access.ok) {
+    if(access.ok===false && access.code==='not_admitted' && access.retryable===false && fields.length===3) denied('admission_required','Active CAIL access is required.',403);
+    denied('admission_unavailable','Lab access could not be checked. Try again.',503);
+  }
+  const expiry=Date.parse(access.expiresAt);
+  if (access.ok!==true || fields.length!==5 || fields.some(k=>!['ok','expiresAt','revision','accessRole','budgetScope'].includes(k)) || !Number.isFinite(expiry) || new Date(expiry).toISOString()!==access.expiresAt || !Number.isSafeInteger(access.revision) || access.revision<0 || !['member','admin'].includes(access.accessRole) || !['person','person-plus','admin'].includes(access.budgetScope)) denied('admission_unavailable','Lab access could not be checked. Try again.',503);
   if (Date.parse(access.expiresAt) <= Date.now()) denied('admission_required','Your CAIL access has expired.',403);
   return {subject:identity.subject,keyring};
 }

@@ -18,7 +18,9 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - [x] Local account integration tests (8), existing Worker tests (11), types and dry bundles pass. Full Doorway checks pass in its isolated worktree.
 - [x] Actual Doorway caller → Cadavre receiver → account D1/DO boundary passes locally with local signing/Admission/model doubles; save, readback and reflection make exactly two model calls.
 - [x] Native browser: save → dashboard → reflection; settings save/reload; private pin; reopen and continue the same poem to revision 3. Phone-width dashboard rendering passed; the inspected dashboard and restored poem had no browser warnings/errors. This evidence uses a fixture model and local identity, not production CUNY.
-- [ ] Receiver deployment/readback, independent review, Doorway PR/main release, and authenticated live acceptance.
+- [x] Private account Worker deployed at 100%: `fa84a787-361f-440d-8250-8c807f5c6de2` (`8a793de`); namespace `dae0fd009a144b75997d6276494bd451`, D1 tables, named entrypoints and exact bindings read back.
+- [ ] Latest Admission-contract hardening deployment, Cadavre receiver deployment, independent review, Doorway PR/main release, and authenticated live acceptance.
+- Review: Cadavre PR #5 and Doorway PR #127. Doorway CI is running; both are drafts pending release acceptance.
 
 See `docs/accounts/workflows.md` and `docs/accounts/adapters.md` for modular workflows and exact limits. Corpus/training source is unchanged; no corpus regeneration is needed for this web-only change.
 
