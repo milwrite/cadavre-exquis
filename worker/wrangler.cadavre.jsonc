@@ -12,7 +12,7 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    // Only these paths run the script first; every other path is asset-first.
+    // Authenticate Worker-origin requests before serving assets.
     "run_worker_first": true
   },
   // Workers AI on the lab's own account. No provider key is needed for @cf/ models.
@@ -21,7 +21,7 @@
     "bindings": [{ "name": "STORE", "class_name": "CadavreStore" }]
   },
   "exports": {"CadavreStore":{"type":"durable-object","storage":"sqlite"}},
-  // Transition: bind the existing wall namespace until its ownership transfers.
+  // Cadavre owns the original wall namespace after the verified transfer.
   // Rate-limit counters are shared account-wide by namespace_id, so these ids
   // are deliberately unusual and every key is prefixed "cadavre:".
   "ratelimits": [
