@@ -33,9 +33,9 @@
     {"binding":"IDENTITY","service":"cail-doorway","entrypoint":"WorkerIdentity","props":{"id":"cadavre","worker":"cadavre","workspace":true}},
     {"binding":"WORKSPACE","service":"cail-work-accounts"},
     { "binding": "WORK_ACCOUNTS", "service": "cail-work-accounts", "entrypoint": "WorkerAccounts", "props": {
-      "id": "cadavre", "worker": "cail-cadavre", "version": 1,
+      "id": "cadavre", "worker": "cadavre", "version": 2, "workerRoutes":true,
       "name": "Cadavre", "description": "Write a poem, one contribution at a time.", "kind": "poem",
-      "href": "/cadavre/", "resumePath": "/cadavre/play/"
+      "href": "/", "resumePath": "/play/"
     } },
     { "binding": "ADMISSION_RESOLVER", "service": "cail-tools-admission", "entrypoint": "AdmissionResolver" },
     { "binding": "GATEWAY", "service": "cail-model-api" }
