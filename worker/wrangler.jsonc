@@ -20,7 +20,7 @@
   "durable_objects": {
     "bindings": [{ "name": "STORE", "class_name": "CadavreStore" }]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["CadavreStore"] }],
+  "exports": {"CadavreStore":{"type":"durable-object","storage":"sqlite"}},
   // Rate-limit counters are shared account-wide by namespace_id, so these ids
   // are deliberately unusual and every key is prefixed "cadavre:".
   "ratelimits": [
