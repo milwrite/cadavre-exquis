@@ -7,12 +7,5 @@
   "workers_dev": true,
   "observability": {
     "enabled": true
-  },
-  "exports": {
-    "CadavreStore": {
-      "type": "durable-object",
-      "state": "transferred",
-      "transferred_to": "cadavre"
-    }
   }
 }
