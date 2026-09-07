@@ -9,6 +9,16 @@ This file is the **single source of truth for what is done and what is next.**
 The cron agent (see `CONTINUE.md`) reads it, advances the next unchecked item,
 updates counts, and commits. Keep it honest — no checkbox ticked without evidence.
 
+## Current Worker destination
+
+- [x] Canonical public application, Solo play and My work at `cadavre.ailab-452.workers.dev`.
+- [x] Existing CUNY session handoff, private saved-work read/reload/pin/unpin and resume verified in Firefox; public real model completion verified separately.
+- [x] Original public-wall namespace transferred intact; wall snapshot unchanged; browser-local wall editing permissions transferred through explicit UI.
+- [x] Generic registration points to the new Worker origin with the same D1 app ID. Old cail-cadavre Worker deleted after replacement and browser transfer verification.
+- [x] Tools `/cadavre/` page/API/launch removed; live 404 readback verified. Tools My work stays available.
+
+See `docs/accounts/worker-move.md`. Earlier sections below record historical stages; model reflection is not an active feature.
+
 ## CUNY account pilot — 2026-09-06
 
 - [x] User decisions: CAIL/CUNY sign-in only; display five recent unpinned items per app and retain older records; leave existing Inference Arcade accounts behind.

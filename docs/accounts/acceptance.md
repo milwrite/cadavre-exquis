@@ -1,3 +1,9 @@
+# Current Worker-origin acceptance
+
+The current destination is `https://cadavre.ailab-452.workers.dev/`, including My work. The existing Tools My work route is kept. Live CUNY handoff, existing-work readback, private pin/reload/unpin, saved-content resume, public model inference, preserved wall ownership and browser wall-permission transfer have passed. See [the complete move receipts](worker-move.md). The model-reflection feature is removed.
+
+Everything below is historical pilot evidence and prior pending states, superseded by the current move record.
+
 ## Worker registration correction — 2026-09-06
 
 User scope: integrated Workers in `ailab-452.workers.dev` only; no fixed/planned application list and no model reflection. Cadavre supplies its own manifest through a deployment-controlled generic `WorkerAccounts` service binding. D1 stores discovered registrations. New Workers need an owning integration and registration readback, not dashboard source changes.
