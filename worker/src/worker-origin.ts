@@ -35,14 +35,19 @@ export async function atWorkerOrigin(request:Request,env:WorkerOriginBindings,le
   const url=new URL(request.url),path=url.pathname;
   if(!['GET','HEAD','OPTIONS'].includes(request.method) && (request.headers.get('origin')!==env.PUBLIC_ORIGIN||request.headers.get('sec-fetch-site')==='cross-site'))return Response.json({error:{code:'origin_rejected',message:'Reload this page from Cadavre.'}},{status:403,headers:secure});
   const token=readCookie(request,sessionCookie);
+  let phase='request';
   try{
     if(path==='/move' && request.method==='GET')return receiveBrowserMove();
     if(path==='/health')await env.WORK_ACCOUNTS.register();
     if(path==='/auth/start'){
       if(request.method!=='GET')return new Response(null,{status:405,headers:secure});
+      phase='login-throttle';
       const limited=await env.TURN_LIMIT.limit({key:'login:'+request.headers.get('cf-connecting-ip')});if(!limited.success)return new Response('Try signing in again shortly.',{status:429,headers:secure});
+      phase='login-proof';
       const verifier=random(),state=random(),challenge=base64(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier))));
+      phase='login-start';
       const result=await env.IDENTITY.begin(challenge,state);
+      phase='login-target';
       const target=new URL(result.url);if(target.origin!==ORIGIN||target.pathname!=='/worker-login')throw new Error('Invalid sign-in destination');
       return redirect(result.url,[cookie(loginCookie,encodeURIComponent(JSON.stringify({verifier,state,next:safeNext(url.searchParams.get('next'))})),600)]);
     }
@@ -78,5 +83,5 @@ export async function atWorkerOrigin(request:Request,env:WorkerOriginBindings,le
     const response=htmlSecurity(await (path.startsWith('/api/')||path==='/health'?legacy(request):env.ASSETS.fetch(request)));
     if(response.headers.get('content-type')?.includes('text/html'))return new HTMLRewriter().on('a[href]',{element(el){const href=el.getAttribute('href');if(href&&new URL(href,url).pathname==='/ui/corpse.html')el.setAttribute('href','/play/');}}).transform(response);
     return response;
-  }catch{return failure(503);}
+  }catch{console.error('worker-origin unavailable',phase);return failure(503);}
 }
