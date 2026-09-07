@@ -11,7 +11,7 @@ test('new Worker registers through real binding props without changing the hub, 
   const tokens:Record<string,string>={};
   for(const audience of ['work-accounts','drawing','other'])tokens[audience]=await new SignJWT({}).setProtectedHeader({alg:'RS256',kid:'registry'}).setSubject(subject).setIssuer(origin+'/cail-sso').setAudience('cail:'+audience).setIssuedAt().setExpirationTime('5m').sign(privateKey);
   const drawing=fixtureManifest('drawing','artifact');
-  const manifests={DRAW:drawing,NEW:{...drawing,version:2,resumePath:'/drawing/edit/'},CONFLICT:{...drawing,kind:'poem'},SAMEVERSION:{...drawing,name:'Wrong name'},BAD:{...drawing,resumePath:'//evil.example/'},ESCAPE:{...drawing,resumePath:'/drawing/%2e%2e/admin'},RESERVED:{...drawing,id:'all'},MISSING:{},OTHER:fixtureManifest('other','artifact')};
+  const manifests={DRAW:drawing,NEW:{...drawing,version:2,resumePath:'/drawing/edit/'},ROOT:{...drawing,version:3,workerRoutes:true,href:'/',resumePath:'/play/'},BADROOT:{...drawing,version:4,workerRoutes:true,href:'//evil.example/'},CONFLICT:{...drawing,kind:'poem'},SAMEVERSION:{...drawing,name:'Wrong name'},BAD:{...drawing,resumePath:'//evil.example/'},ESCAPE:{...drawing,resumePath:'/drawing/%2e%2e/admin'},RESERVED:{...drawing,id:'all'},MISSING:{},OTHER:fixtureManifest('other','artifact')};
   const serviceBindings=Object.fromEntries(Object.entries(manifests).map(([name,props])=>[name,{name:'accounts',entrypoint:'WorkerAccounts',props}]));
   const mf=new Miniflare(convertV4MiniflareOptions({workers:[
     {name:'caller',modules:true,compatibilityDate:'2026-09-06',script:`export default{async fetch(r,e){const b=e[r.headers.get('x-test-binding')||'HUB'];try{if(new URL(r.url).pathname==='/register')return Response.json(await b.register());return await b.fetch(r);}catch{return new Response('Registration rejected',{status:503});}}}`,serviceBindings:{...serviceBindings,HUB:'accounts'}},
@@ -24,7 +24,7 @@ test('new Worker registers through real binding props without changing the hub, 
     const call=(path:string,binding='HUB',audience='work-accounts',body?:unknown)=>mf.dispatchFetch(origin+path,{method:body===undefined?'GET':'PUT',headers:{origin,'content-type':'application/json','x-test-binding':binding,'x-cail-identity-jwt':tokens[audience]},body:body===undefined?undefined:JSON.stringify(body)});
     const catalog=async()=>((await (await call('/my-work/api/applications')).json()) as {applications:any[]}).applications;
     assert.deepEqual(await catalog(),[]);
-    for(const binding of ['BAD','ESCAPE','RESERVED','MISSING'])assert.equal((await call('/register',binding)).status,503);
+    for(const binding of ['BAD','BADROOT','ESCAPE','RESERVED','MISSING'])assert.equal((await call('/register',binding)).status,503);
     assert.equal((await call('/register','DRAW')).status,200);
     assert.deepEqual((await catalog()).map(a=>[a.id,a.workerOrigin,a.resumePath]),[['drawing','https://cail-drawing.ailab-452.workers.dev','/drawing/play/']]);
     assert.equal((await call('/api/work/profile','DRAW','other')).status,401);
@@ -37,6 +37,9 @@ test('new Worker registers through real binding props without changing the hub, 
     assert.equal((await call('/register','NEW')).status,200);
     assert.equal((await call('/register','DRAW')).status,200);
     assert.equal((await catalog()).find(a=>a.id==='drawing').resumePath,'/drawing/edit/');
+    assert.equal((await call('/register','ROOT')).status,200);
+    assert.equal((await catalog()).find(a=>a.id==='drawing').resumePath,'https://cail-drawing.ailab-452.workers.dev/play/');
+    assert.equal((await catalog()).find(a=>a.id==='drawing').href,'https://cail-drawing.ailab-452.workers.dev/');
     await db.prepare('DELETE FROM registered_workers WHERE id=?').bind('drawing').run();
     const dashboard:any=await (await call('/my-work/api/dashboard')).json();assert.equal(dashboard.apps.drawing.recent[0].id,item.id);
     assert.equal((await call('/my-work/api/entries/'+item.id)).status,200);

@@ -1,18 +1,19 @@
 // Worker metadata arrives through deployment-controlled service-binding props.
 // No product list or application-specific route belongs in the shared service.
 export type AppId = string;
-export type WorkerManifest = {id:string;worker:string;version:number;name:string;description:string;kind:string;href:string;resumePath:string};
+export type WorkerManifest = {id:string;worker:string;version:number;name:string;description:string;kind:string;href:string;resumePath:string;workerRoutes?:true};
 export const isApp = (value:unknown):value is AppId => typeof value==='string' && /^[a-z][a-z0-9-]{1,62}$/.test(value) && !['all','my-work','work-accounts','gateway','admin','cail-sso'].includes(value);
 export function manifest(value:unknown):WorkerManifest {
   if(!value || typeof value!=='object' || Array.isArray(value))throw new Error('Missing Worker registration');
   const v=value as Record<string,unknown>;
-  if(Object.keys(v).some(k=>!['id','worker','version','name','description','kind','href','resumePath'].includes(k)) || !isApp(v.id) || !Number.isSafeInteger(v.version) || Number(v.version)<1)throw new Error('Invalid Worker registration');
+  if(Object.keys(v).some(k=>!['id','worker','version','name','description','kind','href','resumePath','workerRoutes'].includes(k)) || !isApp(v.id) || !Number.isSafeInteger(v.version) || Number(v.version)<1)throw new Error('Invalid Worker registration');
   const text=(key:string,max:number)=>{const value=v[key];if(typeof value!=='string'||!value.trim()||value.length>max||/[\u0000-\u001f\u007f]/.test(value))throw new Error('Invalid Worker metadata');return value;};
   const worker=text('worker',63);
   if(!/^[a-z][a-z0-9-]{1,62}$/.test(worker))throw new Error('Invalid Worker name');
-  const path=(key:string)=>{const p=text(key,240);if(!p.startsWith('/'+v.id+'/')|| !/^\/[a-zA-Z0-9/_-]*$/.test(p)||p.includes('//'))throw new Error('Invalid Worker route');return p;};
+  if(v.workerRoutes!==undefined && v.workerRoutes!==true)throw new Error('Invalid Worker route mode');
+  const path=(key:string)=>{const p=text(key,240);if((!v.workerRoutes && !p.startsWith('/'+v.id+'/'))|| !/^\/[a-zA-Z0-9/_-]*$/.test(p)||p.includes('//'))throw new Error('Invalid Worker route');return p;};
   const kind=text('kind',40);if(!/^[a-z][a-z0-9-]*$/.test(kind))throw new Error('Invalid record kind');
-  return {id:v.id,worker,version:Number(v.version),name:text('name',80),description:text('description',240),kind,href:path('href'),resumePath:path('resumePath')};
+  return {id:v.id,worker,version:Number(v.version),name:text('name',80),description:text('description',240),kind,href:path('href'),resumePath:path('resumePath'),...(v.workerRoutes?{workerRoutes:true as const}:{})};
 }
 export async function registerWorker(db:D1Database,value:unknown) {
   const m=manifest(value), json=JSON.stringify(m);
@@ -31,12 +32,12 @@ export async function registerWorker(db:D1Database,value:unknown) {
 }
 export async function workerCatalog(db:D1Database,scope:AppId|null) {
   const rows=await db.withSession('first-primary').prepare('SELECT manifest FROM registered_workers'+(scope?' WHERE id=?':'')+' ORDER BY id').bind(...(scope?[scope]:[])).all<{manifest:string}>();
-  return rows.results.map(row=>{const m=manifest(JSON.parse(row.manifest));return {...m,workerOrigin:'https://'+m.worker+'.ailab-452.workers.dev',connection:'connected'};});
+  return rows.results.map(row=>{const m=manifest(JSON.parse(row.manifest));const workerOrigin='https://'+m.worker+'.ailab-452.workers.dev';return {...m,workerOrigin,href:m.workerRoutes?new URL(m.href,workerOrigin).href:m.href,resumePath:m.workerRoutes?new URL(m.resumePath,workerOrigin).href:m.resumePath,connection:'connected'};});
 }
 export const LAB_LINKS = [
-  {label:'Lab access',href:'/welcome',description:'Membership and classes'},
-  {label:'Model Access',href:'/model-access',description:'Models and account usage'},
-  {label:'Administration',href:'/admin/',description:'Administrator access required'},
+  {label:'Lab access',href:'https://tools.ailab.gc.cuny.edu/welcome',description:'Membership and classes'},
+  {label:'Model Access',href:'https://tools.ailab.gc.cuny.edu/model-access',description:'Models and account usage'},
+  {label:'Administration',href:'https://tools.ailab.gc.cuny.edu/admin/',description:'Administrator access required'},
   {label:'Model Registry',href:'https://ailab.gc.cuny.edu/models/',description:'Explore available models'},
   {label:'Lab website',href:'https://ailab.gc.cuny.edu/',description:'Tools, teaching and research'},
 ] as const;

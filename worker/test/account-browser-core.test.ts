@@ -22,3 +22,10 @@ test('edited-poem context is supplied once per request and never mutates the sav
   assert.ok(regenerated[0].content.endsWith(poem));assert.equal(copied[0].content,'Original base prompt');
  }
 });
+
+test('Worker origin account configuration stays same-origin and ignores endpoint overrides',()=>{
+ const supplied={...signed,endpoint:'/api/cadavre/chat',modelsEndpoint:'/api/cadavre/models',wallEndpoint:'/api/cadavre/wall',workEndpoint:'/api/work'};
+ const url='https://cadavre.ailab-452.workers.dev/play/?work=owned&endpoint=https://attacker.example';
+ assert.equal(core.connectionConfig({},supplied,url).endpoint,'/api/cadavre/chat');
+ assert.throws(()=>core.connectionConfig({},{...supplied,endpoint:'https://attacker.example'},url));
+});

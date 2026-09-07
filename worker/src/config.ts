@@ -1,8 +1,8 @@
 /* Both pages load /ui/config.local.js and layer it over their defaults. Serving
  * it from the Worker points them at these same-origin routes, so the pages ship
  * unmodified and the deployment is the whole configuration. */
-export function configScript(defaultModel: string, authenticated = false): string {
-  const prefix = authenticated ? "/cadavre" : "";
+export function configScript(defaultModel: string, authenticated = false, workerOrigin = false): string {
+  const prefix = authenticated && !workerOrigin ? "/cadavre" : "";
   return [
     "// Served by the cail-cadavre Worker; edit wrangler.jsonc vars, not this file.",
     "window.CORPSE_CONFIG = {",
@@ -10,8 +10,9 @@ export function configScript(defaultModel: string, authenticated = false): strin
     `  readyEndpoint: "${authenticated ? "" : "/api/cadavre/ready"}",`,
     `  modelsEndpoint: "${prefix}/api/cadavre/models",`,
     `  wallEndpoint: "${prefix}/api/cadavre/wall",`,
-    `  workEndpoint: "${authenticated ? "/cadavre/api/work" : ""}",`,
+    `  workEndpoint: "${authenticated ? prefix+"/api/work" : ""}",`,
     `  authenticated: ${authenticated},`,
+    `  signInEndpoint: "${workerOrigin ? "/auth/start?next=/" : "https://tools.ailab.gc.cuny.edu/launch/cadavre"}",`,
     `  model: ${JSON.stringify(defaultModel)},`,
     '  apiKey: "",',
     "};",

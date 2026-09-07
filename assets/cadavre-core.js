@@ -267,7 +267,8 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     const url = new URL(href);
     const campusMount = /^(?:tools\.ailab\.gc\.cuny\.edu|localhost|127\.0\.0\.1)$/.test(url.hostname) && /^\/cadavre(?:\/|$)/.test(url.pathname);
     const signed = campusMount || supplied?.authenticated === true;
-    const expected = {endpoint:'/cadavre/api/cadavre/chat',modelsEndpoint:'/cadavre/api/cadavre/models',readyEndpoint:'',wallEndpoint:'/cadavre/api/cadavre/wall',workEndpoint:'/cadavre/api/work',apiKey:''};
+    const prefix = campusMount ? '/cadavre' : '';
+    const expected = {endpoint:prefix+'/api/cadavre/chat',modelsEndpoint:prefix+'/api/cadavre/models',readyEndpoint:'',wallEndpoint:prefix+'/api/cadavre/wall',workEndpoint:prefix+'/api/work',apiKey:''};
     if (signed && (supplied?.authenticated !== true || Object.entries(expected).some(([key,value]) => supplied[key] !== value) || typeof supplied.model !== 'string' || !supplied.model)) throw new Error('CUNY configuration is unavailable. Reload this page before continuing.');
     const config = Object.assign({}, defaults, supplied || {});
     if (!signed && url.searchParams.get('endpoint')) config.endpoint=url.searchParams.get('endpoint');

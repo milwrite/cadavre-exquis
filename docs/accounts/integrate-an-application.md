@@ -18,13 +18,14 @@ In the owning Worker's deployment configuration, bind to the generic `WorkerAcco
     "name": "Your application",
     "description": "A short description of what people can save.",
     "kind": "artifact",
-    "href": "/your-worker-app/",
-    "resumePath": "/your-worker-app/play/"
+    "workerRoutes": true,
+    "href": "/",
+    "resumePath": "/play/"
   }
 }
 ```
 
-The Worker origin is derived as `https://<worker>.ailab-452.workers.dev`; arbitrary external origins are not accepted. `href` and `resumePath` are the canonical CUNY-authenticated mounts for that Worker. Doorway must already route that exact mount and issue its exact `cail:<id>` audience. No directory registration grants a Doorway route, membership or administrator privileges.
+The Worker origin is derived as `https://<worker>.ailab-452.workers.dev`; arbitrary external origins are not accepted. `workerRoutes: true` resolves the safe root-relative `href` and `resumePath` against that exact Worker origin. Previously registered Tools mounts remain readable during migration. No directory registration grants sign-in, membership or administrator privileges. For CUNY sign-in on the Worker origin, bind Doorway’s private `WorkerIdentity` entrypoint with exact `{id, worker, workspace}` props, implement its server-side PKCE handoff, and retain the opaque session in a Secure HttpOnly host-only cookie. Identity legs remain server-side. See Doorway’s `docs/WORKER-SIGN-IN.md`.
 
 Call `await env.WORK_ACCOUNTS.register()` during the Worker's integration/readiness check after deploying it. Registration takes no browser metadata or arguments: it reads Cloudflare service-binding `ctx.props`, persists the manifest in D1, and returns its registered ID/version. Verify the directory and actual launch/resume URLs as part of that deployment. Cadavre invokes registration on its existing health check and authenticated requests. Account operations also ensure registration. No shared-service source change or additional database migration is needed to enroll another Worker.
 

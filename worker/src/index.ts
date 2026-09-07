@@ -1,3 +1,4 @@
+import { atWorkerOrigin, type WorkerOriginBindings } from "./worker-origin.ts";
 /* cail-cadavre: Exquisite Corpse as one Worker on the CUNY AI Lab account.
  *
  *   GET  /                          the parlor (static asset)
@@ -224,6 +225,7 @@ app.notFound((c) => c.text("not found", 404));
 export default {
   async fetch(request: Request, env: Bindings & SignedBindings, ctx: ExecutionContext): Promise<Response> {
     const path = new URL(request.url).pathname;
+    if ((env as WorkerOriginBindings).PUBLIC_ORIGIN === new URL(request.url).origin) return atWorkerOrigin(request, env as WorkerOriginBindings, async r => app.fetch(r,env,ctx));
     if(path==='/health')await env.WORK_ACCOUNTS.register();
     if (path === "/cadavre" || path.startsWith("/cadavre/")) return signedIn(request, env, async (r) => app.fetch(r, env, ctx));
     return Promise.resolve(app.fetch(request, env, ctx));

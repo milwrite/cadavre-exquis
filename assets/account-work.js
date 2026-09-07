@@ -43,7 +43,7 @@
       const bar=document.createElement('aside');bar.id='account-work';bar.setAttribute('aria-label','Saved work');
       bar.style.cssText='position:relative;z-index:5;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:14px;padding:12px 18px;border-bottom:1px solid #555;font:14px/1.5 system-ui,sans-serif;background:#1b1b19;color:#ece9e0';
       const link=document.createElement('a');link.style.color='inherit';
-      link.href=config().authenticated?'/my-work/':'https://tools.ailab.gc.cuny.edu/launch/cadavre';link.textContent=config().authenticated?'My work':'Sign in with CUNY to save your work';bar.append(link);
+      link.href=config().authenticated?'/my-work/':(config().signInEndpoint||'https://tools.ailab.gc.cuny.edu/launch/cadavre');link.textContent=config().authenticated?'My work':'Sign in with CUNY to save your work';bar.append(link);
       if(config().authenticated){
         link.onclick=async event=>{event.preventDefault();if(await save())location.assign(link.href);};
         button=document.createElement('button');button.type='button';button.textContent='Save privately';button.style.cssText='font:inherit;padding:7px 12px;color:inherit;background:transparent;border:1px solid #777;border-radius:4px';button.onclick=()=>void save();bar.append(button);
