@@ -18,9 +18,9 @@
   // Workers AI on the lab's own account. No provider key is needed for @cf/ models.
   "ai": { "binding": "AI" },
   "durable_objects": {
-    "bindings": [{ "name": "STORE", "class_name": "CadavreStore", "script_name": "cail-cadavre" }]
+    "bindings": [{ "name": "STORE", "class_name": "CadavreStore" }]
   },
-  "exports": {"CadavreStore":{"type":"durable-object","state":"expecting-transfer","storage":"sqlite","transfer_from":"cail-cadavre"}},
+  "exports": {"CadavreStore":{"type":"durable-object","storage":"sqlite"}},
   // Transition: bind the existing wall namespace until its ownership transfers.
   // Rate-limit counters are shared account-wide by namespace_id, so these ids
   // are deliberately unusual and every key is prefixed "cadavre:".
