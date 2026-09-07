@@ -1,3 +1,4 @@
+import { receiveBrowserMove } from './browser-move.ts';
 import { configScript } from './config.ts';
 import { signedIn, type SignedBindings } from './signed-in.ts';
 import { ORIGIN } from '../../accounts/src/auth.ts';
@@ -35,6 +36,7 @@ export async function atWorkerOrigin(request:Request,env:WorkerOriginBindings,le
   if(!['GET','HEAD','OPTIONS'].includes(request.method) && (request.headers.get('origin')!==env.PUBLIC_ORIGIN||request.headers.get('sec-fetch-site')==='cross-site'))return Response.json({error:{code:'origin_rejected',message:'Reload this page from Cadavre.'}},{status:403,headers:secure});
   const token=readCookie(request,sessionCookie);
   try{
+    if(path==='/move' && request.method==='GET')return receiveBrowserMove();
     if(path==='/health')await env.WORK_ACCOUNTS.register();
     if(path==='/auth/start'){
       if(request.method!=='GET')return new Response(null,{status:405,headers:secure});
