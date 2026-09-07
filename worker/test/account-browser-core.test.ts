@@ -29,3 +29,11 @@ test('Worker origin account configuration stays same-origin and ignores endpoint
  assert.equal(core.connectionConfig({},supplied,url).endpoint,'/api/cadavre/chat');
  assert.throws(()=>core.connectionConfig({},{...supplied,endpoint:'https://attacker.example'},url));
 });
+
+test('dedicated Worker fails closed when its config is missing, including signed-out pages',()=>{
+ const url='https://cadavre.ailab-452.workers.dev/?endpoint=https://attacker.example';
+ for(const supplied of [undefined,{}, {authenticated:false}])assert.throws(()=>core.connectionConfig({},supplied,url));
+ const supplied={authenticated:false,endpoint:'/api/cadavre/chat',modelsEndpoint:'/api/cadavre/models',readyEndpoint:'/api/cadavre/ready',wallEndpoint:'/api/cadavre/wall',workEndpoint:'',apiKey:'',model:'test/model'};
+ assert.equal(core.connectionConfig({},supplied,url).endpoint,'/api/cadavre/chat');
+ assert.throws(()=>core.connectionConfig({},{...supplied,endpoint:'https://attacker.example'},url));
+});

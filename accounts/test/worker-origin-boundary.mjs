@@ -43,7 +43,7 @@ try{
  assert.equal((await call(callback.pathname+callback.search,{cookie:pending.split(';')[0]})).status,401);
  for(const [path,method]of[['/api/work/entries','PUT'],['/auth/logout','POST']])assert.equal((await call(path,{cookie:session,method,body:{},requestOrigin:'https://evil.example'})).status,403);
  assert.equal((await call('/api/work/profile',{cookie:session,extra:{'x-cail-identity-jwt':'forged',authorization:'Bearer forged'}})).status,200);
- const page=await call('/');assert.equal(page.status,200);assert.match(await page.text(),/href="\/play\/"/);
+ const page=await call('/');assert.equal(page.status,200);assert.match(page.headers.get('content-security-policy'),/connect-src 'self'/);assert.match(await page.text(),/href="\/play\/"/);
  assert.equal((await call('/play/')).status,200);
  const configuration=await(await call('/play/config.local.js',{cookie:session})).text();assert.match(configuration,/workEndpoint: "\/api\/work"/);assert.ok(!configuration.includes('/cadavre/api/'));
  const id=crypto.randomUUID();let r=await call('/api/cadavre/chat',{cookie:session,method:'POST',body:{model:'test/poetry',stream:false,workId:id,messages:[{role:'user',content:'Paper lantern'}]}});assert.equal(r.status,200,await r.clone().text());assert.equal((await r.json()).workModelRecorded,true);

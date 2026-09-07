@@ -8,6 +8,12 @@ type IdentityClient={begin(challenge:string,state:string):Promise<{url:string}>;
 export type WorkerOriginBindings=SignedBindings & {PUBLIC_ORIGIN?:string;IDENTITY:IdentityClient;WORKSPACE:{fetch(request:Request):Promise<Response>}};
 const sessionCookie='__Host-cadavre-session', loginCookie='__Host-cadavre-login';
 const secure={'cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff'};
+function htmlSecurity(response:Response){
+  if(!response.headers.get('content-type')?.includes('text/html'))return response;
+  const headers=new Headers(response.headers);for(const [name,value]of Object.entries(secure))headers.set(name,value);
+  headers.set('content-security-policy',"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
+  return new Response(response.body,{status:response.status,headers});
+}
 const base64=(bytes:Uint8Array)=>btoa(String.fromCharCode(...bytes)).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
 const random=()=>base64(crypto.getRandomValues(new Uint8Array(32)));
 const cookie=(name:string,value:string,seconds:number)=>`${name}=${value}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${seconds}`;
@@ -65,9 +71,9 @@ export async function atWorkerOrigin(request:Request,env:WorkerOriginBindings,le
     if(path==='/play')return redirect('/play/'+url.search);
     if(path==='/play/'){
       const assetUrl=new URL(request.url);assetUrl.pathname='/ui/corpse';
-      return env.ASSETS.fetch(new Request(assetUrl,request));
+      return htmlSecurity(await env.ASSETS.fetch(new Request(assetUrl,request)));
     }
-    const response=await (path.startsWith('/api/')||path==='/health'?legacy(request):env.ASSETS.fetch(request));
+    const response=htmlSecurity(await (path.startsWith('/api/')||path==='/health'?legacy(request):env.ASSETS.fetch(request)));
     if(response.headers.get('content-type')?.includes('text/html'))return new HTMLRewriter().on('a[href]',{element(el){const href=el.getAttribute('href');if(href&&new URL(href,url).pathname==='/ui/corpse.html')el.setAttribute('href','/play/');}}).transform(response);
     return response;
   }catch{return failure(503);}
