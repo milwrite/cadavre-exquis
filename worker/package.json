@@ -1,5 +1,5 @@
 {
-  "name": "cail-cadavre",
+  "name": "cadavre",
   "version": "0.1.0",
   "private": true,
   "description": "Exquisite Corpse as one self-contained Cloudflare Worker on the CUNY AI Lab account",

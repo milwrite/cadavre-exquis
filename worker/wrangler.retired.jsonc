@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cail-cadavre",
+  "account_id": "452c33847cf5cb1e46f391fca32fd1b5",
+  "main": "src/retired.ts",
+  "compatibility_date": "2026-08-25",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "exports": {
+    "CadavreStore": {
+      "type": "durable-object",
+      "state": "transferred",
+      "transferred_to": "cadavre"
+    }
+  }
+}

@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   // One self-contained Worker: both play surfaces as static assets, the model
   // routes in front of Workers AI, and the shared wall in a Durable Object.
-  "name": "cail-cadavre",
+  "name": "cadavre",
   // Pinned so a stray CLOUDFLARE_ACCOUNT_ID can never deploy this elsewhere.
   "account_id": "452c33847cf5cb1e46f391fca32fd1b5",
   "main": "src/index.ts",
@@ -12,15 +12,16 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    // Only these paths run the script first; every other path is asset-first.
-    "run_worker_first": ["/api/*", "/health", "/ui/config.local.js", "/cadavre", "/cadavre/*"]
+    // Authenticate Worker-origin requests before serving assets.
+    "run_worker_first": true
   },
   // Workers AI on the lab's own account. No provider key is needed for @cf/ models.
   "ai": { "binding": "AI" },
   "durable_objects": {
-    "bindings": [{ "name": "STORE", "class_name": "CadavreStore", "script_name":"cadavre" }]
+    "bindings": [{ "name": "STORE", "class_name": "CadavreStore" }]
   },
-  "exports": {"CadavreStore":{"type":"durable-object","state":"transferred","transferred_to":"cadavre"}},
+  "exports": {"CadavreStore":{"type":"durable-object","storage":"sqlite"}},
+  // Cadavre owns the original wall namespace after the verified transfer.
   // Rate-limit counters are shared account-wide by namespace_id, so these ids
   // are deliberately unusual and every key is prefixed "cadavre:".
   "ratelimits": [
@@ -29,15 +30,18 @@
     { "name": "WALL_LIMIT", "namespace_id": "74103", "simple": { "limit": 5, "period": 60 } }
   ],
   "services": [
+    {"binding":"IDENTITY","service":"cail-doorway","entrypoint":"WorkerIdentity","props":{"id":"cadavre","worker":"cadavre","workspace":true}},
+    {"binding":"WORKSPACE","service":"cail-work-accounts"},
     { "binding": "WORK_ACCOUNTS", "service": "cail-work-accounts", "entrypoint": "WorkerAccounts", "props": {
-      "id": "cadavre", "worker": "cail-cadavre", "version": 1,
+      "id": "cadavre", "worker": "cadavre", "version": 2, "workerRoutes":true,
       "name": "Cadavre", "description": "Write a poem, one contribution at a time.", "kind": "poem",
-      "href": "/cadavre/", "resumePath": "/cadavre/play/"
+      "href": "/", "resumePath": "/play/"
     } },
     { "binding": "ADMISSION_RESOLVER", "service": "cail-tools-admission", "entrypoint": "AdmissionResolver" },
     { "binding": "GATEWAY", "service": "cail-model-api" }
   ],
   "vars": {
+    "PUBLIC_ORIGIN":"https://cadavre.ailab-452.workers.dev",
     "CAIL_IDENTITY_JWKS": "{\"keys\":[{\"kty\":\"RSA\",\"n\":\"wJQeOnxN8QFTmdrcGOCxnkQ7Gkmb_f-HSQOqy0pRnAZrMrr0wjXBUjFdhMdJyw47TRIZhlAeLSF89hDBff_cwJKGxBAY3KkpxYjXt4ndQz4dHT9RiiX6EvIpsCNWJc818okjYNnSNShtUbCg4w8EJnpIiprQaC7HO5A3JoVni62ghAXfOhZIrTHGlq2kqBtxBQTVk7lpk_YxvJVth5MA0HQgekoLJ0SYy84p5gXZzqo-6oFXTMnZ_DSH_X6NqvPyW9pnYS7znc2yqD8NflOca5iHOn78SZDiL9kyto_vXueqSiLuCGdWjs5RqV5mFjBVUKKDKwS_6UnjSfjf6XpFiw\",\"e\":\"AQAB\",\"alg\":\"RS256\",\"use\":\"sig\",\"kid\":\"a4d816154d18135a15c2ee76998a57eb\"}]}",
     "RELEASE": "dev",
     "CAIL_LOG_ENV": "preview",

@@ -4,7 +4,7 @@
 export function configScript(defaultModel: string, authenticated = false, workerOrigin = false): string {
   const prefix = authenticated && !workerOrigin ? "/cadavre" : "";
   return [
-    "// Served by the cail-cadavre Worker; edit wrangler.jsonc vars, not this file.",
+    "// Served by the Cadavre Worker; edit wrangler.jsonc vars, not this file.",
     "window.CORPSE_CONFIG = {",
     `  endpoint: "${prefix}/api/cadavre/chat",`,
     `  readyEndpoint: "${authenticated ? "" : "/api/cadavre/ready"}",`,
