@@ -1,5 +1,5 @@
 {
-  "name": "cail-cadavre",
+  "name": "cadavre",
   "version": "0.1.0",
   "private": true,
   "description": "Exquisite Corpse as one self-contained Cloudflare Worker on the CUNY AI Lab account",
@@ -13,7 +13,8 @@
     "deploy": "npm run check && npm test && wrangler deploy --var RELEASE:$(git rev-parse --short HEAD)"
   },
   "dependencies": {
-    "hono": "4.13.5"
+    "hono": "4.13.5",
+    "@cuny-ai-lab/cail-identity": "5.2.5"
   },
   "devDependencies": {
     "typescript": "5.9.3",

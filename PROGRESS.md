@@ -9,6 +9,45 @@ This file is the **single source of truth for what is done and what is next.**
 The cron agent (see `CONTINUE.md`) reads it, advances the next unchecked item,
 updates counts, and commits. Keep it honest — no checkbox ticked without evidence.
 
+## Current Worker destination
+
+- [x] Canonical public application, Solo play and My work at `cadavre.ailab-452.workers.dev`.
+- [x] Existing CUNY session handoff, private saved-work read/reload/pin/unpin and resume verified in Firefox; public real model completion verified separately.
+- [x] Original public-wall namespace transferred intact; wall snapshot unchanged; browser-local wall editing permissions transferred through explicit UI.
+- [x] Generic registration points to the new Worker origin with the same D1 app ID. Old cail-cadavre Worker deleted after replacement and browser transfer verification.
+- [x] Tools `/cadavre/` page/API/launch removed; live 404 readback verified. Tools My work stays available.
+
+See `docs/accounts/worker-move.md`. Earlier sections below record historical stages; model reflection is not an active feature.
+
+## CUNY account pilot — 2026-09-06
+
+- [x] User decisions: CAIL/CUNY sign-in only; display five recent unpinned items per app and retain older records; leave existing Inference Arcade accounts behind.
+- [x] Isolated source from deployed Cadavre release `7d96fd7`; current org knowledge-base and Doorway contracts reconciled. Railway unchanged.
+- [x] Shared per-subject AccountCoordinator and D1 schema, named Cadavre/Jeopardy/Cloze entrypoints, revisions, archive/private pins, settings, export/deletion implemented; model-reflection feature subsequently removed at user request.
+- [x] New remote D1 `cail-work-accounts` (`46735c0b-e986-4cce-a13d-1e81008c939e`) created and migration 0001 applied.
+- [x] Local account integration tests (8), Worker tests (13), types and dry bundles pass. Full Doorway checks pass in its isolated worktree.
+- [x] Actual Doorway caller → Cadavre receiver → account D1/DO boundary passes locally with local signing/Admission/model doubles; save, readback and reflection make exactly two model calls.
+- [x] Native browser: save → dashboard → reflection; settings save/reload; private pin; reopen and continue the same poem to revision 3. Phone-width dashboard rendering passed; the inspected dashboard and restored poem had no browser warnings/errors. This evidence uses a fixture model and local identity, not production CUNY.
+- [x] Private account Worker deployed at 100%: `e2d0c030-c736-4995-a1d2-fe85babf0e86` (`dbddac1`); namespace `dae0fd009a144b75997d6276494bd451`, D1 tables, named entrypoints and exact bindings read back.
+- [x] Independent agent review found endpoint override, formatting, prompt accumulation, model selection and hydration issues; fixes reviewed and focused regressions passed. Delayed-read browser check verified disabled play during hydration and after failure; multiline readback retained exact indentation/stanzas and unlisted model.
+- [x] Cadavre receiver deployed at 100%: `ff69068e-ae51-4293-89b3-5fc8a2294ee3` (`c40b1ba`); live health and unsigned account denial verified.
+- [x] Doorway PR #127 merged as `00849b7`, deployed at 100% as `739799be-587b-4c2e-b539-ab5523b266a7`; production account bindings and mounted anonymous 401 envelopes read back.
+- [x] Doorway PR #128 merged as `fa99418e`, deployed at 100% as `6db27d4e-6933-4508-b075-8dc7c5cb67c6`. Main checks and exact serving-version/binding readback passed. Full workflow remains red on the pre-existing PDF Accessibility readiness 503; the account probes remain enforced.
+- [ ] Authenticated live acceptance: complete real CUNY sign-in, then production inference, save/reload/settings, private pin/reopen, and saved-work resume.
+- Review/evidence: Cadavre PR #5, Doorway PRs #127 and #128, and `docs/accounts/acceptance.md`.
+
+See `docs/accounts/workflows.md` and `docs/accounts/adapters.md` for modular workflows and exact limits. Corpus/training source is unchanged; no corpus regeneration is needed for this web-only change.
+
+## Shared workspace refinement — 2026-09-06
+
+- [x] User scope: Cadavre tests a tool-agnostic account/artifact foundation; future apps integrate using a registry and scoped adapter.
+- [x] Removed reflection UI/generation/endpoint and the account Worker Gateway binding.
+- [x] Administrative navy/teal theme with quieter typography/actions, shared Lab links, searchable all-app library, and registry-driven resume links implemented.
+- [x] 10 account tests, including populated D1 migration preservation and scope/search, pass; 13 Worker tests and one-call actual caller/receiver path pass.
+- [ ] Refined UI deployment and real authenticated acceptance.
+
+See `docs/accounts/integrate-an-application.md`.
+
 ## Decisions (locked)
 - Corpus: aesthetic-first, public-domain-heavy. Surrealist core + modernist breadth.
 - Objective: **chat next-line continuation**, model-agnostic messages, loss on assistant only.
@@ -246,3 +285,11 @@ Core (surreal/modernist) = poetrydb + gutenberg = **6067** poems; GPC is padding
 5. **Legion remote route** — publish the Gemma-4 E4B vLLM host at an HTTPS URL
    Railway can reach, then set `LEGION_VLLM_URL`. The catalog enables
    `legion:exquisite-corpse` after `/v1/models` lists the adapter.
+
+## Worker-driven directory correction
+
+- Removed the fixed/planned application list. Only registered `ailab-452.workers.dev` integrations appear.
+- Generic WorkerAccounts binding props own exact audience, record kind and canonical Worker launch/reopen routes. D1 registry is versioned and rejects collisions.
+- Fixed Cadavre static-asset redirects losing the CUNY mount, and introduced its own stable `/cadavre/play/` route.
+- 11 account tests, 13 Worker tests and real Doorway/Worker/static-assets/storage boundary passed; independent review reran the important path.
+- Deployed: account f94c9f62-0ba2-4cf3-a74e-983431f4947a (e2e2da1), Cadavre cc6bedd6-7c3d-4be6-842f-e6d6c7c523f5 (ffd5259), both 100%. Generic caller registration verified live. Firefox directory passed; save/reopen acceptance awaits the active browser.

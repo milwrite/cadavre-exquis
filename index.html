@@ -744,6 +744,7 @@
   </dialog>
 
   <script src="ui/config.local.js"></script>
+  <script src="assets/account-work.js"></script>
   <script src="assets/cadavre-core.js"></script>
   <script>
     /* ── connection: defaults < config.local.js < URL params (this visit only —
@@ -768,10 +769,9 @@
       apiKey: "",
     };
     const params = new URLSearchParams(location.search);
-    const paramConn = {};
-    if (params.get("endpoint")) paramConn.endpoint = params.get("endpoint");
-    if (params.get("model")) paramConn.model = params.get("model");
-    const CFG = Object.assign({}, DEFAULTS, window.CORPSE_CONFIG || {}, paramConn);
+    let CFG;
+    try { CFG = CadavreCore.connectionConfig(DEFAULTS,window.CORPSE_CONFIG,location.href); }
+    catch(error){const notice=document.createElement('p');notice.setAttribute('role','alert');notice.textContent=error.message;document.body.prepend(notice);throw error;}
     const WALL_API = (() => {
       // A same-origin host (the CUNY AI Lab Worker) names its own wall in config.local.js.
       const configured = String(CFG.wallEndpoint || "");
@@ -1104,8 +1104,9 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
 
     function addContribution(text, isModel) {
       const prev = contributions[contributions.length - 1];
-      const entry = { text, isModel, seat: currentSeat(), turn: actorIndex };
+      const entry = { text, isModel, seat: currentSeat(), turn: actorIndex, ...(isModel ? {model:CFG.model} : {}) };
       contributions.push(entry);
+      window.CadavreWork?.changed();
       if (!isModel) for (const turn of [...setAside.keys()]) if (turn > entry.turn) setAside.delete(turn);
       el("endBtn").disabled = false;
       actorIndex++;
@@ -1200,14 +1201,15 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
         groups.get(name).appendChild(option);
       });
       const requested = [CFG.model, catalog?.default].find((id) => available.some((route) => route.id === id));
-      CFG.model = requested || available[0].id;
+      if(!CFG.authenticated)CFG.model = requested || available[0].id;
+      if(!Array.from(select.options).some(o=>o.value===CFG.model)){const option=document.createElement("option");option.value=CFG.model;option.textContent=CFG.model+" (selected model)";select.append(option);}
       select.value = CFG.model;
-      select.disabled = available.length < 2;
+      select.disabled = select.options.length < 2;
       menuLoaded = true;
     }
 
     async function loadModelOptions() {
-      const custom = params.has("endpoint") || params.has("model");
+      const custom = (!CFG.authenticated && params.has("endpoint")) || params.has("model");
       if (!CFG.modelsEndpoint || custom) {
         setSingleModelOption();
         return warmSelectedModel();
@@ -1252,7 +1254,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
     }
 
     async function warmSelectedModel({ force = false } = {}) {
-      const directConnection = params.has("endpoint") || !CFG.readyEndpoint;
+      const directConnection = (!CFG.authenticated && params.has("endpoint")) || !CFG.readyEndpoint;
       if (directConnection) return acceptReadyModel(null, "configured route ready");
       if (!force && modelReadyFor === CFG.model) {
         return { ready: true, model: CFG.model, cached: true };
@@ -1316,12 +1318,13 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
             CFG.apiKey ? { Authorization: "Bearer " + CFG.apiKey } : {}),
           body: JSON.stringify({
             model: CFG.model, messages,
-            max_tokens: maxTokens, temperature: options.temperature ?? 0.8, stream: false,
+            ...(CFG.authenticated ? {workId:CadavreWork.id()} : {max_tokens:maxTokens}), temperature: options.temperature ?? 0.8, stream: false,
           }),
           signal: ctrl.signal,
         });
         if (!res.ok) throw new Error("the model answered " + res.status);
         const data = await res.json();
+        if(CFG.authenticated)window.CadavreWork?.modelRecorded(data.workModelRecorded);
         showRoute(data);
         return {
           content: (data.choices?.[0]?.message?.content ?? "").trim(),
@@ -1360,7 +1363,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
         ];
         let [result] = await Promise.all([chat(messages, 80, { temperature: warmth }), pause(MODEL_MIN_WAIT_MS)]);
         reply = validContribution(result.content);
-        if (!reply.valid) {
+        if (!reply.valid && !CFG.authenticated) {
           result = await chat([
             ...messages,
             { role: "assistant", content: result.content },
@@ -1370,7 +1373,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
         }
       } catch (e) {
         if (id !== gameId || !gameActive) return;
-        if (retryAttempt < 3) {
+        if (!CFG.authenticated && retryAttempt < 3) {
           const delay = 750 * (2 ** retryAttempt);
           setStatus(`the other hand is reconnecting <span class="breathe">·</span>`);
           setTimeout(() => modelTurn(retryAttempt + 1), delay);
@@ -1471,6 +1474,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
         const result = await chat(Core.readingMessages(poemText), 400);
         readingText = Core.stripPoemFromReading(result.content, poemText);
         renderReadingLinked(readingEl, readingText, poemTokens);
+        window.CadavreWork?.changed();
         readingEl.classList.add("show");
         if (!first) {
           readingsLeft -= 1;
@@ -1512,6 +1516,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
       poemTokens = renderPoemWords(el("poem"), lines, false);
       if (readingText) renderReadingLinked(el("reading"), readingText, poemTokens);
       setRevealStatus("poem edited. read it again for a fresh reading, or pin it to the wall");
+      window.CadavreWork?.changed();
     });
     el("rereadBtn").addEventListener("click", () => fetchReading(false));
 
@@ -1542,6 +1547,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
     el("playerCount").addEventListener("change", syncSeats);
 
     async function begin() {
+      if(await window.CadavreWork?.newWork()===false)return;
       if (modelReadyFor !== CFG.model) {
         const ready = await warmSelectedModel({ force: true });
         if (!ready) return;
@@ -1766,10 +1772,19 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
     /* ── footer connection line ─────────────────────────────────────────── */
 
     setSingleModelOption();
-    loadModelOptions();
     syncSeats();
     rebuildWall();
     loadWall();
+    async function initializeWork(){
+    if(CFG.authenticated&&!window.CadavreWork){el('startBtn').textContent='Reload to load saved-work controls';return;}
+    const opened=await window.CadavreWork?.mount({
+      snapshot:()=>({schemaVersion:1,contributions:contributions.map(m=>({role:m.isModel?"assistant":"user",content:m.text,...(m.model?{model:m.model}:{})})),text:poemText||contributions.map(m=>m.text).join("\n"),reading:readingText,settings:{players,modelSeat,maxWords,model:CFG.model},record:{surface:"parlor",closed:!gameActive,seats:contributions.map(m=>m.seat)}}),
+      restore:async()=>{throw new Error('Reopen saved poems from My work in the open sheet.');},
+    });
+    if(opened!==false)await loadModelOptions();
+    else el('startBtn').textContent='Open saved work from My work';
+    }
+    void initializeWork();
   </script>
 </body>
 </html>
