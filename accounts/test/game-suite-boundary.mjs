@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
+import {resolve,dirname,join} from 'node:path';
+import {mkdtemp} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+const accounts=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const root=process.env.GAME_SUITE_ROOT||resolve(accounts,'../..');
+const temp=await mkdtemp(join(tmpdir(),'game-suite-'));
+const require=createRequire(accounts+'/package.json');
+const {Miniflare,convertV4MiniflareOptions}=require('miniflare');const {build}=require('esbuild');const {generateKeyPair,exportJWK,SignJWT}=await import(require.resolve('jose'));
+const campus='https://tools.ailab.gc.cuny.edu';
+for(const app of ['jeopardy','cloze'])await build({entryPoints:[root+'/'+app+'-games-suite/worker/index.ts'],outfile:temp+'/'+app+'-suite.js',bundle:true,format:'esm',platform:'browser',external:['cloudflare:workers']});
+const {privateKey,publicKey}=await generateKeyPair('RS256',{extractable:true});const jwk=await exportJWK(publicKey);Object.assign(jwk,{kid:'test',alg:'RS256',use:'sig'});const jwts={};
+for(const who of ['a','b'])for(const app of ['jeopardy','cloze','work-accounts','gateway'])jwts[who+':'+app]=await new SignJWT({}).setProtectedHeader({alg:'RS256',kid:'test'}).setSubject('cail-'+who.repeat(32)).setIssuer(campus+'/cail-sso').setAudience('cail:'+app).setIssuedAt().setExpirationTime('5m').sign(privateKey);
+const worker=app=>({name:app,modules:true,compatibilityDate:'2026-09-06',script:require('node:fs').readFileSync(temp+'/'+app+'-suite.js','utf8'),compatibilityFlags:['nodejs_compat','enable_request_signal'],bindings:{APP_ID:app,PUBLIC_ORIGIN:'https://'+app+'.ailab-452.workers.dev',RELEASE:'test',LEGACY_ORIGIN:'https://unused.invalid'},serviceBindings:{REQUEST_LIMIT:{name:'identity',entrypoint:'Limiter'},IDENTITY:{name:'identity',entrypoint:'Identity',props:{app}},WORK_ACCOUNTS:{name:'accounts',entrypoint:'WorkerAccounts',props:JSON.parse(require('node:fs').readFileSync(root+'/'+app+'-games-suite/wrangler.jsonc')).services.find(s=>s.binding==='WORK_ACCOUNTS').props},WORKSPACE:'accounts'}});
+const mf=new Miniflare(convertV4MiniflareOptions({workers:[{name:'router',modules:true,compatibilityDate:'2026-09-06',script:"export default{fetch(r,e){return(new URL(r.url).hostname.startsWith('cloze')?e.C:e.J).fetch(r)}}",serviceBindings:{C:'cloze',J:'jeopardy'}},worker('jeopardy'),worker('cloze'),{name:'identity',modules:true,compatibilityDate:'2026-09-06',bindings:{JWTS:JSON.stringify(jwts)},script:`import{WorkerEntrypoint}from'cloudflare:workers';export class Limiter extends WorkerEntrypoint{limit(){return{success:true}}}export class Identity extends WorkerEntrypoint{identities(token){const j=JSON.parse(this.env.JWTS),app=this.ctx.props.app;if(!['a','b'].includes(token))return{ok:false,status:401};return{ok:true,appJwt:j[token+':'+app],workspaceJwt:j[token+':work-accounts'],gatewayJwt:j[token+':gateway']}}}export default{fetch(){return new Response()}}`},{name:'accounts',modules:true,compatibilityDate:'2026-09-06',compatibilityFlags:['nodejs_compat','enable_request_signal'],script:require('node:fs').readFileSync(accounts+'/dist/index.js','utf8'),bindings:{CAIL_IDENTITY_JWKS:JSON.stringify({keys:[jwk]})},d1Databases:['DB'],durableObjects:{ACCOUNTS:{className:'AccountCoordinator',useSQLite:true}},serviceBindings:{ADMISSION_RESOLVER:{name:'admission',entrypoint:'AdmissionResolver'}}},{name:'admission',modules:true,compatibilityDate:'2026-09-06',script:`import{WorkerEntrypoint}from'cloudflare:workers';export class AdmissionResolver extends WorkerEntrypoint{resolveMembership(){return{ok:true,expiresAt:'2099-01-01T00:00:00.000Z',revision:1,accessRole:'member',budgetScope:'person'}}}export default{fetch(){return new Response()}}`}]}));
+try{
+ const db=await mf.getD1Database('DB','accounts');for(const f of ['0001_accounts.sql','0002_application_catalog.sql','0003_registered_workers.sql'])for(const sql of(await readFile(accounts+'/migrations/'+f,'utf8')).split(';').filter(s=>s.trim()))await db.prepare(sql).run();
+ const call=(app,path,method='GET',body,who='a',origin)=>mf.dispatchFetch('https://'+app+'.ailab-452.workers.dev'+path,{method,headers:{cookie:'__Host-'+app+'-session='+who,origin:origin||'https://'+app+'.ailab-452.workers.dev','content-type':'application/json','x-cail-identity-jwt':'forged'},body:body===undefined?undefined:JSON.stringify(body),redirect:'manual'});
+ const board={name:'Test board',source:'manual',metadata:{schemaVersion:1,source:'manual'},board_data:{gameState:{categories:[{title:'Animals',questions:[{text:'A feline',answer:'What is a cat?',value:200,answered:true,revealed:true}]}],players:[{name:'One',score:200,active:true}],currentPlayer:0,finalJeopardyActive:false}}};
+ let r=await call('jeopardy','/api/boards','POST',board);assert.equal(r.status,200,await r.clone().text());const saved=await r.json();assert.equal(saved.revision,1);
+ r=await call('jeopardy','/api/boards/'+saved.id);assert.deepEqual((await r.json()).board_data,board.board_data);
+ assert.equal((await call('jeopardy','/api/boards/'+saved.id,'GET',undefined,'b')).status,404);
+ assert.equal((await call('cloze','/api/work/entries/'+saved.id)).status,404);
+ assert.equal((await call('jeopardy','/api/boards/'+saved.id,'PUT',{...board,expected_revision:1})).status,200);
+ assert.equal((await call('jeopardy','/api/boards/'+saved.id,'PUT',{...board,expected_revision:1})).status,409);
+ assert.equal((await call('jeopardy','/api/boards','POST',board,'a','https://evil.invalid')).status,403);
+ assert.equal((await call('jeopardy','/api/boards','POST',board,'none')).status,401);
+ const exercise={id:crypto.randomUUID(),app:'cloze',kind:'exercise',title:'Test passage',expectedRevision:0,content:{schemaVersion:1,contributions:[],text:'A passage',reading:'',settings:{},record:{game:{lockedBlanks:{set:[0]},blanks:[{word:'cat'}]},chat:{wordContexts:{map:[['blank-0',{targetWord:'cat',previousAttempts:['dog']}]]}}}}};
+ r=await call('cloze','/api/work/entries','PUT',exercise);assert.equal(r.status,201,await r.clone().text());r=await call('cloze','/api/work/entries/'+exercise.id);assert.deepEqual((await r.json()).item.content,exercise.content);
+ const dashboard=await(await call('cloze','/my-work/api/dashboard')).json();assert.equal(dashboard.apps.jeopardy.recent[0].id,saved.id);assert.equal(dashboard.apps.cloze.recent[0].id,exercise.id);
+ const apps=await(await call('jeopardy','/my-work/api/applications')).json();assert.equal(apps.applications.find(a=>a.id==='cloze').resumePath,'https://cloze.ailab-452.workers.dev/');
+ console.log('PASS: actual game Workers -> shared WorkerAccounts -> real D1/DO; board and exercise readback, two-user and two-app isolation, revision conflicts, forged-header stripping, anonymous/CSRF denial, shared dashboard and resume URLs. CUNY signing/Admission are local doubles.');
+}finally{await mf.dispose()}
