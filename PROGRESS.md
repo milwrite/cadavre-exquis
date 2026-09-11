@@ -11,6 +11,25 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 ## Current Worker destination
 
+### Model routing repair — 2026-09-11
+
+- CAIL now advertises short public model aliases. Public play resolves those
+  aliases to verified full Workers AI binding IDs; signed-in play resolves saved
+  full IDs back to the live CAIL catalog ID. Unknown binding aliases stay hidden.
+- Both play surfaces keep their 80-token turn and 400-token reading budgets after
+  CUNY Login. Reasoning is disabled for short signed-in turns. Binding requests
+  have a deadline, and empty output is returned as a failure.
+- Deployed code `4ea71d7`, Worker version
+  `dcd590b8-31a8-42ab-92c9-4df2a57bdf50`, at the existing `cadavre` destination.
+  Health readback confirms the release and DeepSeek V4 Flash default.
+- Verification: 33 page/core tests, 7 Python tests, 20 Worker tests, TypeScript,
+  asset build, and deployment bundle pass. At 390 × 844, both play pages completed
+  real model turns; Solo completed a close reading, with no console errors or
+  horizontal overflow. Firefox CUNY Login → Solo turn → saved poem also passed.
+- Scope of evidence: phone-sized Chromium and signed-in desktop Firefox; a
+  physical iPhone/Safari session has not been tested. No static app key is needed
+  for these repaired paths; signed-in requests retain CUNY Gateway authorization.
+
 - [x] Canonical public application, Solo play and My work at `cadavre.ailab-452.workers.dev`.
 - [x] Existing CUNY session handoff, private saved-work read/reload/pin/unpin and resume verified in Firefox; public real model completion verified separately.
 - [x] Original public-wall namespace transferred intact; wall snapshot unchanged; browser-local wall editing permissions transferred through explicit UI.
