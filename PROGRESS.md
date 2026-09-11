@@ -23,7 +23,7 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   Workers AI choices; CUNY Login adds the four Gateway choices. Gemma 26B A4B
   is the poetry default. Older saved model IDs are normalized or moved to the
   current shortlist for future turns, preserving existing text and attribution.
-- All seven poetry choices returned real model text. Local phone-sized Chromium
+- All seven poetry choices returned real text in short model probes. Phone-sized Chromium
   verified the writing loop on both surfaces, with real remote Workers AI
   responses, no page errors, no horizontal overflow, and no forced refocus.
   The reduced viewport is a keyboard simulation, not a physical iPhone test.
@@ -34,7 +34,16 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   selection; a delayed-response browser fixture passed on both play surfaces.
 - The full Solo prompt exposed empty MiniMax output at 80, 256, and 512 completion
   tokens even though the short model probe passed. A bounded 2048-token minimum
-  is being verified for that model; other poetry budgets remain unchanged.
+  fixed the real signed-in Solo turn (`velvet harbors` → `folded kelp`), saving,
+  and a complete close reading. Other poetry budgets remain unchanged.
+- Signed-in responses normalize known provider IDs back to CAIL aliases so a
+  successful OpenRouter response does not collapse the model menu to one raw ID.
+- Current deployed code: `96ffe6c`, Worker version
+  `88fcf473-0337-4b05-ad6c-cf0651eff0c0`. Health confirms the release and Gemma
+  26B A4B default. Checks pass: 35 page/core, 7 Python, 19 Worker, TypeScript and
+  asset/deployment builds. Live 390 × 844 Solo and Shared turns returned Gemma
+  text without page errors or horizontal overflow. The keyboard was simulated;
+  signed-in MiniMax was checked in desktop Firefox.
 
 ### Model routing repair — 2026-09-11
 
