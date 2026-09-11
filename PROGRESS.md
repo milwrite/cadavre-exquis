@@ -11,6 +11,25 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 ## Current Worker destination
 
+### Mobile writing and curated models — 2026-09-11
+
+- Phone writing no longer forces focus after load, taps elsewhere, or model
+  responses. Solo has a visible Send button. Both writing edges fit above a
+  simulated software keyboard, and phone form controls use at least 16px text.
+  The visual viewport changes the Solo composition without disabling pinch zoom.
+- The current CAIL Featured shortlist is a different source from the full
+  catalog. Poetry uses four task-suited Featured models plus requested MiniMax M3,
+  compact Gemma 26B A4B, and Llama 8B. Public play offers the three runnable
+  Workers AI choices; CUNY Login adds the four Gateway choices. Gemma 26B A4B
+  is the poetry default. Older saved model IDs are normalized or moved to the
+  current shortlist for future turns, preserving existing text and attribution.
+- All seven poetry choices returned real model text. Local phone-sized Chromium
+  verified the writing loop on both surfaces, with real remote Workers AI
+  responses, no page errors, no horizontal overflow, and no forced refocus.
+  The reduced viewport is a keyboard simulation, not a physical iPhone test.
+- Solo/shared consolidation remains a proposal in the workspace Games plan.
+  No mode was removed or merged by this repair.
+
 ### Model routing repair — 2026-09-11
 
 - CAIL now advertises short public model aliases. Public play resolves those

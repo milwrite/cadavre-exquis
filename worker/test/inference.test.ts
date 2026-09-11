@@ -6,10 +6,10 @@ import { policyFromEnv } from "../src/policy.ts";
 import { prepareChatBody } from "../src/shape.ts";
 
 test("live catalog aliases reach AI.run with a full upstream id and a deadline", async () => {
-  const catalog = toCatalog([{ id: "deepseek-v4-flash-0731", provider: "workers-ai", capabilities: ["text-generation", "reasoning"] }], "@cf/deepseek-ai/deepseek-v4-flash-0731", policyFromEnv("workers-ai", false));
+  const catalog = toCatalog([{ id: "gemma-4-26b-a4b-it", provider: "workers-ai", capabilities: ["text-generation", "reasoning"] }], "@cf/google/gemma-4-26b-a4b-it", policyFromEnv("workers-ai", false));
   const { route, request } = prepareChatBody({ messages: [{ role: "user", content: "silver rain" }] }, catalog);
   const ai = { async run(model: string, input: any, options: any) {
-    assert.equal(model, "@cf/deepseek-ai/deepseek-v4-flash-0731");
+    assert.equal(model, "@cf/google/gemma-4-26b-a4b-it");
     assert.equal(input.chat_template_kwargs.enable_thinking, false);
     assert.ok(options.signal instanceof AbortSignal);
     return { response: "on borrowed wings" };

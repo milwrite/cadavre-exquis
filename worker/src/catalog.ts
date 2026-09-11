@@ -2,6 +2,7 @@
  * public /v1/catalog and narrowed by policy. Cached in isolate memory; a stale
  * copy or a small built-in list covers a catalog outage. */
 import { selectModels, type GatewayModel, type Policy } from "./policy.ts";
+import { GAME_MODELS, gameModel } from './game-models.ts';
 
 export type Route = {
   id: string;
@@ -10,6 +11,7 @@ export type Route = {
   model: string;
   available: boolean;
   reasoning: boolean;
+  group?: string;
 };
 
 export type Catalog = { default: string; models: Route[] };
@@ -39,13 +41,9 @@ export function bindingModel(id: string): string | undefined {
 }
 
 // Used only when the catalog cannot be fetched and nothing is cached yet.
-export const FALLBACK_MODELS: GatewayModel[] = [
-  { id: "@cf/deepseek-ai/deepseek-v4-flash-0731", provider: "workers-ai", capabilities: ["text-generation", "reasoning"] },
-  { id: "@cf/google/gemma-4-26b-a4b-it", provider: "workers-ai", capabilities: ["text-generation", "reasoning"] },
-  { id: "@cf/meta/llama-3.3-70b-instruct-fp8-fast", provider: "workers-ai", capabilities: ["text-generation"] },
-  { id: "@cf/mistralai/mistral-small-3.1-24b-instruct", provider: "workers-ai", capabilities: ["text-generation"] },
-  { id: "@cf/meta/llama-3.1-8b-instruct-fp8", provider: "workers-ai", capabilities: ["text-generation"] },
-];
+export const FALLBACK_MODELS: GatewayModel[] = GAME_MODELS.filter(m => m.provider === 'workers-ai').map(m => ({
+  id: m.id, provider: m.provider, capabilities: ['text-generation', ...(m.id.startsWith('llama-') ? [] : ['reasoning'])],
+}));
 
 export function routeLabel(id: string): string {
   return id.startsWith("@cf/") ? id.slice(4) : id;
@@ -54,7 +52,7 @@ export function routeLabel(id: string): string {
 export function toCatalog(models: GatewayModel[], defaultModel: string, policy: Policy): Catalog {
   const routes: Route[] = [];
   const seen = new Set<string>();
-  for (const m of selectModels(models, policy)) {
+  for (const m of selectModels(models, policy).sort((a,b) => GAME_MODELS.findIndex(m => m.id === gameModel(a.id)?.id) - GAME_MODELS.findIndex(m => m.id === gameModel(b.id)?.id))) {
     const id = String(m.id).trim();
     const model = m.provider === "workers-ai" ? bindingModel(id) : id;
     if (!model) continue;
@@ -62,11 +60,12 @@ export function toCatalog(models: GatewayModel[], defaultModel: string, policy: 
     seen.add(id);
     routes.push({
       id,
-      label: routeLabel(id),
+      label: gameModel(id)?.label || routeLabel(id),
       provider: m.provider || "cloudflare-ai-gateway",
       model,
       available: true,
       reasoning: (m.capabilities ?? []).includes("reasoning"),
+      group: gameModel(id)?.group,
     });
   }
   const preferred = routes.find(r => r.id === defaultModel || r.model === defaultModel);

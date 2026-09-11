@@ -7,6 +7,8 @@
  * explicit short list for a classroom.
  */
 
+import { GAME_MODELS, gameModel } from './game-models.ts';
+
 export type GatewayModel = {
   id: string;
   provider?: string;
@@ -45,7 +47,7 @@ export const EXCLUDE: readonly RegExp[] = [
   /-vision-/i,
 ];
 
-export const ALLOW: readonly string[] = [];
+export const ALLOW: readonly string[] = GAME_MODELS.map(model => model.id);
 
 export function policyFromEnv(value: string | undefined, gatewayKeyPresent: boolean): Policy {
   const mode = (value || "workers-ai").trim().toLowerCase();
@@ -66,7 +68,8 @@ export function selectModels(models: GatewayModel[], policy: Policy): GatewayMod
     if (!capabilities.includes("text-generation")) continue;
     if (!policy.providers.has(m.provider ?? "")) continue;
     if (policy.exclude.some((re) => re.test(id))) continue;
-    if (policy.allow.length && !policy.allow.includes(id)) continue;
+    if (policy.allow.length && !policy.allow.includes(gameModel(id)?.id || id)) continue;
+    if (gameModel(id)?.provider !== m.provider) continue;
     kept.push(m);
   }
   return kept;

@@ -51,7 +51,7 @@
     // "workers-ai" offers only @cf/ models (run on the AI binding).
     // "all" adds the gateway's OpenRouter routes, which need CAIL_GATEWAY_KEY.
     "CADAVRE_MODEL_POLICY": "workers-ai",
-    "CADAVRE_DEFAULT_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
+    "CADAVRE_DEFAULT_MODEL": "gemma-4-26b-a4b-it",
     // Completion tokens per UTC day before the parlor rests until tomorrow.
     "CADAVRE_DAILY_TOKEN_CEILING": "1500000",
     // Optional: an AI Gateway id on this account, so binding calls are logged there.
