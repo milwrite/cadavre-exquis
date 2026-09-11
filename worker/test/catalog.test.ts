@@ -64,3 +64,18 @@ test("route labels drop only the @cf/ prefix", () => {
   assert.equal(routeLabel("@cf/google/gemma-4-26b-a4b-it"), "google/gemma-4-26b-a4b-it");
   assert.equal(routeLabel("deepseek/deepseek-chat-v3.1"), "deepseek/deepseek-chat-v3.1");
 });
+
+test("CAIL aliases resolve to Workers AI ids and retain saved model selections", () => {
+  const full = "@cf/deepseek-ai/deepseek-v4-flash-0731";
+  const alias = "deepseek-v4-flash-0731";
+  const catalog = toCatalog([
+    { id: "gemma-4-26b-a4b-it", provider: "workers-ai" },
+    { id: alias, provider: "workers-ai", capabilities: ["text-generation", "reasoning"] },
+    { id: "unresolved-new-model", provider: "workers-ai" },
+  ], full, policyFromEnv("workers-ai", false));
+  assert.equal(catalog.default, alias);
+  assert.equal(catalog.models.length, 2);
+  assert.equal(findRoute(catalog, alias)?.model, full);
+  assert.equal(findRoute(catalog, full)?.id, alias);
+  assert.equal(findRoute(catalog, "unresolved-new-model"), undefined);
+});
