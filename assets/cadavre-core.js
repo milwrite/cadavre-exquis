@@ -85,7 +85,7 @@
 
     const requested = Array.isArray(requestedIds) ? requestedIds : [requestedIds];
     const ids = [...requested, catalog?.default, catalog?.defaultModel].filter(Boolean);
-    return ids.map((id) => available.find((route) => route.id === id)).find(Boolean)
+    return ids.map((id) => available.find((route) => route.id === id || route.model === id)).find(Boolean)
       || available[0];
   }
 

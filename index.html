@@ -132,7 +132,6 @@
     .intro {
       max-width: 36rem;
       color: var(--bone-soft);
-      text-wrap: pretty;
     }
 
     .intro strong { font-weight: 600; color: var(--bone); }
@@ -357,7 +356,6 @@
       font-size: 1rem;
       line-height: 1.65;
       color: var(--reading);
-      text-wrap: pretty;
     }
 
     .reading.show { animation: fade 0.9s ease 0.15s both; }
@@ -401,7 +399,7 @@
 
     .solo-text { max-width: 34rem; }
     .solo-text h2 { font-size: var(--t-lead); margin-bottom: 0.3rem; }
-    .solo-text p { color: var(--bone-soft); font-size: 1rem; text-wrap: pretty; }
+    .solo-text p { color: var(--bone-soft); font-size: 1rem; }
 
     /* the two links off the table, set as buttons like "begin" */
     .solo-link, .nav-link {
@@ -496,7 +494,7 @@
 
     .pin-reading-pane { min-width: 0; }
     .pin-reading-head { font-size: 1.2rem; font-style: italic; font-weight: 400; color: var(--bone-soft); margin-bottom: 0.5rem; }
-    .pin-reading { font-size: 1rem; line-height: 1.65; color: var(--reading); text-wrap: pretty; }
+    .pin-reading { font-size: 1rem; line-height: 1.65; color: var(--reading); }
     .pin-reading.none { color: var(--faint); font-style: italic; }
 
     .pin-meta {
@@ -601,8 +599,9 @@
       .reading .quote { border-bottom: 0; color: #444; }
     }
   </style>
+  <link rel="stylesheet" href="assets/cadavre-mobile.css">
 </head>
-<body>
+<body data-surface="shared">
   <div class="page">
     <header class="masthead">
       <h1 class="brand">
@@ -669,7 +668,7 @@
         </div>
         <form class="entry" id="entryForm">
           <input id="wordInput" type="text" autocomplete="off" autocapitalize="off"
-                 autocorrect="off" spellcheck="false" aria-label="your contribution" />
+                 autocorrect="off" spellcheck="false" enterkeyhint="send" aria-label="your contribution" />
           <button id="submitBtn" class="primary" type="submit">submit</button>
         </form>
         <p class="status" id="status" role="status" aria-live="polite"></p>
@@ -746,6 +745,7 @@
   <script src="ui/config.local.js"></script>
   <script src="assets/account-work.js"></script>
   <script src="assets/cadavre-core.js"></script>
+  <script src="assets/cadavre-viewport.js"></script>
   <script>
     /* ── connection: defaults < config.local.js < URL params (this visit only —
        never persisted, so a crafted link can't poison future visits; keys
@@ -1125,7 +1125,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
       el("submitBtn").disabled = false;
       el("undoBtn").disabled = !contributions.length;
       el("wordInput").placeholder = limit + "…";
-      el("wordInput").focus();
+      window.CadavreViewport.focus(el("wordInput"));
     }
 
     /* ── talking to the model ───────────────────────────────────────────── */
@@ -1157,6 +1157,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
     let menuLoaded = false;
 
     function routeGroup(route) {
+      if (route.group) return { rank: 0, label: route.group };
       const provider = String(route.provider || route.id || "");
       if (/ollama/i.test(provider)) return { rank: 1, label: "Ollama Cloud" };
       if (/workers-ai/i.test(provider)) return { rank: 2, label: "Cloudflare Workers AI" };
@@ -1200,16 +1201,14 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
         option.disabled = route.available === false;
         groups.get(name).appendChild(option);
       });
-      const requested = [CFG.model, catalog?.default].find((id) => available.some((route) => route.id === id));
-      if(!CFG.authenticated)CFG.model = requested || available[0].id;
-      if(!Array.from(select.options).some(o=>o.value===CFG.model)){const option=document.createElement("option");option.value=CFG.model;option.textContent=CFG.model+" (selected model)";select.append(option);}
+      CFG.model = CadavreCore.chooseModel({ ...catalog, models: routes }, [CFG.model]).id;
       select.value = CFG.model;
       select.disabled = select.options.length < 2;
       menuLoaded = true;
     }
 
     async function loadModelOptions() {
-      const custom = (!CFG.authenticated && params.has("endpoint")) || params.has("model");
+      const custom = !CFG.authenticated && LOCAL_PAGE && (params.has("endpoint") || params.has("model"));
       if (!CFG.modelsEndpoint || custom) {
         setSingleModelOption();
         return warmSelectedModel();
@@ -1264,24 +1263,27 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
       clearTimeout(modelReadyRetry);
       setModelReadiness("warming and verifying the other hand…", false);
       const ctrl = new AbortController();
+      const requestedModel = CFG.model;
       const timer = setTimeout(() => ctrl.abort(), 32000);
       const check = (async () => {
         try {
           const response = await fetch(CFG.readyEndpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ model: CFG.model }),
+            body: JSON.stringify({ model: requestedModel }),
             cache: "no-store",
             signal: ctrl.signal,
           });
           if (!response.ok) throw new Error("readiness returned " + response.status);
           const data = await response.json();
+          if (CFG.model !== requestedModel) return null;
           if (!data.ready || !data.model) throw new Error("no model route is ready");
           return acceptReadyModel(
             data,
             data.failover ? "ready on a verified standby route" : "ready before the first fold"
           );
         } catch {
+          if (CFG.model !== requestedModel) return null;
           modelReadyFor = "";
           modelReadyAttempt++;
           const delay = Math.min(15000, 1000 * (2 ** Math.min(modelReadyAttempt, 4)));
@@ -1318,7 +1320,8 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
             CFG.apiKey ? { Authorization: "Bearer " + CFG.apiKey } : {}),
           body: JSON.stringify({
             model: CFG.model, messages,
-            ...(CFG.authenticated ? {workId:CadavreWork.id()} : {max_tokens:maxTokens}), temperature: options.temperature ?? 0.8, stream: false,
+            ...(CFG.authenticated ? {workId:CadavreWork.id()} : {}),
+            max_tokens:maxTokens, temperature: options.temperature ?? 0.8, stream: false,
           }),
           signal: ctrl.signal,
         });
@@ -1608,7 +1611,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
     el("revealCancel").addEventListener("click", () => el("revealDialog").close());
     el("revealDialog").addEventListener("close", () => {
       // declined (cancel or Esc): hand the pen back
-      if (gameActive && !isModelTurn()) el("wordInput").focus();
+      if (gameActive && !isModelTurn()) window.CadavreViewport.focus(el("wordInput"));
     });
 
     /* ── keep, print, pin ───────────────────────────────────────────────── */

@@ -11,6 +11,59 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 ## Current Worker destination
 
+### Mobile writing and curated models — 2026-09-11
+
+- Phone writing no longer forces focus after load, taps elsewhere, or model
+  responses. Solo has a visible Send button. Both writing edges fit above a
+  simulated software keyboard, and phone form controls use at least 16px text.
+  The visual viewport changes the Solo composition without disabling pinch zoom.
+- The current CAIL Featured shortlist is a different source from the full
+  catalog. Poetry uses four task-suited Featured models plus requested MiniMax M3,
+  compact Gemma 26B A4B, and Llama 8B. Public play offers the three runnable
+  Workers AI choices; CUNY Login adds the four Gateway choices. Gemma 26B A4B
+  is the poetry default. Older saved model IDs are normalized or moved to the
+  current shortlist for future turns, preserving existing text and attribution.
+- All seven poetry choices returned real text in short model probes. Phone-sized Chromium
+  verified the writing loop on both surfaces, with real remote Workers AI
+  responses, no page errors, no horizontal overflow, and no forced refocus.
+  The reduced viewport is a keyboard simulation, not a physical iPhone test.
+- Solo/shared consolidation remains a proposal in the workspace Games plan.
+  No mode was removed or merged by this repair.
+- Firefox's unsupported `text-wrap: pretty` declaration has been removed. Late
+  readiness and background-cue responses can no longer replace a newer model
+  selection; a delayed-response browser fixture passed on both play surfaces.
+- The full Solo prompt exposed empty MiniMax output at 80, 256, and 512 completion
+  tokens even though the short model probe passed. A bounded 2048-token minimum
+  fixed the real signed-in Solo turn (`velvet harbors` → `folded kelp`), saving,
+  and a complete close reading. Other poetry budgets remain unchanged.
+- Signed-in responses normalize known provider IDs back to CAIL aliases so a
+  successful OpenRouter response does not collapse the model menu to one raw ID.
+- Current deployed code: `96ffe6c`, Worker version
+  `88fcf473-0337-4b05-ad6c-cf0651eff0c0`. Health confirms the release and Gemma
+  26B A4B default. Checks pass: 35 page/core, 7 Python, 19 Worker, TypeScript and
+  asset/deployment builds. Live 390 × 844 Solo and Shared turns returned Gemma
+  text without page errors or horizontal overflow. The keyboard was simulated;
+  signed-in MiniMax was checked in desktop Firefox.
+
+### Model routing repair — 2026-09-11
+
+- CAIL now advertises short public model aliases. Public play resolves those
+  aliases to verified full Workers AI binding IDs; signed-in play resolves saved
+  full IDs back to the live CAIL catalog ID. Unknown binding aliases stay hidden.
+- Both play surfaces keep their 80-token turn and 400-token reading budgets after
+  CUNY Login. Reasoning is disabled for short signed-in turns. Binding requests
+  have a deadline, and empty output is returned as a failure.
+- Deployed code `4ea71d7`, Worker version
+  `dcd590b8-31a8-42ab-92c9-4df2a57bdf50`, at the existing `cadavre` destination.
+  Health readback confirms the release and DeepSeek V4 Flash default.
+- Verification: 33 page/core tests, 7 Python tests, 20 Worker tests, TypeScript,
+  asset build, and deployment bundle pass. At 390 × 844, both play pages completed
+  real model turns; Solo completed a close reading, with no console errors or
+  horizontal overflow. Firefox CUNY Login → Solo turn → saved poem also passed.
+- Scope of evidence: phone-sized Chromium and signed-in desktop Firefox; a
+  physical iPhone/Safari session has not been tested. No static app key is needed
+  for these repaired paths; signed-in requests retain CUNY Gateway authorization.
+
 - [x] Canonical public application, Solo play and My work at `cadavre.ailab-452.workers.dev`.
 - [x] Existing CUNY session handoff, private saved-work read/reload/pin/unpin and resume verified in Firefox; public real model completion verified separately.
 - [x] Original public-wall namespace transferred intact; wall snapshot unchanged; browser-local wall editing permissions transferred through explicit UI.

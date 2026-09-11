@@ -1,66 +1,50 @@
-import { test } from "node:test";
-import assert from "node:assert/strict";
-import { toCatalog, routeLabel, findRoute } from "../src/catalog.ts";
-import { policyFromEnv, selectModels, type GatewayModel } from "../src/policy.ts";
-
-const models: GatewayModel[] = [
-  { id: "@cf/google/gemma-4-26b-a4b-it", provider: "workers-ai", capabilities: ["text-generation", "reasoning"] },
-  { id: "@cf/meta/llama-3.3-70b-instruct-fp8-fast", provider: "workers-ai", capabilities: ["text-generation"] },
-  { id: "@cf/meta/llama-guard-3-8b", provider: "workers-ai", capabilities: ["text-generation"] },
-  { id: "@cf/qwen/qwen2.5-coder-32b-instruct", provider: "workers-ai", capabilities: ["text-generation"] },
-  { id: "@cf/google/gemma-2b-it-lora", provider: "workers-ai", capabilities: ["text-generation"] },
-  { id: "@cf/meta/llama-3.2-11b-vision-instruct", provider: "workers-ai", modality: "multimodal", capabilities: ["text-generation"] },
-  { id: "@cf/retired/model", provider: "workers-ai", status: "sunset", capabilities: ["text-generation"] },
-  { id: "@cf/openai/whisper", provider: "workers-ai", capabilities: ["speech-to-text"] },
-  { id: "deepseek/deepseek-chat-v3.1", provider: "openrouter", capabilities: ["text-generation", "reasoning"] },
-  { id: "@cf/meta/llama-3.3-70b-instruct-fp8-fast", provider: "workers-ai", capabilities: ["text-generation"] },
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { toCatalog, findRoute, FALLBACK_MODELS } from '../src/catalog.ts';
+import { policyFromEnv, type GatewayModel } from '../src/policy.ts';
+import { GAME_MODELS, generationBudget } from '../src/game-models.ts';
+const models:GatewayModel[] = [
+  ...GAME_MODELS.map(m=>({id:m.id,provider:m.provider,capabilities:['text-generation','reasoning']})),
+  {id:'deepseek-v4-flash-0731',provider:'workers-ai',capabilities:['text-generation']},
+  {id:'kimi-k3',provider:'openrouter',capabilities:['text-generation']},
+  {id:'whisper-large-v3-turbo',provider:'workers-ai',capabilities:['speech-to-text']},
 ];
-
-test("workers-ai policy keeps only runnable @cf/ writers", () => {
-  const kept = selectModels(models, policyFromEnv("workers-ai", false)).map((m) => m.id);
-  assert.deepEqual(kept, [
-    "@cf/google/gemma-4-26b-a4b-it",
-    "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-    "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
-  ]);
+test('MiniMax reserves reasoning room without changing compact-model budgets',()=>{
+  assert.equal(generationBudget('minimax-m3',80),2048);
+  assert.equal(generationBudget('minimax/minimax-m3',400),2048);
+  assert.equal(generationBudget('gemma-4-26b-a4b-it',80),80);
 });
-
-test("policy all adds OpenRouter only when a gateway key exists", () => {
-  const without = selectModels(models, policyFromEnv("all", false)).map((m) => m.provider);
-  assert.ok(!without.includes("openrouter"));
-  const withKey = selectModels(models, policyFromEnv("all", true)).map((m) => m.id);
-  assert.ok(withKey.includes("deepseek/deepseek-chat-v3.1"));
+test('public play offers only curated runnable binding models',()=>{
+  const catalog=toCatalog(models,'gemma-4-26b-a4b-it',policyFromEnv('workers-ai',false));
+  assert.deepEqual(catalog.models.map(m=>m.id),['gemma-4-26b-a4b-it','qwen3.8-27b','llama-3.1-8b-instruct-fp8']);
+  assert.equal(catalog.default,'gemma-4-26b-a4b-it');
+  assert.equal(findRoute(catalog,'@cf/google/gemma-4-26b-a4b-it')?.id,'gemma-4-26b-a4b-it');
+  assert.equal(findRoute(catalog,'deepseek-v4-flash-0731'),undefined);
+  assert.equal(findRoute(catalog,'minimax-m3'),undefined);
 });
-
-test("catalog dedups, labels, flags reasoning, and falls back on the default", () => {
-  const catalog = toCatalog(models, "@cf/google/gemma-4-26b-a4b-it", policyFromEnv("workers-ai", false));
-  assert.equal(catalog.models.length, 2);
-  assert.equal(catalog.default, "@cf/google/gemma-4-26b-a4b-it");
-  assert.equal(catalog.models[0]?.label, "google/gemma-4-26b-a4b-it");
-  assert.equal(catalog.models[0]?.reasoning, true);
-  assert.equal(catalog.models[1]?.reasoning, false);
-  assert.ok(catalog.models.every((r) => r.available && r.model === r.id));
-
-  const other = toCatalog(models, "ollama:kimi-k2.5", policyFromEnv("workers-ai", false));
-  assert.equal(other.default, "@cf/google/gemma-4-26b-a4b-it");
-  assert.equal(findRoute(other, "ollama:kimi-k2.5"), undefined);
+test('an app-key policy adds curated OpenRouter choices without exposing the full catalog',()=>{
+  const catalog=toCatalog(models,'minimax-m3',policyFromEnv('all',true));
+  assert.equal(catalog.models.length,7);
+  assert.equal(catalog.default,'minimax-m3');
+  assert.equal(findRoute(catalog,'kimi-k3'),undefined);
+  assert.equal(findRoute(catalog,'minimax-m3')?.provider,'openrouter');
+  assert.equal(toCatalog(models,'',policyFromEnv('all',false)).models.length,3);
 });
-
-test("routes that hide or leak their reasoning stay off the menu", () => {
-  const probeFailures: GatewayModel[] = [
-    "@cf/moonshotai/kimi-k2.6", "@cf/openai/gpt-oss-120b", "@cf/openai/gpt-oss-20b", "@cf/qwen/qwen3-30b-a3b-fp8",
-    "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b", "@cf/qwen/qwq-32b", "@cf/zai-org/glm-5.3", "@cf/zai-org/glm-5.3-flash",
-    "@cf/meta/llama-3.2-11b-vision-instruct",
-  ].map((id) => ({ id, provider: "workers-ai", capabilities: ["text-generation", "reasoning"] }));
-  const survivors: GatewayModel[] = [
-    { id: "@cf/zai-org/glm-5.2", provider: "workers-ai", capabilities: ["text-generation", "reasoning"] },
-    { id: "@cf/deepseek-ai/deepseek-v4-flash-0731", provider: "workers-ai", capabilities: ["text-generation", "reasoning"] },
-  ];
-  const kept = selectModels([...probeFailures, ...survivors], policyFromEnv("workers-ai", false)).map((m) => m.id);
-  assert.deepEqual(kept, ["@cf/zai-org/glm-5.2", "@cf/deepseek-ai/deepseek-v4-flash-0731"]);
+test('inactive, wrong-provider, non-text, and unknown models never become routes',()=>{
+  const catalog=toCatalog([
+    {id:'gemma-4-26b-a4b-it',provider:'workers-ai',status:'sunset'},
+    {id:'qwen3.8-27b',provider:'openrouter',capabilities:['text-generation']},
+    {id:'minimax-m3',provider:'openrouter',capabilities:['vision']},
+    {id:'unresolved-new-model',provider:'workers-ai',capabilities:['text-generation']},
+  ],'',policyFromEnv('all',true));
+  assert.deepEqual(catalog.models,[]);
+  assert.equal(catalog.default,'');
 });
-
-test("route labels drop only the @cf/ prefix", () => {
-  assert.equal(routeLabel("@cf/google/gemma-4-26b-a4b-it"), "google/gemma-4-26b-a4b-it");
-  assert.equal(routeLabel("deepseek/deepseek-chat-v3.1"), "deepseek/deepseek-chat-v3.1");
+test('an outage fallback remains inside the shortlist and preserves supported full ids',()=>{
+  const full='@cf/google/gemma-4-26b-a4b-it';
+  const catalog=toCatalog([...FALLBACK_MODELS,...FALLBACK_MODELS],full,policyFromEnv('workers-ai',false));
+  assert.equal(catalog.models.length,3);
+  assert.equal(catalog.default,'gemma-4-26b-a4b-it');
+  assert.equal(findRoute(catalog,full)?.model,full);
+  assert.equal(findRoute(catalog,full)?.label,'Gemma 4 · 26B, 4B active');
 });

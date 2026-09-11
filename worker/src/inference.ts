@@ -8,14 +8,19 @@ import { pickContent, pickUsage, type ChatRequest, type Usage } from "./shape.ts
 export type Completion = { content: string; usage: Usage; finishReason: string };
 
 export class UpstreamError extends Error {
-  constructor(message: string, public status = 502) {
+  status: number;
+  constructor(message: string, status = 502) {
     super(message);
+    this.status = status;
   }
 }
 
-export async function runOnBinding(ai: Ai, route: Route, request: ChatRequest, gatewayId = ""): Promise<Completion> {
+export async function runOnBinding(ai: Ai, route: Route, request: ChatRequest, gatewayId = "", timeoutMs = 45_000): Promise<Completion> {
   const { model: _model, ...inputs } = request;
-  const options = gatewayId ? { gateway: { id: gatewayId, skipCache: true } } : undefined;
+  const options = {
+    signal: AbortSignal.timeout(timeoutMs),
+    ...(gatewayId ? { gateway: { id: gatewayId, skipCache: true } } : {}),
+  };
   let result: unknown;
   try {
     // The binding's input type is per-model; the catalog already vetted the id.
@@ -24,8 +29,10 @@ export async function runOnBinding(ai: Ai, route: Route, request: ChatRequest, g
     throw new UpstreamError(`Workers AI: ${(err as Error).message}`, 502);
   }
   const choices = ((result ?? {}) as { choices?: Array<{ finish_reason?: string }> }).choices;
+  const content = pickContent(result);
+  if (!content) throw new UpstreamError("The model returned no visible text. Try another model.", 502);
   return {
-    content: pickContent(result),
+    content,
     usage: pickUsage(result),
     finishReason: choices?.[0]?.finish_reason ?? "stop",
   };
@@ -68,5 +75,7 @@ export async function runOnGateway(
   }
   const choices = ((data ?? {}) as { choices?: Array<{ finish_reason?: string }> }).choices;
   if (!choices?.length) throw new UpstreamError("CAIL Gateway answered without choices", 502);
-  return { content: pickContent(data), usage: pickUsage(data), finishReason: choices[0]?.finish_reason ?? "stop" };
+  const content = pickContent(data);
+  if (!content) throw new UpstreamError("The model returned no visible text. Try another model.", 502);
+  return { content, usage: pickUsage(data), finishReason: choices[0]?.finish_reason ?? "stop" };
 }

@@ -1,0 +1,29 @@
+@media (max-width: 48rem) {
+  html { scroll-padding-block: 4rem; }
+  /* Safari zooms small form fields. Keep native zoom available to the reader. */
+  input:not([type=checkbox]):not([type=range]), select, textarea {
+    font-size: max(16px, 1rem) !important;
+  }
+  body[data-surface=solo] {
+    --t-line: 1.25rem;
+    min-height: 100svh;
+    min-height: var(--visual-height, 100svh);
+    padding: 5rem 3.2rem max(4.5rem, env(safe-area-inset-bottom)) 1.1rem;
+  }
+  body[data-surface=solo] #entry { font-size: 1.125rem !important; min-width: 0; flex: 1; width: 0; min-height: 44px; }
+  body[data-surface=solo] #edge { align-items: center; gap: .65rem; }
+  body[data-surface=solo] #send-line { display: inline-block; margin: 0; min-height: 44px; padding: .5rem .6rem; }
+  body[data-surface=solo] #panel { height: var(--visual-height, 100dvh); padding-bottom: max(2.5rem, env(safe-area-inset-bottom)); }
+  body[data-surface=solo] #panel-tab { top: calc(var(--visual-height, 100svh) / 2); }
+  body[data-surface=solo] #hint { position: static; margin-top: 1.5rem; max-width: none; font-size: .8125rem; }
+  body[data-surface=solo] { flex-direction: column; }
+  body[data-surface=solo] main { flex: 0 0 auto; margin: auto; }
+  body[data-surface=solo] #hint { width: min(var(--measure), 100%); margin-inline: auto; }
+  html[data-keyboard-open] body[data-surface=solo] { padding-top: 3.8rem; padding-bottom: 2.5rem; }
+  html[data-keyboard-open] body[data-surface=solo] #hint { display: none; }
+  html[data-keyboard-open] body[data-surface=solo] #brand { width: 8rem; top: .8rem; }
+  body[data-surface=shared] .entry { flex-wrap: nowrap; align-items: center; gap: .65rem; }
+  body[data-surface=shared] .entry input { width: 0; min-width: 0; flex: 1; font-size: 1.125rem !important; min-height: 44px; }
+  body[data-surface=shared] .entry button { width: auto; min-height: 44px; flex: 0 0 auto; }
+  html[data-keyboard-open] body[data-surface=shared] .cue { margin-block: .6rem; }
+}
