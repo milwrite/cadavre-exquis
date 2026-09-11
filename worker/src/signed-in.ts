@@ -51,7 +51,9 @@ export async function signedIn(request:Request,env:SignedBindings,legacy:(reques
       if(input.recordModel!==false && data.choices?.[0]?.message?.content){
         try{const saved=await env.WORK_ACCOUNTS.modelCompleted(keyring.appJwt,data.model||model,workId,observation!.generation);recorded=saved.recorded;}catch{/* Preserve the generated turn; report the missing record to the browser. */}
       }
-      return Response.json({...data,workModelRecorded:recorded},{headers:noStore});
+      // The Gateway reports a provider ID; the picker uses public CAIL aliases.
+      // Keep the served model identity while normalizing its known alias.
+      return Response.json({...data,model:gameModel(data.model||model)?.id||data.model||model,workModelRecorded:recorded},{headers:noStore});
     }
     if(path.startsWith('/api/'))return legacy(translated);
     // The stable Worker route serves the existing sheet. Resolve asset clean-URL
