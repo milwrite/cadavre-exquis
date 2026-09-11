@@ -1318,7 +1318,8 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
             CFG.apiKey ? { Authorization: "Bearer " + CFG.apiKey } : {}),
           body: JSON.stringify({
             model: CFG.model, messages,
-            ...(CFG.authenticated ? {workId:CadavreWork.id()} : {max_tokens:maxTokens}), temperature: options.temperature ?? 0.8, stream: false,
+            ...(CFG.authenticated ? {workId:CadavreWork.id()} : {}),
+            max_tokens:maxTokens, temperature: options.temperature ?? 0.8, stream: false,
           }),
           signal: ctrl.signal,
         });

@@ -858,7 +858,8 @@ async function request(msgs, temperature = 0.9, maxTokens = TURN_TOKENS, recordM
       CFG.apiKey ? { "Authorization": "Bearer " + CFG.apiKey } : {}),
     body: JSON.stringify({
       model: CFG.model, messages: msgs,
-      ...(CFG.authenticated ? {workId: CadavreWork.id(), recordModel} : {max_tokens:maxTokens}), temperature, top_p: 0.95, stream: false,
+      ...(CFG.authenticated ? {workId: CadavreWork.id(), recordModel} : {}),
+      max_tokens: maxTokens, temperature, top_p: 0.95, stream: false,
     }),
   });
   if(!res.ok) throw new Error("model returned " + res.status);
