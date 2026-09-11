@@ -78,7 +78,7 @@
   #reading-col{ display:none; max-width:40rem; }
   #reading-col.show{ display:block; animation:fade 1s ease .15s both; }
   .reading-head{ font-size:1.2rem; font-style:italic; font-weight:400; color:var(--bone-soft); margin-bottom:.5rem; }
-  #reading{ font-size:1rem; line-height:1.65; color:var(--reading); text-wrap:pretty; }
+  #reading{ font-size:1rem; line-height:1.65; color:var(--reading); }
   @keyframes fade{ from{opacity:0} to{opacity:1} }
   @media (min-width:60rem){
     main.revealed{ grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); column-gap:clamp(2.5rem,5vw,4.5rem); align-items:start; }
@@ -542,24 +542,27 @@ async function warmSelectedModel({ force = false } = {}){
   askForCues();                                   // the hand's own cues, gathered while it warms
   note("warming the other hand <span class=\"breathe\">·</span>");
   const controller = new AbortController();
+  const requestedModel = CFG.model;
   const timer = setTimeout(() => controller.abort(), 32000);
   const check = (async () => {
     try {
       const response = await fetch(CFG.readyEndpoint, {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({ model:CFG.model }),
+        body:JSON.stringify({ model:requestedModel }),
         cache:"no-store",
         signal:controller.signal,
       });
       if(!response.ok) throw new Error("readiness returned " + response.status);
       const data = await response.json();
+      if (CFG.model !== requestedModel) return null;
       if(!data.ready || !data.model) throw new Error("no model route is ready");
       return acceptReadyModel(
         data,
         data.failover ? "ready on a verified standby route" : "ready"
       );
     } catch {
+      if (CFG.model !== requestedModel) return null;
       modelReadyFor = "";
       modelReadyAttempt++;
       const delay = Math.min(15000, 1000 * (2 ** Math.min(modelReadyAttempt, 4)));
@@ -864,12 +867,13 @@ function note(html, isErr){
 }
 
 async function request(msgs, temperature = 0.9, maxTokens = TURN_TOKENS, recordModel = true){
+  const requestedModel = CFG.model;
   const res = await fetch(CFG.endpoint, {
     method: "POST",
     headers: Object.assign({ "Content-Type": "application/json" },
       CFG.apiKey ? { "Authorization": "Bearer " + CFG.apiKey } : {}),
     body: JSON.stringify({
-      model: CFG.model, messages: msgs,
+      model: requestedModel, messages: msgs,
       ...(CFG.authenticated ? {workId: CadavreWork.id(), recordModel} : {}),
       max_tokens: maxTokens, temperature, top_p: 0.95, stream: false,
     }),
@@ -877,7 +881,8 @@ async function request(msgs, temperature = 0.9, maxTokens = TURN_TOKENS, recordM
   if(!res.ok) throw new Error("model returned " + res.status);
   const data = await res.json();
   if(CFG.authenticated&&recordModel)window.CadavreWork?.modelRecorded(data.workModelRecorded);
-  if(data.model){
+  // A delayed background cue must not undo a newer choice in the Table.
+  if(data.model && recordModel && CFG.model === requestedModel){
     CFG.model = data.model;
     modelReadyFor = data.model;
     const option = Array.from(modelRouteEl.options).find(item => item.value === data.model);
@@ -892,6 +897,7 @@ function setWaiting(on){
   edge.classList.toggle("waiting", on);
   entry.disabled = on;
   $("send-line").disabled = on;
+  modelRouteEl.disabled = on || modelRouteEl.options.length < 2;
 }
 
 async function send(text, maxTokens = TURN_TOKENS){

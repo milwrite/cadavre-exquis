@@ -3,7 +3,7 @@ import { boundedText, entryId, exact, InputError, isRecord } from '../../account
 import { configScript } from './config.ts';
 import { fetchGatewayModels } from './catalog.ts';
 import { THINKING_OFF } from './shape.ts';
-import { GAME_MODELS, gameModel } from './game-models.ts';
+import { GAME_MODELS, gameModel, generationBudget } from './game-models.ts';
 export type AccountClient = {register():Promise<{registered:boolean;id:string;version:number}>;fetch(request:Request):Promise<Response>;beginModel(jwt:string):Promise<{generation:number}>;modelCompleted(jwt:string,model:string,entryId:string|null,generation:number):Promise<{recorded:boolean}>};
 export type SignedBindings = Env & AuthBindings & {WORK_ACCOUNTS:AccountClient};
 const noStore={'cache-control':'no-store','x-content-type-options':'nosniff'};
@@ -39,6 +39,7 @@ export async function signedIn(request:Request,env:SignedBindings,legacy:(reques
       for(const m of input.messages){if(!isRecord(m)||!['system','user','assistant'].includes(String(m.role)))throw new InputError('Invalid message.');boundedText(m.content,50000,true);}
       const workId=input.workId===undefined?null:entryId(input.workId);
       const {workId:_id,recordModel:_record,...body}=input;
+      body.max_tokens=generationBudget(model, Math.min(400,Math.max(1,Number(body.max_tokens)||80)));
       const observation=input.recordModel===false?null:await env.WORK_ACCOUNTS.beginModel(keyring.appJwt);
       const upstream=await env.GATEWAY.fetch(ORIGIN+'/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${keyring.gatewayJwt}`,'x-request-id':crypto.randomUUID()},body:JSON.stringify({...body,model,...(route.capabilities?.includes('reasoning')?THINKING_OFF[route.provider||'']:{}),messages:input.messages.map(m=>({role:m.role,content:m.content}))}),signal:AbortSignal.any([request.signal,AbortSignal.timeout(60000)])});
       if(!upstream.ok)return upstream;

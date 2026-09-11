@@ -1,5 +1,5 @@
 @media (max-width: 48rem) {
-  html { scroll-padding-block: 4rem; -webkit-text-size-adjust: 100%; }
+  html { scroll-padding-block: 4rem; }
   /* Safari zooms small form fields. Keep native zoom available to the reader. */
   input:not([type=checkbox]):not([type=range]), select, textarea {
     font-size: max(16px, 1rem) !important;

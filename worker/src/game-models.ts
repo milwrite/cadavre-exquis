@@ -15,3 +15,9 @@ export const GAME_MODELS = [
 export function gameModel(id: string) {
   return GAME_MODELS.find(model => model.id === id || model.binding === id);
 }
+
+// MiniMax still consumes reasoning tokens when reasoning.enabled is false.
+// Keep room for visible output after it processes the complete game prompt.
+export function generationBudget(id: string, requested: number) {
+  return gameModel(id)?.id === 'minimax-m3' ? Math.max(2048, requested) : requested;
+}

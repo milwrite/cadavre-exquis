@@ -29,6 +29,12 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
   The reduced viewport is a keyboard simulation, not a physical iPhone test.
 - Solo/shared consolidation remains a proposal in the workspace Games plan.
   No mode was removed or merged by this repair.
+- Firefox's unsupported `text-wrap: pretty` declaration has been removed. Late
+  readiness and background-cue responses can no longer replace a newer model
+  selection; a delayed-response browser fixture passed on both play surfaces.
+- The full Solo prompt exposed empty MiniMax output at 80, 256, and 512 completion
+  tokens even though the short model probe passed. A bounded 2048-token minimum
+  is being verified for that model; other poetry budgets remain unchanged.
 
 ### Model routing repair — 2026-09-11
 

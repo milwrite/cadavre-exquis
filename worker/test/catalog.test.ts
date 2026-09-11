@@ -2,13 +2,18 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { toCatalog, findRoute, FALLBACK_MODELS } from '../src/catalog.ts';
 import { policyFromEnv, type GatewayModel } from '../src/policy.ts';
-import { GAME_MODELS } from '../src/game-models.ts';
+import { GAME_MODELS, generationBudget } from '../src/game-models.ts';
 const models:GatewayModel[] = [
   ...GAME_MODELS.map(m=>({id:m.id,provider:m.provider,capabilities:['text-generation','reasoning']})),
   {id:'deepseek-v4-flash-0731',provider:'workers-ai',capabilities:['text-generation']},
   {id:'kimi-k3',provider:'openrouter',capabilities:['text-generation']},
   {id:'whisper-large-v3-turbo',provider:'workers-ai',capabilities:['speech-to-text']},
 ];
+test('MiniMax reserves reasoning room without changing compact-model budgets',()=>{
+  assert.equal(generationBudget('minimax-m3',80),2048);
+  assert.equal(generationBudget('minimax/minimax-m3',400),2048);
+  assert.equal(generationBudget('gemma-4-26b-a4b-it',80),80);
+});
 test('public play offers only curated runnable binding models',()=>{
   const catalog=toCatalog(models,'gemma-4-26b-a4b-it',policyFromEnv('workers-ai',false));
   assert.deepEqual(catalog.models.map(m=>m.id),['gemma-4-26b-a4b-it','qwen3.8-27b','llama-3.1-8b-instruct-fp8']);

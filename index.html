@@ -132,7 +132,6 @@
     .intro {
       max-width: 36rem;
       color: var(--bone-soft);
-      text-wrap: pretty;
     }
 
     .intro strong { font-weight: 600; color: var(--bone); }
@@ -357,7 +356,6 @@
       font-size: 1rem;
       line-height: 1.65;
       color: var(--reading);
-      text-wrap: pretty;
     }
 
     .reading.show { animation: fade 0.9s ease 0.15s both; }
@@ -401,7 +399,7 @@
 
     .solo-text { max-width: 34rem; }
     .solo-text h2 { font-size: var(--t-lead); margin-bottom: 0.3rem; }
-    .solo-text p { color: var(--bone-soft); font-size: 1rem; text-wrap: pretty; }
+    .solo-text p { color: var(--bone-soft); font-size: 1rem; }
 
     /* the two links off the table, set as buttons like "begin" */
     .solo-link, .nav-link {
@@ -496,7 +494,7 @@
 
     .pin-reading-pane { min-width: 0; }
     .pin-reading-head { font-size: 1.2rem; font-style: italic; font-weight: 400; color: var(--bone-soft); margin-bottom: 0.5rem; }
-    .pin-reading { font-size: 1rem; line-height: 1.65; color: var(--reading); text-wrap: pretty; }
+    .pin-reading { font-size: 1rem; line-height: 1.65; color: var(--reading); }
     .pin-reading.none { color: var(--faint); font-style: italic; }
 
     .pin-meta {
@@ -1265,24 +1263,27 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
       clearTimeout(modelReadyRetry);
       setModelReadiness("warming and verifying the other hand…", false);
       const ctrl = new AbortController();
+      const requestedModel = CFG.model;
       const timer = setTimeout(() => ctrl.abort(), 32000);
       const check = (async () => {
         try {
           const response = await fetch(CFG.readyEndpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ model: CFG.model }),
+            body: JSON.stringify({ model: requestedModel }),
             cache: "no-store",
             signal: ctrl.signal,
           });
           if (!response.ok) throw new Error("readiness returned " + response.status);
           const data = await response.json();
+          if (CFG.model !== requestedModel) return null;
           if (!data.ready || !data.model) throw new Error("no model route is ready");
           return acceptReadyModel(
             data,
             data.failover ? "ready on a verified standby route" : "ready before the first fold"
           );
         } catch {
+          if (CFG.model !== requestedModel) return null;
           modelReadyFor = "";
           modelReadyAttempt++;
           const delay = Math.min(15000, 1000 * (2 ** Math.min(modelReadyAttempt, 4)));
