@@ -15,10 +15,10 @@ export class UpstreamError extends Error {
   }
 }
 
-export async function runOnBinding(ai: Ai, route: Route, request: ChatRequest, gatewayId = "", timeoutMs = 45_000): Promise<Completion> {
+export async function runOnBinding(ai: Ai, route: Route, request: ChatRequest, gatewayId = "", timeoutMs = 45_000, signal?: AbortSignal): Promise<Completion> {
   const { model: _model, ...inputs } = request;
   const options = {
-    signal: AbortSignal.timeout(timeoutMs),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
     ...(gatewayId ? { gateway: { id: gatewayId, skipCache: true } } : {}),
   };
   let result: unknown;
@@ -44,6 +44,7 @@ export async function runOnGateway(
   route: Route,
   request: ChatRequest,
   timeoutMs = 55_000,
+  signal?: AbortSignal,
 ): Promise<Completion> {
   if (!key) throw new UpstreamError(`route ${route.id} needs CAIL_GATEWAY_KEY`, 503);
   let res: Response;
@@ -57,7 +58,7 @@ export async function runOnGateway(
         "User-Agent": USER_AGENT,
       },
       body: JSON.stringify({ ...request, stream: false }),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
     });
   } catch (err) {
     throw new UpstreamError(`CAIL Gateway unreachable: ${(err as Error).message}`, 502);

@@ -24,6 +24,7 @@ import { runOnBinding, runOnGateway, UpstreamError } from "./inference.ts";
 import { policyFromEnv } from "./policy.ts";
 import { BadRequest, completionEnvelope, prepareChatBody, type ChatRequest } from "./shape.ts";
 import { WALL_LIMITS, type CadavreStore } from "./store.ts";
+import { ensureReady, requestForRoute, RouteHealth, withFallback } from './routes.ts';
 
 export { CadavreStore } from "./store.ts";
 
@@ -31,8 +32,7 @@ export { CadavreStore } from "./store.ts";
 type Bindings = Env & { STORE: DurableObjectNamespace<CadavreStore>; CAIL_GATEWAY_KEY?: string };
 const app = new Hono<{ Bindings: Bindings }>();
 
-const READY_TTL_MS = 10 * 60 * 1000;
-const readyAt = new Map<string, number>();       // per isolate; a miss just re-probes
+const routeHealth = new RouteHealth();
 
 const noStore = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
 
@@ -53,9 +53,21 @@ async function catalogFor(env: Bindings): Promise<Catalog> {
   return toCatalog(models, env.CADAVRE_DEFAULT_MODEL, policyFromEnv(env.CADAVRE_MODEL_POLICY, Boolean(env.CAIL_GATEWAY_KEY)));
 }
 
-async function complete(env: Bindings, route: ReturnType<typeof findRoute> & object, request: ChatRequest) {
-  if (route.provider === "workers-ai") return runOnBinding(env.AI, route, request, env.AI_GATEWAY_ID);
-  return runOnGateway(env.CAIL_GATEWAY_URL, env.CAIL_GATEWAY_KEY ?? "", route, request);
+async function complete(env: Bindings, route: ReturnType<typeof findRoute> & object, request: ChatRequest, signal?: AbortSignal) {
+  if (route.provider === "workers-ai") return runOnBinding(env.AI, route, request, env.AI_GATEWAY_ID, 45_000, signal);
+  return runOnGateway(env.CAIL_GATEWAY_URL, env.CAIL_GATEWAY_KEY ?? "", route, request, 55_000, signal);
+}
+
+async function meteredCompletion(env: Bindings, route: ReturnType<typeof findRoute> & object, request: ChatRequest, signal?: AbortSignal) {
+  const day = today();
+  const ledger = store(env);
+  const reservation = await ledger.reserveSpend(day, request.max_tokens, Number(env.CADAVRE_DAILY_TOKEN_CEILING) || 0);
+  if (!reservation.allowed) throw new UpstreamError("the parlor has spent today's budget; play resumes tomorrow", 429);
+  // Failed and timed-out requests may still incur usage. Keep the reservation
+  // unless the provider reports actual usage, then settle before returning.
+  const result = await complete(env, route, request, signal);
+  await ledger.settleSpend(day, request.max_tokens, result.usage.completion_tokens ?? request.max_tokens);
+  return result;
 }
 
 async function limited(limiter: RateLimit, key: string): Promise<boolean> {
@@ -91,7 +103,7 @@ app.get("/ui/config.local.js", async (c) => {
 
 // -- model routes -------------------------------------------------------------
 
-app.get("/api/cadavre/models", async (c) => c.json(await catalogFor(c.env), 200, noStore));
+app.get("/api/cadavre/models", async (c) => c.json(routeHealth.annotate(await catalogFor(c.env)), 200, noStore));
 
 app.post("/api/cadavre/ready", async (c) => {
   const catalog = await catalogFor(c.env);
@@ -100,25 +112,12 @@ app.post("/api/cadavre/ready", async (c) => {
   const route = findRoute(catalog, model);
   if (!route) return c.json({ ready: false, model, error: "not in the CAIL Gateway catalog" }, 404, noStore);
 
-  const warm = readyAt.get(model);
-  if (warm && Date.now() - warm < READY_TTL_MS) {
-    return c.json({ ready: true, model, provider: route.provider, cached: true }, 200, noStore);
-  }
   if (await limited(c.env.TURN_LIMIT, `turn:${visitor(c)}`)) {
     return c.json({ ready: false, model, error: "too many requests; wait a minute" }, 429, noStore);
   }
-  const { request } = prepareChatBody({
-    model,
-    messages: [{ role: "system", content: "Reply with one word." }, { role: "user", content: "ready?" }],
-    max_tokens: 8,
-    temperature: 0,
-  }, catalog);
   try {
-    const result = await complete(c.env, route, request);
-    // A route that answers with no visible text (hidden reasoning ate the budget) is not ready.
-    if (!result.content) throw new UpstreamError("the route answered with no text", 503);
-    readyAt.set(model, Date.now());
-    return c.json({ ready: true, model, provider: route.provider }, 200, noStore);
+    const verdict = await ensureReady(routeHealth, catalog, model, (candidate, body, signal) => meteredCompletion(c.env, candidate, body, signal), c.req.raw.signal);
+    return c.json({ ready: true, model: verdict.route.id, provider: verdict.route.provider, cached: verdict.result.cached, failover: verdict.failover }, 200, noStore);
   } catch (err) {
     const message = err instanceof UpstreamError ? err.message : "probe failed";
     return c.json({ ready: false, model, error: message }, 503, noStore);
@@ -142,21 +141,14 @@ app.post("/api/cadavre/chat", async (c) => {
     return c.json({ error: { message: "too many requests; the table needs a minute" } }, 429, noStore);
   }
 
-  const day = today();
-  const ceiling = Number(c.env.CADAVRE_DAILY_TOKEN_CEILING) || 0;
-  const ledger = store(c.env);
-  const reservation = await ledger.reserveSpend(day, request.max_tokens, ceiling);
-  if (!reservation.allowed) {
-    return c.json({ error: { message: "the parlor has spent today's budget; play resumes tomorrow" } }, 429, noStore);
-  }
-
   try {
-    const result = await complete(c.env, route, request);
-    const used = result.usage.completion_tokens ?? request.max_tokens;
-    c.executionCtx.waitUntil(ledger.settleSpend(day, request.max_tokens, used));
-    return c.json(completionEnvelope(route, result.content, result.usage, result.finishReason), 200, noStore);
+    const verdict = await withFallback(routeHealth, catalog, route.id, async (candidate, signal) => {
+      const body = requestForRoute(request, candidate);
+      return meteredCompletion(c.env, candidate, body, signal);
+    }, { signal: c.req.raw.signal });
+    const { result } = verdict;
+    return c.json({ ...completionEnvelope(verdict.route, result.content, result.usage, result.finishReason), failover: verdict.failover, requestedModel: route.id }, 200, noStore);
   } catch (err) {
-    c.executionCtx.waitUntil(ledger.settleSpend(day, request.max_tokens, 0));
     const status = err instanceof UpstreamError ? err.status : 502;
     const message = err instanceof UpstreamError ? err.message : "model call failed";
     console.error("chat failed", route.id, message);

@@ -11,6 +11,30 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 ## Current Worker destination
 
+### Bounded model recovery — 2026-09-12
+
+- Adapted the uncommitted fallback experiment from the older `cadavre-exquis`
+  checkout to the current Worker. Public readiness can try three eligible
+  models within 25 seconds; actual turns try at most two within 50 seconds.
+  Timeouts abort the provider request. Both pages already read served-model
+  attribution and switch the picker when a standby completes the turn.
+- Public failures are remembered for two minutes per isolate. Signed-in
+  requests keep the same verified gateway identity and use no shared personal
+  health cache. Authentication, admission, validation, and quota errors stop
+  without trying to bypass the failure through another model.
+- Each public attempt, including readiness, reserves its completion budget.
+  Successful calls settle actual reported usage; failed/timeout calls retain
+  the reservation when usage is unknown. MiniMax retains enough budget for
+  visible output, and standby requests rebuild provider-specific controls.
+- TypeScript and 34 Worker tests pass. The actual Worker/identity/account/D1
+  boundary test reserves failed public attempts, settles successful usage,
+  refuses work above the daily ceiling, recovers a failed Gemma turn on Qwen, and records the answering
+  model exactly once, preserves gateway 403 without retry, and passes the
+  existing login, save/reopen, origin, and logout assertions. The boundary uses
+  local signing and model doubles; it is not a signed-in production receipt.
+- Release checkout: `codex/cadavre-route-fallback`, based on `c9dec0d`.
+  Original older-checkout changes remain intact. No corpus or play rules changed.
+
 ### Mobile writing and curated models — 2026-09-11
 
 - Phone writing no longer forces focus after load, taps elsewhere, or model
