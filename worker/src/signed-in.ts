@@ -1,9 +1,12 @@
 import { authenticate, AuthFailure, boundedJson, enforceOrigin, ORIGIN, type AuthBindings } from '../../accounts/src/auth.ts';
 import { boundedText, entryId, exact, InputError, isRecord } from '../../accounts/src/contract.ts';
 import { configScript } from './config.ts';
-import { fetchGatewayModels } from './catalog.ts';
-import { THINKING_OFF } from './shape.ts';
-import { GAME_MODELS, gameModel, generationBudget } from './game-models.ts';
+import { fetchGatewayModels, toCatalog } from './catalog.ts';
+import type { ChatRequest } from './shape.ts';
+import { GAME_MODELS, gameModel } from './game-models.ts';
+import { policyFromEnv } from './policy.ts';
+import { GatewayFailure, signedCompletion } from './signed-inference.ts';
+import { UpstreamError } from './inference.ts';
 export type AccountClient = {register():Promise<{registered:boolean;id:string;version:number}>;fetch(request:Request):Promise<Response>;beginModel(jwt:string):Promise<{generation:number}>;modelCompleted(jwt:string,model:string,entryId:string|null,generation:number):Promise<{recorded:boolean}>};
 export type SignedBindings = Env & AuthBindings & {WORK_ACCOUNTS:AccountClient};
 const noStore={'cache-control':'no-store','x-content-type-options':'nosniff'};
@@ -32,19 +35,18 @@ export async function signedIn(request:Request,env:SignedBindings,legacy:(reques
       const selectedModel=boundedText(input.model,180,true);
       const catalog=await fetchGatewayModels(env.CAIL_CATALOG_URL,request.signal);
       const choice=gameModel(selectedModel);
-      const route=choice && catalog.find(m=>gameModel(m.id)?.id===choice.id && m.provider===choice.provider && (m.status??'active')==='active' && m.capabilities?.includes('text-generation'));
+      const routes=toCatalog(catalog,env.CADAVRE_DEFAULT_MODEL,policyFromEnv('all',true));
+      const route=choice && routes.models.find(m=>gameModel(m.id)?.id===choice.id && m.provider===choice.provider);
       if(!route)return Response.json({error:{message:'This model is no longer available. Choose another model.'}},{status:404,headers:noStore});
       const model=route.id;
       if(!Array.isArray(input.messages)||input.messages.length<1||input.messages.length>300||input.stream!==false)throw new InputError('Invalid model request.');
       for(const m of input.messages){if(!isRecord(m)||!['system','user','assistant'].includes(String(m.role)))throw new InputError('Invalid message.');boundedText(m.content,50000,true);}
       const workId=input.workId===undefined?null:entryId(input.workId);
       const {workId:_id,recordModel:_record,...body}=input;
-      body.max_tokens=generationBudget(model, Math.min(400,Math.max(1,Number(body.max_tokens)||80)));
+      body.max_tokens=Math.min(400,Math.max(1,Number(body.max_tokens)||80));
       const observation=input.recordModel===false?null:await env.WORK_ACCOUNTS.beginModel(keyring.appJwt);
-      const upstream=await env.GATEWAY.fetch(ORIGIN+'/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${keyring.gatewayJwt}`,'x-request-id':crypto.randomUUID()},body:JSON.stringify({...body,model,...(route.capabilities?.includes('reasoning')?THINKING_OFF[route.provider||'']:{}),messages:input.messages.map(m=>({role:m.role,content:m.content}))}),signal:AbortSignal.any([request.signal,AbortSignal.timeout(60000)])});
-      if(!upstream.ok)return upstream;
-      const data=await upstream.json() as {model?:string;choices?:{message?:{content?:string}}[]};
-      if(!data.choices?.[0]?.message?.content?.trim())return Response.json({error:{message:'The model returned no visible text. Try another model.'}},{status:502,headers:noStore});
+      const verdict=await signedCompletion(env.GATEWAY,keyring.gatewayJwt!,routes,route,{...body,model,messages:input.messages.map(m=>({role:m.role,content:m.content}))} as ChatRequest,request.signal);
+      const data=verdict.result;
       let recorded=false;
       // Auxiliary cue requests explicitly opt out. The model observation is
       // produced server-side after a real successful model completion.
@@ -53,7 +55,7 @@ export async function signedIn(request:Request,env:SignedBindings,legacy:(reques
       }
       // The Gateway reports a provider ID; the picker uses public CAIL aliases.
       // Keep the served model identity while normalizing its known alias.
-      return Response.json({...data,model:gameModel(data.model||model)?.id||data.model||model,workModelRecorded:recorded},{headers:noStore});
+      return Response.json({...data,model:gameModel(data.model||model)?.id||data.model||model,failover:verdict.failover,requestedModel:model,workModelRecorded:recorded},{headers:noStore});
     }
     if(path.startsWith('/api/'))return legacy(translated);
     // The stable Worker route serves the existing sheet. Resolve asset clean-URL
@@ -76,6 +78,8 @@ export async function signedIn(request:Request,env:SignedBindings,legacy:(reques
   }catch(error){
     if(error instanceof AuthFailure)return error.response;
     if(error instanceof InputError)return Response.json({error:{code:'invalid_request',message:error.message}},{status:400,headers:noStore});
+    if(error instanceof GatewayFailure)return error.response;
+    if(error instanceof UpstreamError)return Response.json({error:{message:error.message}},{status:error.status,headers:noStore});
     return Response.json({error:{code:'service_unavailable',message:'Cadavre is temporarily unavailable. Try again.'}},{status:503,headers:noStore});
   }
 }
