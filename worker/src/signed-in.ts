@@ -8,7 +8,7 @@ import { policyFromEnv } from './policy.ts';
 import { GatewayFailure, signedCompletion } from './signed-inference.ts';
 import { UpstreamError } from './inference.ts';
 export type AccountClient = {register():Promise<{registered:boolean;id:string;version:number}>;fetch(request:Request):Promise<Response>;beginModel(jwt:string):Promise<{generation:number}>;modelCompleted(jwt:string,model:string,entryId:string|null,generation:number):Promise<{recorded:boolean}>};
-export type SignedBindings = Env & AuthBindings & {WORK_ACCOUNTS:AccountClient};
+export type SignedBindings = Env & AuthBindings & {WORK_ACCOUNTS:AccountClient;CAIL_GATEWAY_KEY?:string};
 const noStore={'cache-control':'no-store','x-content-type-options':'nosniff'};
 export async function signedIn(request:Request,env:SignedBindings,legacy:(request:Request)=>Promise<Response>):Promise<Response> {
   const url=new URL(request.url);
@@ -45,7 +45,7 @@ export async function signedIn(request:Request,env:SignedBindings,legacy:(reques
       const {workId:_id,recordModel:_record,...body}=input;
       body.max_tokens=Math.min(400,Math.max(1,Number(body.max_tokens)||80));
       const observation=input.recordModel===false?null:await env.WORK_ACCOUNTS.beginModel(keyring.appJwt);
-      const verdict=await signedCompletion(env.GATEWAY,keyring.gatewayJwt!,routes,route,{...body,model,messages:input.messages.map(m=>({role:m.role,content:m.content}))} as ChatRequest,request.signal);
+      const verdict=await signedCompletion(env.GATEWAY,keyring.gatewayJwt!,routes,route,{...body,model,messages:input.messages.map(m=>({role:m.role,content:m.content}))} as ChatRequest,request.signal,env.CAIL_GATEWAY_KEY);
       const data=verdict.result;
       let recorded=false;
       // Auxiliary cue requests explicitly opt out. The model observation is

@@ -48,7 +48,7 @@
     // Public catalog of what the CAIL Gateway exposes; the page menu is drawn from it.
     "CAIL_CATALOG_URL": "https://tools.ailab.gc.cuny.edu/v1/catalog",
     "CAIL_GATEWAY_URL": "https://tools.ailab.gc.cuny.edu/v1",
-    // "workers-ai" offers only @cf/ models (run on the AI binding).
+    // "workers-ai" offers only @cf/ models. A configured secret routes them through CAIL.
     // "all" adds the gateway's OpenRouter routes, which need CAIL_GATEWAY_KEY.
     "CADAVRE_MODEL_POLICY": "workers-ai",
     "CADAVRE_DEFAULT_MODEL": "gemma-4-26b-a4b-it",
@@ -57,6 +57,6 @@
     // Optional: an AI Gateway id on this account, so binding calls are logged there.
     "AI_GATEWAY_ID": ""
   }
-  // Secrets (wrangler secret put): CAIL_GATEWAY_KEY — an app-class sk-cail key,
-  // only needed for CADAVRE_MODEL_POLICY=all.
+  // Secrets (wrangler secret put): CAIL_GATEWAY_KEY funds inference server-side.
+  // CUNY identity independently controls ownership of saved work.
 }

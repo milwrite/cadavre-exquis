@@ -16,12 +16,12 @@ type Gateway = { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Re
 type CompletionData = { model?: string; choices?: { message?: { content?: string } }[]; [key: string]: unknown };
 const ORIGIN = 'https://tools.ailab.gc.cuny.edu';
 
-export async function signedCompletion(gateway: Gateway, jwt: string, catalog: Catalog, route: Route, body: ChatRequest, signal: AbortSignal) {
+export async function signedCompletion(gateway: Gateway, jwt: string, catalog: Catalog, route: Route, body: ChatRequest, signal: AbortSignal, serverKey?: string) {
   // No shared cooldown here: personal access and account quotas are private.
   return withFallback(new RouteHealth(), catalog, route.id, async (candidate, attemptSignal) => {
     const response = await gateway.fetch(ORIGIN + '/v1/chat/completions', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${jwt}`, 'x-request-id': crypto.randomUUID() },
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${serverKey || jwt}`, 'x-request-id': crypto.randomUUID() },
       body: JSON.stringify({ ...requestForRoute(body, candidate), stream: false }),
       signal: attemptSignal,
     }).catch(error => {

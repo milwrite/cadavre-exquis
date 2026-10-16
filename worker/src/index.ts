@@ -54,7 +54,7 @@ async function catalogFor(env: Bindings): Promise<Catalog> {
 }
 
 async function complete(env: Bindings, route: ReturnType<typeof findRoute> & object, request: ChatRequest, signal?: AbortSignal) {
-  if (route.provider === "workers-ai") return runOnBinding(env.AI, route, request, env.AI_GATEWAY_ID, 45_000, signal);
+  if (!env.CAIL_GATEWAY_KEY && route.provider === "workers-ai") return runOnBinding(env.AI, route, request, env.AI_GATEWAY_ID, 45_000, signal);
   return runOnGateway(env.CAIL_GATEWAY_URL, env.CAIL_GATEWAY_KEY ?? "", route, request, 55_000, signal);
 }
 
@@ -83,7 +83,7 @@ app.get("/health", async (c) => {
     ok: true,
     release: c.env.RELEASE,
     env: c.env.CAIL_LOG_ENV,
-    inference: "workers-ai binding" + (c.env.AI_GATEWAY_ID ? ` via AI Gateway ${c.env.AI_GATEWAY_ID}` : ""),
+    inference: c.env.CAIL_GATEWAY_KEY ? "cail gateway" : "workers-ai binding" + (c.env.AI_GATEWAY_ID ? ` via AI Gateway ${c.env.AI_GATEWAY_ID}` : ""),
     gatewayKey: Boolean(c.env.CAIL_GATEWAY_KEY),
     policy: c.env.CADAVRE_MODEL_POLICY,
     models: catalog.models.length,

@@ -127,3 +127,13 @@ test('signed gateway admission responses remain intact and are not retried', asy
   await assert.rejects(signedCompletion(gateway, 'fixture-token', all, all.models[0], body, new AbortController().signal), error => error instanceof GatewayFailure && error.response === response);
   assert.equal(calls, 1);
 });
+
+test('configured server key replaces inference authorization without changing the user token', async()=>{
+ const gateway={async fetch(_input:unknown,init?:RequestInit){
+  assert.equal(new Headers(init!.headers).get('authorization'),'Bearer server-only-fixture');
+  return Response.json({model:GEMMA,choices:[{message:{content:'silver river'}}]});
+ }};
+ const result=await signedCompletion(gateway,'user-identity',all,all.models[0],body,new AbortController().signal,'server-only-fixture');
+ assert.equal(result.result.choices?.[0]?.message?.content,'silver river');
+ assert.ok(!JSON.stringify(result).includes('server-only-fixture'));
+});
