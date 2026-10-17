@@ -41,3 +41,4 @@ body[data-surface=shared] .table-setting{gap:16px}.reading,#reading{font-family:
  body[data-surface=shared] .setting-field{min-width:0}body[data-surface=shared] select{max-width:100%}
  .reveal-actions>.primary,.reveal-actions>.actions-menu{flex:1 1 140px}
 }
+#account-work [hidden]{display:none!important}
