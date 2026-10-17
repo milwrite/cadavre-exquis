@@ -16,7 +16,7 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - Both play surfaces reuse the arcade control scale with quiet outlines, readable Barlow labels, and 2px corners. Shared play keeps Begin compact on phones; the solo Poem menu stays anchored when hovered or focused and fits the visual viewport.
 - The shared navigation stylesheet is identical to the arcade, Jeopardy, and Cloze copies. Gameplay, model routing, identity, and saved-work behavior are unchanged.
 - Asset build, Worker types, and TypeScript checks pass, along with 35 browser-source/core checks, 7 proxy checks, and 37 Worker tests. Two stale source assertions now check the existing native Poem menu and style picker.
-- Live browser verification follows deployment.
+- Live browser checks covered the shared table and solo Poem menu at 320, 390, 768, and 1280px. Controls stay within the viewport, with 44px minimum targets and consistent Barlow labels. The native dialog width now explicitly overrides the browser's default maximum.
 
 ### Consistent suite buttons — 2026-10-17
 
