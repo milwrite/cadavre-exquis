@@ -43,3 +43,4 @@ body[data-surface=shared] .table-setting{gap:16px}.reading,#reading{font-family:
 }
 #account-work [hidden]{display:none!important}
 #panel #style-choice{background:var(--ink);color:var(--bone);border:1px solid #726e65;border-radius:3px}
+@media(max-width:48rem){body[data-surface=solo] #panel-tab,body[data-surface=solo] #panel-tab[aria-expanded=true]{left:16px;right:auto;top:65px}}

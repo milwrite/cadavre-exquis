@@ -57,7 +57,7 @@
       const saved=new URLSearchParams(location.search).get('work');
       if(saved&&config().authenticated){
         loading=true;say('Opening saved work…');
-        try{const result=await api('/entries/'+encodeURIComponent(saved));id=result.item.id;revision=result.item.revision;adapter.title=result.item.title;await adapter.restore(result.item.content);previous=JSON.stringify(adapter.snapshot());say('Saved work reopened. New turns update this item.');}
+        try{const result=await api('/entries/'+encodeURIComponent(saved));id=result.item.id;revision=result.item.revision;adapter.title=result.item.title;await adapter.restore(result.item.content);previous=JSON.stringify(adapter.snapshot());say('Saved work reopened');}
         catch(error){say(error.message);if(button)button.disabled=true;return false;}
         finally{loading=false;}
       }
