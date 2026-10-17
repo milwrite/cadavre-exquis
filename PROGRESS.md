@@ -11,6 +11,13 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 ## Current Worker destination
 
+### Suite default — 2026-10-16
+
+- DeepSeek V4 Flash 0731 replaces Gemma as the hosted default in both play modes.
+- Gemma routes are excluded from public and signed-in catalogs; saved Gemma selections fall back to Flash for new turns while preserving saved text and historical attribution.
+- DeepSeek V4 Pro is available through Workers AI; the retired V4.1 Flash and Mistral OpenRouter entries were removed.
+- Types, asset build, and all 37 Worker tests pass, including retired-model resume and catalog regression checks. Live acceptance is recorded separately after deployment.
+
 ### Bounded model recovery — 2026-09-12
 
 - Adapted the uncommitted fallback experiment from the older `cadavre-exquis`

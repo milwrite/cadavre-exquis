@@ -4,9 +4,9 @@ import { prepareChatBody, BadRequest, pickContent, pickUsage, LIMITS } from "../
 import type { Catalog } from "../src/catalog.ts";
 
 const catalog: Catalog = {
-  default: "@cf/google/gemma-4-26b-a4b-it",
+  default: "@cf/deepseek-ai/deepseek-v4-flash-0731",
   models: [
-    { id: "@cf/google/gemma-4-26b-a4b-it", label: "g", provider: "workers-ai", model: "@cf/google/gemma-4-26b-a4b-it", available: true, reasoning: true },
+    { id: "@cf/deepseek-ai/deepseek-v4-flash-0731", label: "g", provider: "workers-ai", model: "@cf/deepseek-ai/deepseek-v4-flash-0731", available: true, reasoning: true },
     { id: "@cf/meta/llama-3.3-70b-instruct-fp8-fast", label: "l", provider: "workers-ai", model: "@cf/meta/llama-3.3-70b-instruct-fp8-fast", available: true, reasoning: false },
     { id: "deepseek/deepseek-chat-v3.1", label: "d", provider: "openrouter", model: "deepseek/deepseek-chat-v3.1", available: true, reasoning: true },
   ],
@@ -33,7 +33,7 @@ test("budgets are clamped and unknown fields dropped", () => {
 });
 
 test("thinking is switched off per provider, only for reasoning routes", () => {
-  const cf = prepareChatBody({ model: "@cf/google/gemma-4-26b-a4b-it", messages, max_tokens: 80 }, catalog).request;
+  const cf = prepareChatBody({ model: "@cf/deepseek-ai/deepseek-v4-flash-0731", messages, max_tokens: 80 }, catalog).request;
   assert.deepEqual(cf.chat_template_kwargs, { enable_thinking: false });
   assert.equal(cf.reasoning, undefined);
   const or = prepareChatBody({ model: "deepseek/deepseek-chat-v3.1", messages, max_tokens: 80 }, catalog).request;
@@ -45,7 +45,7 @@ test("thinking is switched off per provider, only for reasoning routes", () => {
 
 test("a caller's own reasoning setting survives", () => {
   const req = prepareChatBody(
-    { model: "@cf/google/gemma-4-26b-a4b-it", messages, chat_template_kwargs: { enable_thinking: true } },
+    { model: "@cf/deepseek-ai/deepseek-v4-flash-0731", messages, chat_template_kwargs: { enable_thinking: true } },
     catalog,
   ).request;
   assert.deepEqual(req.chat_template_kwargs, { enable_thinking: true });

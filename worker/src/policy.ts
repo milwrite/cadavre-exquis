@@ -35,6 +35,7 @@ export type Policy = {
 // their reasoning into the line (deepseek-r1, qwq, glm-5.3*). The vision model
 // is gated behind a one-time license prompt the Worker cannot answer.
 export const EXCLUDE: readonly RegExp[] = [
+  /gemma/i,
   /llama-guard/i,
   /-coder\b|-code\b/i,
   /-lora$/i,

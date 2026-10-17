@@ -25,10 +25,8 @@ export const USER_AGENT = "cail-cadavre/0.1 (+https://github.com/milwrite/cadavr
 const BINDING_MODELS = [
   "@cf/deepseek-ai/deepseek-v4-flash-0731",
   "@cf/deepseek-ai/deepseek-v4-pro-0813",
-  "@cf/google/gemma-4-26b-a4b-it",
   "@cf/qwen/qwen3.8-27b",
   "@cf/zai-org/glm-5.2",
-  "@cf/aisingapore/gemma-sea-lion-v4-27b-it",
   "@cf/meta/llama-3.1-8b-instruct-fp8",
   "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
   "@cf/meta/llama-4-scout-17b-16e-instruct",
