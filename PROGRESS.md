@@ -13,7 +13,7 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 ### Consistent suite buttons — 2026-10-17
 
-- Shared and Solo play use the same navigation stylesheet as Cloze Reader and JeopardyLM: Barlow 17px text, transparent wine-red outlined buttons with 2px corners, 46px targets, and common top-right desktop and phone gutters.
+- Shared and Solo play use the same navigation stylesheet as Cloze Reader and JeopardyLM: Barlow 17px desktop and 16px phone text, transparent wine-red outlined buttons with 2px corners, 46px desktop and 44px phone targets, and common top-right desktop and phone gutters.
 - Games and the account link stay together; save feedback sits beneath them, and navigation continues to wait for pending saves.
 - Asset build, Worker types, TypeScript checks, and all 37 Worker tests pass. Live viewport verification is recorded separately after deployment.
 
