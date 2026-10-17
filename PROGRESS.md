@@ -11,6 +11,12 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 ## Current Worker destination
 
+### Shared arcade navigation — 2026-10-17
+
+- Both play surfaces link back to the shared CAIL Games Worker at `https://cail-games.ailab-452.workers.dev/`.
+- The Games link waits for the existing account save guard before navigating.
+- Asset build, Worker types, and TypeScript checks pass. The shared hub keeps game origins, CUNY identity, and persistent records in their current services.
+
 ### Suite default — 2026-10-16
 
 - DeepSeek V4 Flash 0731 replaces Gemma as the hosted default in both play modes.
