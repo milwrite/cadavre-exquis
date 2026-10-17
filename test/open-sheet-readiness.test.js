@@ -16,11 +16,12 @@ test("the open sheet warms a verified route before accepting a first turn", () =
   assert.doesNotMatch(html, /can’t reach the model|is it running\?/);
 });
 
-test("the open sheet is flush left in a centred column, with a paper tab for the table", () => {
+test("the open sheet is flush left in a centred column, with an accessible poem menu", () => {
   assert.match(html, /main\{ width:min\(var\(--measure\), 100%\); margin:auto; text-align:left; \}/);
   assert.match(html, /main\.revealed\{[^}]*grid-template-columns:minmax\(0,1fr\) minmax\(0,1\.25fr\)/);
-  assert.match(html, /<button id="panel-tab" type="button" aria-expanded="false" aria-controls="panel"><span class="tab-open">the table<\/span>/);
-  assert.match(html, /#panel-tab\{[^}]*writing-mode:vertical-rl;/);
+  assert.match(html, /<button id="panel-tab" type="button" aria-expanded="false" aria-controls="panel" aria-haspopup="dialog">Poem menu<\/button>/);
+  assert.match(html, /<dialog id="panel" aria-labelledby="panel-title">/);
+  assert.match(html, /panel\.showModal\(\)/);
   assert.match(html, /<h2 class="reading-head">Close reading<\/h2>/);
   assert.doesNotMatch(html, /reading-seam|text-transform:uppercase|id="keep"|id="library"|⋯/);
 });
@@ -42,10 +43,10 @@ test("the open sheet budgets a fold and a reading, and can keep a closed poem", 
   assert.match(html, /readingsLeft = CadavreCore\.READINGS_PER_POEM/);
   assert.match(html, /const NEVER_CLOSE = /);
   assert.match(html, /const tidyReply = /);
-  for (const id of ["close-poem", "edit-poem", "steer-apply", "pin-title", "brand", "pinned", "poem-edit"]) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ["close-poem", "edit-poem", "style-choice", "pin-title", "brand", "pinned", "poem-edit"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /<title>Exquisite Corpse — the open sheet<\/title>/);
   assert.doesNotMatch(html, /send\("\."|function reveal\(reply\)|function parseReading/);
-  assert.match(html, /<h2>Keep<\/h2>/);
+  assert.match(html, /<summary>Export &amp; share<\/summary>/);
   for (const id of ["save-md", "print-poem", "pin-wall", "pin-dialog", "pin-name"]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /return REMOTE_API \+ "\/wall";/);
   assert.match(html, /const WALL_TOKENS_KEY = "cadavreWallDeleteTokens"/);
