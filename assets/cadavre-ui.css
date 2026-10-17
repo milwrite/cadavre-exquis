@@ -42,3 +42,4 @@ body[data-surface=shared] .table-setting{gap:16px}.reading,#reading{font-family:
  .reveal-actions>.primary,.reveal-actions>.actions-menu{flex:1 1 140px}
 }
 #account-work [hidden]{display:none!important}
+#panel #style-choice{background:var(--ink);color:var(--bone);border:1px solid #726e65;border-radius:3px}
