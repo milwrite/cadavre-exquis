@@ -5,8 +5,8 @@ body{font-family:var(--suite-font)}
 :is(button,.pbtn,select,textarea,input):focus-visible{outline:2px solid var(--bone,#e7e0d0);outline-offset:3px}
 .setting-label,.model-readiness,.status,.fold-count,.cue-label,.wall-note,#hint,#panel .help,#panel .model-status{font-family:var(--suite-font);font-size:.9375rem;line-height:1.5;color:var(--dim)}
 #panel label,#panel .model-field>span{display:block;font-size:1rem;margin:16px 0 6px;color:var(--bone)}
-body[data-surface=solo] #panel-tab{top:76px;right:20px;writing-mode:horizontal-tb;transform:none;padding:9px 14px;font-family:var(--suite-font);font-size:1rem;letter-spacing:normal;min-height:44px;border-radius:3px;z-index:40}
-body[data-surface=solo] #panel-tab[aria-expanded=true]{right:20px;transform:none}
+body[data-surface=solo] #panel-tab{top:76px;left:max(1.1rem,3vw);right:auto;writing-mode:horizontal-tb;transform:none;padding:9px 14px;font-family:var(--suite-font);font-size:1rem;letter-spacing:normal;min-height:44px;border-radius:3px;z-index:40}
+body[data-surface=solo] #panel-tab[aria-expanded=true]{right:auto;transform:none}
 #panel{position:fixed;inset:8px 8px 8px auto;margin:0;width:min(400px,calc(100vw - 16px));height:calc(100dvh - 16px);max-height:calc(100dvh - 16px);padding:24px;overflow-y:auto;overscroll-behavior:contain;transform:none;font-family:var(--suite-font);font-size:1rem;border:1px solid #726e65;background:var(--ink);color:var(--bone)}
 #panel:not([open]){display:none}#panel::backdrop{background:#0009}
 #panel .panel-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
