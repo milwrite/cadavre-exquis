@@ -44,7 +44,7 @@
       const style=document.createElement('style');
       style.textContent='#account-work{position:fixed;top:18px;right:22px;z-index:50;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px);font:12px/1.4 system-ui,sans-serif;color:#bdb8ab}#account-work a,#account-work button{font:inherit;color:inherit;background:transparent;border:0;padding:6px 0;text-decoration:none;cursor:pointer}#account-work a:hover,#account-work button:hover{color:#f0ece2;text-decoration:underline}#account-work a:focus-visible,#account-work button:focus-visible{outline:1px solid currentColor;outline-offset:4px}#account-work [role=status]:empty{display:none}@media(max-width:600px){#account-work{top:10px;right:16px;font-size:11px}}';
       document.head.append(style);
-      const games=document.createElement('a');games.href='https://cail-games.ailab-452.workers.dev/';games.textContent='Games';
+      const games=document.createElement('a');games.href='https://games.ailab-452.workers.dev/';games.textContent='Games';
       games.onclick=async event=>{event.preventDefault();if(await save())location.assign(games.href);};bar.append(games);
       const link=document.createElement('a');
       link.href=config().authenticated?'/my-work/':'/auth/start?next='+encodeURIComponent(location.pathname+location.search);link.textContent=config().authenticated?'My work':'CUNY Login';bar.append(link);

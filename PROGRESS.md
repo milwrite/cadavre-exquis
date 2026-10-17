@@ -11,6 +11,13 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 ## Current Worker destination
 
+### Menu and typography — 2026-10-17
+
+- Solo uses a native modal Poem menu, with two writing actions and collapsed Writing options and Advanced prompt sections. One style picker replaces twelve buttons; guidance applies as typed.
+- Finished-poem actions are grouped under Export & share. Shared play uses More and Poem options disclosures.
+- Barlow interface and reading typography, 44px controls, visible focus, and responsive menu bounds are shared across both surfaces. Games links now point to games.ailab-452.workers.dev.
+- Both inline scripts parse, and the asset build plus all 37 Worker tests pass. Live browser acceptance follows deployment.
+
 ### Shared arcade navigation — 2026-10-17
 
 - Both play surfaces link back to the shared CAIL Games Worker at `https://cail-games.ailab-452.workers.dev/`.

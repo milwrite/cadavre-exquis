@@ -600,6 +600,8 @@
     }
   </style>
   <link rel="stylesheet" href="assets/cadavre-mobile.css">
+<link rel="stylesheet" href="assets/suite-ui.css">
+<link rel="stylesheet" href="assets/cadavre-ui.css">
 </head>
 <body data-surface="shared">
   <div class="page">
@@ -673,9 +675,8 @@
         </form>
         <p class="status" id="status" role="status" aria-live="polite"></p>
         <div class="sheet-actions">
-          <button id="undoBtn" disabled>redo turn</button>
-          <button id="resetBtn">clear lines</button>
-          <button id="endBtn" class="accent" disabled>reveal poem</button>
+          <button id="endBtn" class="primary" disabled>Reveal poem</button>
+          <details class="actions-menu"><summary>More</summary><div class="menu-items"><button id="undoBtn" disabled>Redo turn</button><button id="resetBtn">Clear lines</button></div></details>
         </div>
       </section>
 
@@ -689,11 +690,10 @@
         <div class="reveal-foot">
           <div class="reveal-actions">
             <button id="againBtn" class="primary">play again</button>
-            <button id="editPoemBtn">edit the poem</button>
-            <button id="rereadBtn" disabled>read it again</button>
-            <button id="exportMdBtn">save as markdown</button>
-            <button id="printBtn">print</button>
-            <button id="pinBtn">pin to the wall</button>
+            <details class="actions-menu"><summary>Poem options</summary><div class="menu-items">
+              <button id="editPoemBtn">Edit poem</button><button id="rereadBtn" disabled>Read again</button>
+              <button id="exportMdBtn">Download Markdown</button><button id="printBtn">Print</button><button id="pinBtn">Pin to the wall</button>
+            </div></details>
           </div>
           <p class="status" id="revealStatus" role="status" aria-live="polite"></p>
         </div>
