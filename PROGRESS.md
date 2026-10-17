@@ -11,6 +11,12 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 ## Current Worker destination
 
+### Consistent suite buttons — 2026-10-17
+
+- Shared and Solo play use the same navigation stylesheet as Cloze Reader and JeopardyLM: Barlow 17px text, cream bordered buttons, 46px targets, and common top-right desktop and phone gutters.
+- Games and the account link stay together; save feedback sits beneath them, and navigation continues to wait for pending saves.
+- Asset build, Worker types, TypeScript checks, and all 37 Worker tests pass. Live viewport verification is recorded separately after deployment.
+
 ### Menu and typography — 2026-10-17
 
 - Solo uses a native modal Poem menu, with two writing actions and collapsed Writing options and Advanced prompt sections. One style picker replaces twelve buttons; guidance applies as typed.
@@ -20,7 +26,7 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 ### Shared arcade navigation — 2026-10-17
 
-- Both play surfaces link back to the shared CAIL Games Worker at `https://cail-games.ailab-452.workers.dev/`.
+- Both play surfaces link back to the shared CAIL Games Worker at `https://games.ailab-452.workers.dev/`.
 - The Games link waits for the existing account save guard before navigating.
 - Asset build, Worker types, and TypeScript checks pass. The shared hub keeps game origins, CUNY identity, and persistent records in their current services.
 

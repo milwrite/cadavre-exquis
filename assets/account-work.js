@@ -40,17 +40,15 @@
     changed(){if(!adapter||loading)return;clearTimeout(timer);timer=setTimeout(()=>void save(),400);},
     async mount(value){
       adapter=value;
-      const bar=document.createElement('div');bar.id='account-work';bar.setAttribute('aria-label','CUNY account');
-      const style=document.createElement('style');
-      style.textContent='#account-work{position:fixed;top:18px;right:22px;z-index:50;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px);font:12px/1.4 system-ui,sans-serif;color:#bdb8ab}#account-work a,#account-work button{font:inherit;color:inherit;background:transparent;border:0;padding:6px 0;text-decoration:none;cursor:pointer}#account-work a:hover,#account-work button:hover{color:#f0ece2;text-decoration:underline}#account-work a:focus-visible,#account-work button:focus-visible{outline:1px solid currentColor;outline-offset:4px}#account-work [role=status]:empty{display:none}@media(max-width:600px){#account-work{top:10px;right:16px;font-size:11px}}';
-      document.head.append(style);
-      const games=document.createElement('a');games.href='https://games.ailab-452.workers.dev/';games.textContent='Games';
-      games.onclick=async event=>{event.preventDefault();if(await save())location.assign(games.href);};bar.append(games);
-      const link=document.createElement('a');
-      link.href=config().authenticated?'/my-work/':'/auth/start?next='+encodeURIComponent(location.pathname+location.search);link.textContent=config().authenticated?'My work':'CUNY Login';bar.append(link);
+      const bar=document.createElement('nav');bar.id='account-work';bar.className='suite-account suite-nav suite-nav-dark';bar.setAttribute('aria-label','CUNY account');
+      const links=document.createElement('div');links.className='suite-nav-links';bar.append(links);
+      const games=document.createElement('a');games.className='suite-nav-button';games.href='https://games.ailab-452.workers.dev/';games.textContent='Games';
+      games.onclick=async event=>{event.preventDefault();if(await save())location.assign(games.href);};links.append(games);
+      const link=document.createElement('a');link.className='suite-nav-button';
+      link.href=config().authenticated?'/my-work/':'/auth/start?next='+encodeURIComponent(location.pathname+location.search);link.textContent=config().authenticated?'My work':'CUNY Login';links.append(link);
       if(config().authenticated){
         link.onclick=async event=>{event.preventDefault();if(await save())location.assign(link.href);};
-        button=document.createElement('button');button.type='button';button.textContent='Retry';button.hidden=true;button.onclick=()=>void save();bar.append(button);
+        button=document.createElement('button');button.type='button';button.className='suite-nav-button suite-nav-retry';button.textContent='Retry';button.hidden=true;button.onclick=()=>void save();bar.append(button);
         message=document.createElement('span');message.setAttribute('role','status');message.setAttribute('aria-live','polite');bar.prepend(message);
       }
       document.body.append(bar);

@@ -28,14 +28,12 @@ body[data-surface=solo] #panel-tab[aria-expanded=true]{right:auto;transform:none
 .sheet-actions,.reveal-actions{display:flex;align-items:start;flex-wrap:wrap;gap:12px}
 body[data-surface=shared] .intro{font-size:1.125rem;line-height:1.65}body[data-surface=shared] .intro p{max-width:65ch}
 body[data-surface=shared] .table-setting{gap:16px}.reading,#reading{font-family:var(--suite-font);font-size:1.0625rem;line-height:1.65}
-#account-work{font-family:var(--suite-font)!important;font-size:.9375rem!important;align-items:start!important;flex-wrap:wrap;max-width:min(500px,calc(100vw - 32px))!important;justify-content:flex-end;gap:4px 12px!important}
-#account-work a,#account-work button{display:inline-flex;min-height:44px;align-items:center;padding:8px 4px!important}#account-work [role=status]{flex-basis:100%;order:3;text-align:right;font-size:.9375rem}
+body[data-surface=shared] .page{padding-top:96px}
 @media(max-width:48rem){
  body[data-surface=solo]{padding-top:9rem;padding-right:1.1rem}
  body[data-surface=solo] #panel-tab{top:65px;right:16px;padding:8px 12px}
  body[data-surface=solo] #panel{height:calc(var(--visual-height,100dvh) - 16px);max-height:calc(var(--visual-height,100dvh) - 16px);padding:20px}
  body[data-surface=solo] #brand{width:clamp(100px,32vw,140px);top:20px;left:16px}
- #account-work{right:12px!important;top:8px!important;max-width:calc(66vw - 16px)!important}
  #hint{font-size:.9375rem!important}#panel .panel-header{position:sticky;top:-20px;background:var(--ink);padding-block:6px;z-index:2}
  body[data-surface=shared] .table-setting{grid-template-columns:repeat(2,minmax(0,1fr))}
  body[data-surface=shared] .setting-field{min-width:0}body[data-surface=shared] select{max-width:100%}
