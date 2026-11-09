@@ -281,6 +281,106 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     return config;
   }
 
+  /* ── when the other hand does not answer ────────────────────────────────
+     One policy for every page. A request is asked again only when it most
+     likely never reached a model (the network dropped, or the host said it
+     was unavailable), and then only once. A timeout, a rate limit, a spent
+     budget, an ended sign-in, or a refused request is never repeated
+     automatically: the player decides, and no turn is paid for twice. */
+  const MAX_AUTO_RETRIES = 1;
+
+  function modelError(status, { timedOut = false, cancelled = false, detail = "" } = {}) {
+    const code = Number(status) || 0;
+    const kind = cancelled ? "cancelled"
+      : timedOut ? "timeout"
+      : code === 0 ? "network"
+      : code === 429 ? (/budget/i.test(detail) ? "budget" : "limit")
+      : code === 401 || code === 403 ? "signin"
+      : code >= 500 ? "unavailable"
+      : "refused";
+    const error = new Error(`model call failed: ${kind}`);
+    error.status = code;
+    error.kind = kind;
+    error.cancelled = kind === "cancelled";
+    return error;
+  }
+
+  const FAILURE_MESSAGES = {
+    network: "the line to the other hand dropped. your words are kept",
+    unavailable: "the other hand is away from the table. your words are kept",
+    timeout: "the other hand took too long. your words are kept",
+    limit: "too many turns at once. the table needs a minute",
+    budget: "the parlor has spent today's budget. play resumes tomorrow",
+    signin: "your CUNY sign-in ended. sign in again, then try once more",
+    refused: "this turn could not be sent as written",
+  };
+
+  function failurePlan(error, attempt = 0) {
+    const kind = error && FAILURE_MESSAGES[error.kind] ? error.kind : "unavailable";
+    const retry = (kind === "network" || kind === "unavailable") && Number(attempt) < MAX_AUTO_RETRIES;
+    return {
+      kind,
+      retry,
+      delayMs: retry ? (kind === "network" ? 1500 : 2500) : 0,
+      // nothing to ask again today, or nothing a second ask would change
+      canRetryByHand: kind !== "budget",
+      message: FAILURE_MESSAGES[kind],
+    };
+  }
+
+  /* ── a sheet in progress, kept for this tab ─────────────────────────────
+     A refresh should not cost the table its poem. Whatever is read back is
+     checked like fresh input before it is trusted. */
+  const DRAFT_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+
+  function draftOf(state, now) {
+    return JSON.stringify({
+      v: 1, ts: now,
+      players: state.players, modelSeat: state.modelSeat, maxWords: state.maxWords,
+      model: String(state.model || ""), actorIndex: state.actorIndex,
+      ...(state.work ? { work: state.work } : {}),
+      contributions: state.contributions.map((entry) => ({
+        text: entry.text, isModel: Boolean(entry.isModel), seat: entry.seat, turn: entry.turn,
+        ...(entry.model ? { model: entry.model } : {}),
+      })),
+    });
+  }
+
+  function restoreDraft(raw, now) {
+    let data;
+    try { data = JSON.parse(raw); } catch { return null; }
+    if (!data || typeof data !== "object" || data.v !== 1) return null;
+    if (!Number.isFinite(data.ts) || now - data.ts > DRAFT_MAX_AGE_MS || data.ts > now + 60000) return null;
+    try {
+      turnInfo({ actorIndex: data.actorIndex, players: data.players, modelSeat: data.modelSeat });
+      checkWordLimit(data.maxWords);
+    } catch { return null; }
+    if (!Array.isArray(data.contributions) || !data.contributions.length || data.contributions.length > 300) return null;
+    if (data.actorIndex < data.contributions.length || data.actorIndex > data.contributions.length * 2 + 4) return null;
+    const contributions = [];
+    let lastTurn = -1;
+    for (const entry of data.contributions) {
+      if (!entry || typeof entry.text !== "string") return null;
+      const checked = validateContribution(entry.text, 5);
+      if (!checked.valid || checked.text.length > 200) return null;
+      if (!Number.isInteger(entry.turn) || entry.turn <= lastTurn || entry.turn >= data.actorIndex) return null;
+      if (!Number.isInteger(entry.seat) || entry.seat < 1 || entry.seat > data.players) return null;
+      lastTurn = entry.turn;
+      contributions.push({
+        text: checked.text, isModel: entry.isModel === true, seat: entry.seat, turn: entry.turn,
+        ...(typeof entry.model === "string" && entry.model.length <= 180 ? { model: entry.model } : {}),
+      });
+    }
+    const work = data.work && typeof data.work.id === "string" && /^[0-9a-f-]{36}$/.test(data.work.id)
+      && Number.isSafeInteger(data.work.revision) && data.work.revision >= 0
+      ? { id: data.work.id, revision: data.work.revision } : null;
+    return {
+      players: Number(data.players), modelSeat: Number(data.modelSeat), maxWords: Number(data.maxWords),
+      model: typeof data.model === "string" ? data.model.slice(0, 180) : "",
+      actorIndex: data.actorIndex, contributions, work,
+    };
+  }
+
   function withEditedPoem(messages, editedText) {
     if (editedText === null) return messages;
     return messages.map((message,index) => index===0 ? {...message,content:message.content+'\nThe current edited poem, to continue as supplied by the user:\n'+editedText} : message);
@@ -289,6 +389,11 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
   return Object.freeze({
     connectionConfig,
     withEditedPoem,
+    MAX_AUTO_RETRIES,
+    modelError,
+    failurePlan,
+    draftOf,
+    restoreDraft,
     READING_PROMPT,
     READINGS_PER_POEM,
     readingMessages,

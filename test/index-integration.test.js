@@ -32,7 +32,7 @@ test("the parlor takes a same-origin wall endpoint from config.local.js", () => 
 test("the stage carries the game's state and reflows the reveal on wide screens", () => {
   assert.match(html, /el\("stage"\)\.classList\.add\("is-playing"\)/);
   assert.match(html, /el\("stage"\)\.classList\.add\("is-revealed"\)/);
-  assert.equal((html.match(/classList\.remove\("is-revealed"\)/g) || []).length, 2);
+  assert.equal((html.match(/classList\.remove\("is-revealed"\)/g) || []).length, 3);
   assert.match(html, /\.stage\.is-playing \.intro, \.stage\.is-revealed \.intro \{ display: none; \}/);
   assert.match(html, /@media \(min-width: 60rem\) \{\s*\.revealed \{[^}]*grid-template-areas: "poem reading" "foot foot";/);
   assert.match(html, /\.poem \{[^}]*max-width: 36rem;/);
@@ -59,7 +59,7 @@ test("openings, second lines, and redone turns are steered away from repetition"
   assert.match(html, /const warmth = tried\.length \|\| early \? 1\.05 : 0\.8;/);
   assert.match(html, /temperature: options\.temperature \?\? 0\.8/);
   assert.match(html, /VARIETY\n\nAvoid stock poetic vocabulary/);
-  assert.equal((html.match(/setAside\.clear\(\);/g) || []).length, 2);
+  assert.equal((html.match(/setAside\.clear\(\);/g) || []).length, 3);
 });
 
 test("the canonical page never sends hidden folds to the model", () => {
@@ -98,4 +98,41 @@ test("the finished poem can be edited and read again, and a pin carries a title"
   assert.match(html, /title: el\("pinTitle"\)\.value\.trim\(\)/);
   assert.match(html, /button\.quiet \{/);
   assert.doesNotMatch(html, /const readingPrompt = |button\.accent \{/);
+});
+
+test("a failed model turn is retried only as the shared policy allows, and never after the table moves on", () => {
+  assert.match(html, /const plan = Core\.failurePlan\(e, retryAttempt\);/);
+  assert.match(html, /turnRetry = setTimeout\(\(\) => \{ if \(id === gameId && gameActive\) modelTurn\(retryAttempt \+ 1\); \}, plan\.delayMs\);/);
+  assert.doesNotMatch(html, /retryAttempt < 3/);
+  assert.match(html, /async function modelTurn\(retryAttempt = 0\) \{\n      if \(!gameActive\) return;/);
+  // revealing, redoing, clearing and beginning all cancel the turn in flight
+  assert.equal((html.match(/cancelTurn\(\);/g) || []).length, 5);
+  assert.match(html, /throw Core\.modelError\(res\.status, \{ detail \}\);/);
+});
+
+test("a late close reading cannot land on the next poem", () => {
+  assert.match(html, /if \(token !== readingToken\) return;/);
+  assert.equal((html.match(/cancelReading\(\);/g) || []).length, 3);
+});
+
+test("the page says in words who wrote the visible line, each revealed line, and the reading", () => {
+  assert.match(html, /"visible at the fold · the model wrote this"/);
+  assert.match(html, /visible at the fold · player \$\{entry\.seat\} wrote this/);
+  assert.match(html, /who\.textContent = " \(written by the model\)";/);
+  assert.match(html, /written by the model \(\$\{modelName\(result\.model\)\}\), not by a player/);
+  assert.match(html, /<div class="fold-count" id="foldCount"><\/div>/);
+  assert.match(html, /<p class="seat-key" id="seatKey"><\/p>/);
+});
+
+test("a sheet in progress is kept for the tab and offered back after a refresh", () => {
+  assert.match(html, /sessionStorage\.setItem\(DRAFT_KEY, Core\.draftOf\(/);
+  assert.match(html, /Core\.restoreDraft\(sessionStorage\.getItem\(DRAFT_KEY\) \|\| "", Date\.now\(\)\)/);
+  assert.match(html, /id="resumeBtn" class="quiet" type="button" hidden>/);
+  assert.doesNotMatch(html, /localStorage\.setItem\(DRAFT_KEY/);
+});
+
+test("each table setting's accessible name contains its visible label", () => {
+  assert.match(html, /<span class="setting-label">the other hand<\/span>\s*<select id="modelRoute" aria-label="the other hand: language model">/);
+  assert.match(html, /<span class="setting-label">players<\/span>\s*<select id="playerCount" aria-label="players">/);
+  assert.match(html, /<span class="setting-label">the model sits at seat<\/span>\s*<select id="modelSlot" aria-label="the model sits at seat">/);
 });

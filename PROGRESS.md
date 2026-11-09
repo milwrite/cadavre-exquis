@@ -11,6 +11,17 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 ## Current Worker destination
 
+### Recovery, authorship and a refresh-safe sheet — 2026-11-09 (not yet deployed)
+
+- One failure policy for both play surfaces (`CadavreCore.failurePlan`): a model request is asked again automatically once, and only when it likely never reached a model (dropped connection, 5xx). Timeouts, rate limits, the daily budget, an ended sign-in and refused requests wait for the player. The parlor's three unconditional retries and the solo sheet's unbounded request are gone; the solo request now times out at 60 seconds.
+- Revealing, redoing, clearing or beginning cancels the model turn in flight. A close reading that arrives after the table has moved on is dropped.
+- The parlor says who wrote what: the visible fold's label names the model or the player's seat, revealed model lines carry a wine mark and a spoken note, the close reading has a byline, and the fold count and model seat are announced in text.
+- A sheet in progress is kept in the tab's session storage and offered back after a refresh; everything read back is validated like fresh input.
+- Saved work: an ended sign-in offers Sign in again in a new tab; a save conflict offers Save as a new copy and overwrites nothing; network and 5xx failures retry twice, then offer Retry.
+- The Worker keeps provider and gateway error text in its log and sends the page a short public line; rate-limit responses carry `Retry-After`.
+- Checks: 42 browser-source/core checks, 7 proxy checks and 40 Worker tests pass. `npm --prefix worker run check` (Worker types and TypeScript) was NOT run in this session: the private `@cuny-ai-lab/cail-identity` package could not be installed. Run it before deploying.
+- Browser checks used a local stand-in for the Worker with scripted failures (503, 429, budget, dropped connection, malformed JSON, over-long model line, slow reply), at desktop and 375px widths. No live model calls were made for these.
+
 ### Targeted in-game cleanup — 2026-10-17
 
 - Both play surfaces reuse the arcade control scale with quiet outlines, readable Barlow labels, and 2px corners. Shared play keeps Begin compact on phones; the solo Poem menu stays anchored when hovered or focused and fits the visual viewport.
