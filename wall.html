@@ -295,6 +295,7 @@
     @media (prefers-reduced-motion: reduce) {
       .w, .quote { transition: none; }
     }
+    .wall-links { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; }
   </style>
 </head>
 <body>
@@ -311,7 +312,7 @@
     <main class="wall" aria-label="The Wall">
       <div class="wall-head">
         <h2 class="wall-title"><img src="assets/title-wall-1.png" alt="The Wall" width="678" height="168"></h2>
-        <a class="nav-link" href="./">back to the table</a>
+        <nav class="wall-links" aria-label="Leave the wall"><a class="nav-link" href="./">back to the table</a><a class="nav-link" href="https://games.ailab-452.workers.dev/">all games</a></nav>
       </div>
       <p class="wall-note" id="wallNote">pinned from any table, newest first</p>
       <p class="wall-status" id="wallStatus" role="status" aria-live="polite">loading the wall…</p>
@@ -867,16 +868,24 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ model: CFG.model, messages: CadavreCore.readingMessages(current.poem), max_tokens: 400, temperature: 0.8, stream: false }),
-        });
-        if (!response.ok) throw new Error(`the model answered ${response.status}`);
-        const data = await response.json();
+          signal: AbortSignal.timeout(60000),   // the button never waits forever
+        }).catch((cause) => { throw CadavreCore.modelError(0, { timedOut: cause?.name === "TimeoutError" }); });
+        if (!response.ok) {
+          let detail = "";
+          try { detail = String((await response.json())?.error?.message || ""); } catch {}
+          throw CadavreCore.modelError(response.status, { detail });
+        }
+        const data = await response.json().catch(() => { throw CadavreCore.modelError(502); });
         const analysis = CadavreCore.stripPoemFromReading((data.choices?.[0]?.message?.content ?? "").trim(), current.poem);
         if (!analysis) throw new Error("the reading didn’t arrive");
         await saveWallEdit(item, { analysis });
         noteReadingUsed(item.id);
         wallView(item).voteError = "";
       } catch (error) {
-        wallView(item).voteError = error.message || "the reading didn’t arrive";
+        // asked once; the poem and its kept reading stay as they were
+        wallView(item).voteError = error.kind
+          ? `the reading didn’t arrive: ${CadavreCore.failurePlan(error, CadavreCore.MAX_AUTO_RETRIES).message.replace(". your words are kept", "")}`
+          : error.message || "the reading didn’t arrive";
       } finally {
         rereading.delete(item.id);
         rebuildWall();

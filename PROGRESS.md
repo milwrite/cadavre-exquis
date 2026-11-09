@@ -19,7 +19,8 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 - A sheet in progress is kept in the tab's session storage and offered back after a refresh; everything read back is validated like fresh input.
 - Saved work: an ended sign-in offers Sign in again in a new tab; a save conflict offers Save as a new copy and overwrites nothing; network and 5xx failures retry twice, then offer Retry.
 - The Worker keeps provider and gateway error text in its log and sends the page a short public line; rate-limit responses carry `Retry-After`.
-- Checks: 42 browser-source/core checks, 7 proxy checks and 40 Worker tests pass. `npm --prefix worker run check` (Worker types and TypeScript) was NOT run in this session: the private `@cuny-ai-lab/cail-identity` package could not be installed. Run it before deploying.
+- The wall gains an "all games" link beside "back to the table", and its re-read request times out at 60 seconds and reports failures with the shared wording.
+- Checks: 43 browser-source/core checks, 7 proxy checks and 40 Worker tests pass. Asset build, Worker types and `tsc --noEmit` pass, with `@cuny-ai-lab/cail-identity` 5.2.5 built from its source repository rather than installed from the registry; a deliberate type error was caught. `wrangler deploy --dry-run` was not run. Run `npm --prefix worker run check` once more from a normal install before deploying.
 - Browser checks used a local stand-in for the Worker with scripted failures (503, 429, budget, dropped connection, malformed JSON, over-long model line, slow reply), at desktop and 375px widths. No live model calls were made for these.
 
 ### Targeted in-game cleanup — 2026-10-17
