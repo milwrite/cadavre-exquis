@@ -142,3 +142,58 @@ test("invalid table settings fail before a game starts", () => {
   assert.throws(() => Core.validateContribution("moon", 6), /maxWords/);
   assert.throws(() => Core.paginateLines(["moon"], 0), /pageSize/);
 });
+
+test("a failed model call is asked again only when it likely never reached a model, and only once", () => {
+  const Core = require("../assets/cadavre-core.js");
+  const plan = (status, options, attempt = 0) => Core.failurePlan(Core.modelError(status, options), attempt);
+  assert.deepEqual([plan(0).retry, plan(0).delayMs], [true, 1500]);
+  assert.deepEqual([plan(503).retry, plan(502).retry, plan(504).retry], [true, true, true]);
+  assert.equal(plan(0, {}, 1).retry, false, "one automatic retry at most");
+  assert.equal(plan(503, {}, 1).retry, false);
+  for (const [status, options, kind] of [
+    [0, { timedOut: true }, "timeout"], [429, {}, "limit"], [429, { detail: "the parlor has spent today's budget; play resumes tomorrow" }, "budget"],
+    [401, {}, "signin"], [403, {}, "signin"], [400, {}, "refused"], [404, {}, "refused"], [413, {}, "refused"],
+  ]) {
+    const p = plan(status, options);
+    assert.equal(p.kind, kind);
+    assert.equal(p.retry, false, `${kind} is never retried automatically`);
+    assert.ok(p.message && !/\d{3}/.test(p.message), "the message is for a player, not a status code");
+  }
+  assert.equal(plan(429, { detail: "budget" }).canRetryByHand, false);
+  assert.equal(plan(429).canRetryByHand, true);
+  assert.equal(Core.modelError(0, { cancelled: true }).cancelled, true);
+  assert.equal(Core.failurePlan(new Error("unknown")).kind, "unavailable");
+});
+
+test("a saved sheet is restored only when every part of it is valid", () => {
+  const Core = require("../assets/cadavre-core.js");
+  const now = 1_800_000_000_000;
+  const state = {
+    players: 3, modelSeat: 2, maxWords: 3, model: "deepseek-v4-flash-0731", actorIndex: 4,
+    contributions: [
+      { text: "salt in the", isModel: false, seat: 1, turn: 0 },
+      { text: "hollow of", isModel: true, seat: 2, turn: 1, model: "deepseek-v4-flash-0731" },
+      { text: "a borrowed tooth", isModel: false, seat: 1, turn: 3 },
+    ],
+    work: { id: "11111111-1111-4111-8111-111111111111", revision: 2 },
+  };
+  const raw = Core.draftOf(state, now);
+  const back = Core.restoreDraft(raw, now + 1000);
+  assert.deepEqual(back.contributions, state.contributions);
+  assert.deepEqual([back.players, back.modelSeat, back.maxWords, back.actorIndex, back.model], [3, 2, 3, 4, state.model]);
+  assert.deepEqual(back.work, state.work);
+  assert.equal(Core.restoreDraft(raw, now + 13 * 3600 * 1000), null, "an old sheet is not offered");
+  const broken = (change) => { const d = JSON.parse(raw); change(d); return Core.restoreDraft(JSON.stringify(d), now); };
+  assert.equal(Core.restoreDraft("not json", now), null);
+  assert.equal(Core.restoreDraft("", now), null);
+  assert.equal(broken((d) => { d.v = 2; }), null);
+  assert.equal(broken((d) => { d.players = 9; }), null);
+  assert.equal(broken((d) => { d.modelSeat = 4; }), null);
+  assert.equal(broken((d) => { d.contributions = []; }), null);
+  assert.equal(broken((d) => { d.contributions[0].text = "one two three four five six"; }), null);
+  assert.equal(broken((d) => { d.contributions[1].text = "**bold**"; }), null);
+  assert.equal(broken((d) => { d.contributions[2].turn = 1; }), null, "turns must rise");
+  assert.equal(broken((d) => { d.contributions[2].seat = 4; }), null);
+  assert.equal(broken((d) => { d.actorIndex = 2; }), null);
+  assert.equal(broken((d) => { d.work = { id: "../../etc", revision: 1 }; }).work, null, "a malformed work reference is dropped, not trusted");
+});

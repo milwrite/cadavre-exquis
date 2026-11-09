@@ -20,6 +20,7 @@ import { signedIn, type SignedBindings } from "./signed-in.ts";
 import { Hono } from "hono";
 import { fetchGatewayModels, findRoute, toCatalog, type Catalog } from "./catalog.ts";
 import { configScript } from "./config.ts";
+import { BUDGET_MESSAGE, publicFailure } from "./failure.ts";
 import { runOnBinding, runOnGateway, UpstreamError } from "./inference.ts";
 import { policyFromEnv } from "./policy.ts";
 import { BadRequest, completionEnvelope, prepareChatBody, type ChatRequest } from "./shape.ts";
@@ -62,7 +63,7 @@ async function meteredCompletion(env: Bindings, route: ReturnType<typeof findRou
   const day = today();
   const ledger = store(env);
   const reservation = await ledger.reserveSpend(day, request.max_tokens, Number(env.CADAVRE_DAILY_TOKEN_CEILING) || 0);
-  if (!reservation.allowed) throw new UpstreamError("the parlor has spent today's budget; play resumes tomorrow", 429);
+  if (!reservation.allowed) throw new UpstreamError(BUDGET_MESSAGE, 429);
   // Failed and timed-out requests may still incur usage. Keep the reservation
   // unless the provider reports actual usage, then settle before returning.
   const result = await complete(env, route, request, signal);
@@ -113,14 +114,14 @@ app.post("/api/cadavre/ready", async (c) => {
   if (!route) return c.json({ ready: false, model, error: "not in the CAIL Gateway catalog" }, 404, noStore);
 
   if (await limited(c.env.TURN_LIMIT, `turn:${visitor(c)}`)) {
-    return c.json({ ready: false, model, error: "too many requests; wait a minute" }, 429, noStore);
+    return c.json({ ready: false, model, error: "too many requests; wait a minute" }, 429, { ...noStore, "Retry-After": "60" });
   }
   try {
     const verdict = await ensureReady(routeHealth, catalog, model, (candidate, body, signal) => meteredCompletion(c.env, candidate, body, signal), c.req.raw.signal);
     return c.json({ ready: true, model: verdict.route.id, provider: verdict.route.provider, cached: verdict.result.cached, failover: verdict.failover }, 200, noStore);
   } catch (err) {
-    const message = err instanceof UpstreamError ? err.message : "probe failed";
-    return c.json({ ready: false, model, error: message }, 503, noStore);
+    console.error("ready failed", model, err instanceof Error ? err.message : "unknown");
+    return c.json({ ready: false, model, error: publicFailure(err).message }, 503, noStore);
   }
 });
 
@@ -138,7 +139,7 @@ app.post("/api/cadavre/chat", async (c) => {
   // The parlor asks 80 tokens for a fold and 400 for the close reading.
   const limiter = request.max_tokens > 160 ? c.env.READING_LIMIT : c.env.TURN_LIMIT;
   if (await limited(limiter, `${request.max_tokens > 160 ? "reading" : "turn"}:${who}`)) {
-    return c.json({ error: { message: "too many requests; the table needs a minute" } }, 429, noStore);
+    return c.json({ error: { message: "too many requests; the table needs a minute" } }, 429, { ...noStore, "Retry-After": "60" });
   }
 
   try {
@@ -149,10 +150,10 @@ app.post("/api/cadavre/chat", async (c) => {
     const { result } = verdict;
     return c.json({ ...completionEnvelope(verdict.route, result.content, result.usage, result.finishReason), failover: verdict.failover, requestedModel: route.id }, 200, noStore);
   } catch (err) {
-    const status = err instanceof UpstreamError ? err.status : 502;
-    const message = err instanceof UpstreamError ? err.message : "model call failed";
-    console.error("chat failed", route.id, message);
-    return c.json({ error: { message } }, status as 502, noStore);
+    // The provider's own words stay in the log; the page gets a line a player can act on.
+    console.error("chat failed", route.id, err instanceof Error ? err.message : "unknown");
+    const failure = publicFailure(err);
+    return c.json({ error: { message: failure.message } }, failure.status as 502, { ...noStore, ...(failure.retryAfter ? { "Retry-After": String(failure.retryAfter) } : {}) });
   }
 });
 

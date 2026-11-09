@@ -12,7 +12,8 @@ test("the open sheet warms a verified route before accepting a first turn", () =
   assert.match(html, /model: "ollama:deepseek-v4-flash"/);
   assert.match(html, /async function warmSelectedModel/);
   assert.match(html, /entry\.disabled = false/);
-  assert.match(html, /for\(let attempt = 0; attempt < 3; attempt\+\+\)/);
+  assert.match(html, /const plan = CadavreCore\.failurePlan\(err, attempt\);\n\s*if\(!plan\.retry\)\{ err\.plan = plan; throw err; \}/);
+  assert.match(html, /setTimeout\(\(\) => \{ timedOut = true; ctrl\.abort\(\); \}, 60000\)/);
   assert.doesNotMatch(html, /can’t reach the model|is it running\?/);
 });
 

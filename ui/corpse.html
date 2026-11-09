@@ -856,18 +856,32 @@ function note(html, isErr){
 
 async function request(msgs, temperature = 0.9, maxTokens = TURN_TOKENS, recordModel = true){
   const requestedModel = CFG.model;
-  const res = await fetch(CFG.endpoint, {
-    method: "POST",
-    headers: Object.assign({ "Content-Type": "application/json" },
-      CFG.apiKey ? { "Authorization": "Bearer " + CFG.apiKey } : {}),
-    body: JSON.stringify({
-      model: requestedModel, messages: msgs,
-      ...(CFG.authenticated ? {workId: CadavreWork.id(), recordModel} : {}),
-      max_tokens: maxTokens, temperature, top_p: 0.95, stream: false,
-    }),
-  });
-  if(!res.ok) throw new Error("model returned " + res.status);
-  const data = await res.json();
+  // Bounded, so the sheet can never wait forever; failures carry their kind (CadavreCore.modelError).
+  const ctrl = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, 60000);
+  let res, data;
+  try {
+    try {
+      res = await fetch(CFG.endpoint, {
+        method: "POST",
+        headers: Object.assign({ "Content-Type": "application/json" },
+          CFG.apiKey ? { "Authorization": "Bearer " + CFG.apiKey } : {}),
+        body: JSON.stringify({
+          model: requestedModel, messages: msgs,
+          ...(CFG.authenticated ? {workId: CadavreWork.id(), recordModel} : {}),
+          max_tokens: maxTokens, temperature, top_p: 0.95, stream: false,
+        }),
+        signal: ctrl.signal,
+      });
+    } catch { throw CadavreCore.modelError(0, { timedOut }); }
+    if(!res.ok){
+      let detail = "";
+      try { detail = String((await res.json())?.error?.message || ""); } catch {}
+      throw CadavreCore.modelError(res.status, { detail });
+    }
+    try { data = await res.json(); } catch { throw CadavreCore.modelError(502, { timedOut }); }
+  } finally { clearTimeout(timer); }
   if(CFG.authenticated&&recordModel)window.CadavreWork?.modelRecorded(data.workModelRecorded);
   // A delayed background cue must not undo a newer choice in the Table.
   if(data.model && recordModel && CFG.model === requestedModel){
@@ -892,18 +906,20 @@ async function send(text, maxTokens = TURN_TOKENS){
   messages.push({ role: "user", content: text });
   setWaiting(true);
   try {
-    for(let attempt = 0; attempt < 3; attempt++){
+    // Asked again only as the shared policy allows: once, and only when the
+    // request likely never reached a model. Limits and timeouts wait for the player.
+    for(let attempt = 0; ; attempt++){
       try {
         const reply = await request(CadavreCore.withEditedPoem(messages,editedPoemContext), 0.9, maxTokens);
         messages.push({ role: "assistant", content: reply, ...(CFG.authenticated ? {model:CFG.model} : {}) });
         return reply;
       } catch(err){
-        if(CFG.authenticated || attempt === 2) throw err;
+        const plan = CadavreCore.failurePlan(err, attempt);
+        if(!plan.retry){ err.plan = plan; throw err; }
         note("the other hand is reconnecting <span class=\"breathe\">·</span>");
-        await new Promise(resolve => setTimeout(resolve, 750 * (2 ** attempt)));
+        await new Promise(resolve => setTimeout(resolve, plan.delayMs));
       }
     }
-    throw new Error("model routes exhausted");
   } catch(err){
     if(messages[messages.length - 1]?.role === "user") messages.pop();
     throw err;
@@ -1048,7 +1064,12 @@ entry.addEventListener("keydown", async (e) => {
   last = null; setRegenEnabled(false);
   let reply;
   try { reply = await send(text); }
-  catch(err){ entry.value = text; return note("the other hand is still reconnecting. press enter to try again", true); }
+  catch(err){
+    // the words go back in the field, so nothing typed is lost
+    entry.value = text;
+    const plan = err.plan || CadavreCore.failurePlan(err, CadavreCore.MAX_AUTO_RETRIES);
+    return note(esc(plan.message) + (plan.canRetryByHand ? ". press enter to try again" : ""), true);
+  }
 
   if(isCorrective(reply)){
     // don't advance the poem; surface the correction quietly
