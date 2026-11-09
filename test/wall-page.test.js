@@ -66,3 +66,10 @@ test("the hand that pinned a corpse can edit it and ask for a fresh reading, thr
   assert.match(html, /<title>Exquisite Corpse — the wall<\/title>/);
   assert.match(html, /className = "pin-title"/);
 });
+
+test("the wall has a way back to the arcade, and a re-read can neither hang nor show a status code", () => {
+  assert.match(html, /<nav class="wall-links" aria-label="Leave the wall">.*href="https:\/\/games\.ailab-452\.workers\.dev\/">all games<\/a><\/nav>/);
+  assert.match(html, /signal: AbortSignal\.timeout\(60000\)/);
+  assert.match(html, /throw CadavreCore\.modelError\(response\.status, \{ detail \}\);/);
+  assert.doesNotMatch(html, /the model answered \$\{response\.status\}/);
+});
