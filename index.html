@@ -169,6 +169,12 @@
     .table-setting select:hover { border-bottom-color: var(--wine-bright); }
     .table-setting select:disabled { cursor: default; color: var(--bone-soft); }
 
+    .setting-hint { display: block; color: var(--dim); opacity: 0.8; }
+    .table-head { font-family: var(--sans); font-size: 1.0625rem; font-weight: 500; color: var(--bone); margin-bottom: 0.5rem; }
+    .how { margin: 0 0 1.6rem 1.2rem; padding: 0; max-width: 38rem; font-family: var(--sans); font-size: 1rem; line-height: 1.55; color: var(--bone-soft); }
+    .how li { margin-bottom: 0.3rem; padding-left: 0.2rem; }
+    .how li::marker { color: var(--wine-bright); }
+    .how strong { color: var(--bone); font-weight: 500; }
     .model-readiness { min-height: 1.4em; margin-top: 0.3rem; font-family: var(--sans); font-size: 0.8125rem; color: var(--dim); }
 
     .table-actions { display: flex; align-items: center; gap: 1rem; margin-top: 1.4rem; }
@@ -631,16 +637,22 @@
       </section>
 
       <section class="table" id="tableSec" aria-label="setting the table">
+        <h2 class="table-head">How to play</h2>
+        <ol class="how">
+          <li><strong>Set the table</strong> below, or leave it as it is, and press <em>begin the poem</em>.</li>
+          <li><strong>Write a few words</strong> and submit. The model writes the next line.</li>
+          <li><strong>You only ever see the newest line.</strong> Keep trading lines, then press <em>Reveal poem</em> to unfold the whole sheet.</li>
+        </ol>
         <div class="table-setting">
           <label class="setting-field model-route">
-            <span class="setting-label">the other hand</span>
+            <span class="setting-label">the other hand <span class="setting-hint">the language model that writes with you</span></span>
             <select id="modelRoute" aria-label="the other hand: language model">
               <option value="">loading available models…</option>
             </select>
             <span id="modelReadiness" class="model-readiness" role="status" aria-live="polite">warming the other hand…</span>
           </label>
           <label class="setting-field">
-            <span class="setting-label">words per turn</span>
+            <span class="setting-label">words per turn <span class="setting-hint">how long each line may be</span></span>
             <select id="maxWords" aria-label="words per turn">
               <option value="1">one</option>
               <option value="2">two</option>
@@ -650,7 +662,7 @@
             </select>
           </label>
           <label class="setting-field">
-            <span class="setting-label">players</span>
+            <span class="setting-label">players <span class="setting-hint">seats at the table, counting the model</span></span>
             <select id="playerCount" aria-label="players">
               <option value="2" selected>two</option>
               <option value="3">three</option>
@@ -658,7 +670,7 @@
             </select>
           </label>
           <label class="setting-field">
-            <span class="setting-label">the model sits at seat</span>
+            <span class="setting-label">the model sits at seat <span class="setting-hint">seat one writes first</span></span>
             <select id="modelSlot" aria-label="the model sits at seat">
               <option value="1">one</option>
               <option value="2" selected>two</option>
@@ -1268,10 +1280,10 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
       el("modelReadiness").textContent = message;
       const start = el("startBtn");
       start.disabled = !ready;
-      start.textContent = ready ? "begin" : "warming…";
+      start.textContent = ready ? "begin the poem" : "warming…";
     }
 
-    function acceptReadyModel(data, message = "ready before the first fold") {
+    function acceptReadyModel(data, message = "the model is ready") {
       if (data?.model) CFG.model = data.model;
       activeModel = CFG.model;
       modelReadyFor = CFG.model;
@@ -1287,7 +1299,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
 
     async function warmSelectedModel({ force = false } = {}) {
       const directConnection = (!CFG.authenticated && params.has("endpoint")) || !CFG.readyEndpoint;
-      if (directConnection) return acceptReadyModel(null, "configured route ready");
+      if (directConnection) return acceptReadyModel(null, "the model is ready");
       if (!force && modelReadyFor === CFG.model) {
         return { ready: true, model: CFG.model, cached: true };
       }
@@ -1313,7 +1325,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
           if (!data.ready || !data.model) throw new Error("no model route is ready");
           return acceptReadyModel(
             data,
-            data.failover ? "ready on a verified standby route" : "ready before the first fold"
+            data.failover ? "ready on a verified standby route" : "the model is ready"
           );
         } catch {
           if (CFG.model !== requestedModel) return null;
@@ -1339,7 +1351,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
       if (!data.model) return;
       acceptReadyModel(
         data,
-        data.failover ? "continued on a verified standby route" : "model route ready"
+        data.failover ? "continued on a verified standby route" : "the model is ready"
       );
     }
 

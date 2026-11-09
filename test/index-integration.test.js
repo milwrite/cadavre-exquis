@@ -132,7 +132,14 @@ test("a sheet in progress is kept for the tab and offered back after a refresh",
 });
 
 test("each table setting's accessible name contains its visible label", () => {
-  assert.match(html, /<span class="setting-label">the other hand<\/span>\s*<select id="modelRoute" aria-label="the other hand: language model">/);
-  assert.match(html, /<span class="setting-label">players<\/span>\s*<select id="playerCount" aria-label="players">/);
-  assert.match(html, /<span class="setting-label">the model sits at seat<\/span>\s*<select id="modelSlot" aria-label="the model sits at seat">/);
+  assert.match(html, /<span class="setting-label">the other hand <span class="setting-hint">[^<]+<\/span><\/span>\s*<select id="modelRoute" aria-label="the other hand: language model">/);
+  assert.match(html, /<span class="setting-label">players <span class="setting-hint">[^<]+<\/span><\/span>\s*<select id="playerCount" aria-label="players">/);
+  assert.match(html, /<span class="setting-label">the model sits at seat <span class="setting-hint">[^<]+<\/span><\/span>\s*<select id="modelSlot" aria-label="the model sits at seat">/);
+});
+
+test("the table says what to do before anything is asked of the player", () => {
+  assert.match(html, /<h2 class="table-head">How to play<\/h2>\s*<ol class="how">/);
+  assert.equal((html.match(/<ol class="how">[\s\S]*?<\/ol>/)[0].match(/<li>/g) || []).length, 3);
+  assert.match(html, /start\.textContent = ready \? "begin the poem" : "warming…";/);
+  assert.doesNotMatch(html, /ready before the first fold/);
 });
