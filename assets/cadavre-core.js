@@ -282,11 +282,12 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
   }
 
   /* ── when the other hand does not answer ────────────────────────────────
-     One policy for every page. A request is asked again only when it most
-     likely never reached a model (the network dropped, or the host said it
-     was unavailable), and then only once. A timeout, a rate limit, a spent
-     budget, an ended sign-in, or a refused request is never repeated
-     automatically: the player decides, and no turn is paid for twice. */
+     One policy for every page. A request is asked again automatically only
+     when it never reached the host at all (the connection dropped before any
+     response), and then only once. Any answer from the host is final for that
+     attempt: the Worker has already tried a standby model itself, so a 5xx
+     means up to two models were asked. Timeouts, limits, a spent budget, an
+     ended sign-in and refused requests likewise wait for the player. */
   const MAX_AUTO_RETRIES = 1;
 
   function modelError(status, { timedOut = false, cancelled = false, detail = "" } = {}) {
@@ -320,11 +321,11 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
 
   function failurePlan(error, attempt = 0) {
     const kind = error && FAILURE_MESSAGES[error.kind] ? error.kind : "unavailable";
-    const retry = (kind === "network" || kind === "unavailable") && Number(attempt) < MAX_AUTO_RETRIES;
+    const retry = kind === "network" && Number(attempt) < MAX_AUTO_RETRIES;
     return {
       kind,
       retry,
-      delayMs: retry ? (kind === "network" ? 1500 : 2500) : 0,
+      delayMs: retry ? 1500 : 0,
       // nothing to ask again today, or nothing a second ask would change
       canRetryByHand: kind !== "budget",
       message: FAILURE_MESSAGES[kind],

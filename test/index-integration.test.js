@@ -143,3 +143,9 @@ test("the table says what to do before anything is asked of the player", () => {
   assert.match(html, /start\.textContent = ready \? "begin the poem" : "warming…";/);
   assert.doesNotMatch(html, /ready before the first fold/);
 });
+
+test("the warm-up stops asking after five failed checks and hands the choice to the table", () => {
+  assert.match(html, /if \(modelReadyAttempt >= 5\) \{[\s\S]{0,400}start\.textContent = "check again";/);
+  assert.match(html, /if \(el\("startBtn"\)\.dataset\.check\) \{[\s\S]{0,200}warmSelectedModel\(\{ force: true \}\);\s*return;/);
+  assert.match(html, /if \(ready\) delete start\.dataset\.check;/);
+});
