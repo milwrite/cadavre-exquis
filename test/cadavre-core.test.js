@@ -147,11 +147,11 @@ test("a failed model call is asked again only when it likely never reached a mod
   const Core = require("../assets/cadavre-core.js");
   const plan = (status, options, attempt = 0) => Core.failurePlan(Core.modelError(status, options), attempt);
   assert.deepEqual([plan(0).retry, plan(0).delayMs], [true, 1500]);
-  assert.deepEqual([plan(503).retry, plan(502).retry, plan(504).retry], [true, true, true]);
+  assert.deepEqual([plan(503).retry, plan(502).retry, plan(500).retry], [true, true, true]);
   assert.equal(plan(0, {}, 1).retry, false, "one automatic retry at most");
   assert.equal(plan(503, {}, 1).retry, false);
   for (const [status, options, kind] of [
-    [0, { timedOut: true }, "timeout"], [429, {}, "limit"], [429, { detail: "the parlor has spent today's budget; play resumes tomorrow" }, "budget"],
+    [0, { timedOut: true }, "timeout"], [504, {}, "timeout"], [408, {}, "timeout"], [429, {}, "limit"], [429, { detail: "the parlor has spent today's budget; play resumes tomorrow" }, "budget"],
     [401, {}, "signin"], [403, {}, "signin"], [400, {}, "refused"], [404, {}, "refused"], [413, {}, "refused"],
   ]) {
     const p = plan(status, options);
@@ -191,9 +191,24 @@ test("a saved sheet is restored only when every part of it is valid", () => {
   assert.equal(broken((d) => { d.modelSeat = 4; }), null);
   assert.equal(broken((d) => { d.contributions = []; }), null);
   assert.equal(broken((d) => { d.contributions[0].text = "one two three four five six"; }), null);
-  assert.equal(broken((d) => { d.contributions[1].text = "**bold**"; }), null);
+  assert.equal(broken((d) => { d.contributions[1].text = "two\nlines"; }), null, "no line breaks or control characters");
+  assert.equal(broken((d) => { d.contributions[1].text = "   "; }), null);
   assert.equal(broken((d) => { d.contributions[2].turn = 1; }), null, "turns must rise");
   assert.equal(broken((d) => { d.contributions[2].seat = 4; }), null);
   assert.equal(broken((d) => { d.actorIndex = 2; }), null);
   assert.equal(broken((d) => { d.work = { id: "../../etc", revision: 1 }; }).work, null, "a malformed work reference is dropped, not trusted");
+});
+
+test("a hand's own punctuation and marks come back exactly after a refresh", () => {
+  const Core = require("../assets/cadavre-core.js");
+  const now = 1_800_000_000_000;
+  for (const line of ["wait, what?", "snake_case here", "*stars* fall", "it`s late", "no — never!", "fin."]) {
+    const raw = Core.draftOf({
+      players: 2, modelSeat: 2, maxWords: 3, model: "m", actorIndex: 1,
+      contributions: [{ text: line, isModel: false, seat: 1, turn: 0 }],
+    }, now);
+    const back = Core.restoreDraft(raw, now);
+    assert.ok(back, `the sheet with ${JSON.stringify(line)} is offered back`);
+    assert.equal(back.contributions[0].text, line, "nothing is trimmed or rewritten");
+  }
 });

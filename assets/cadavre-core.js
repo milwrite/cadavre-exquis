@@ -296,6 +296,9 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
       : code === 0 ? "network"
       : code === 429 ? (/budget/i.test(detail) ? "budget" : "limit")
       : code === 401 || code === 403 ? "signin"
+      // The Worker answers 504 after it has already waited on a model, so the
+      // turn may have been paid for: it is a timeout, never an automatic retry.
+      : code === 504 || code === 408 ? "timeout"
       : code >= 500 ? "unavailable"
       : "refused";
     const error = new Error(`model call failed: ${kind}`);
@@ -361,13 +364,16 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     let lastTurn = -1;
     for (const entry of data.contributions) {
       if (!entry || typeof entry.text !== "string") return null;
-      const checked = validateContribution(entry.text, 5);
-      if (!checked.valid || checked.text.length > 200) return null;
+      // A line is restored exactly as it was written. The table accepts a hand's
+      // punctuation and marks (only its word count is checked), so the rules for a
+      // model's line would wrongly reject, or quietly trim, what a person typed.
+      const text = entry.text.trim();
+      if (!text || text.length > 200 || /[\u0000-\u001f\u007f]/.test(text) || text.split(/\s+/).length > 5) return null;
       if (!Number.isInteger(entry.turn) || entry.turn <= lastTurn || entry.turn >= data.actorIndex) return null;
       if (!Number.isInteger(entry.seat) || entry.seat < 1 || entry.seat > data.players) return null;
       lastTurn = entry.turn;
       contributions.push({
-        text: checked.text, isModel: entry.isModel === true, seat: entry.seat, turn: entry.turn,
+        text, isModel: entry.isModel === true, seat: entry.seat, turn: entry.turn,
         ...(typeof entry.model === "string" && entry.model.length <= 180 ? { model: entry.model } : {}),
       });
     }
