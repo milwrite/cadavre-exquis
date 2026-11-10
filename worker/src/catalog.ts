@@ -20,10 +20,10 @@ export const CATALOG_TTL_MS = 5 * 60 * 1000;
 export const USER_AGENT = "cail-cadavre/0.1 (+https://github.com/milwrite/cadavre-exquis)";
 
 // CAIL's public ids are aliases, not identifiers accepted by AI.run().
-// Verified against `wrangler ai models list` on 2026-09-11. Never guess an
+// Verified against `wrangler ai models list` on 2026-09-11; the V4.1 Flash entry on 2026-11-09. Never guess an
 // upstream namespace for a new catalog entry: unresolved aliases stay hidden.
 const BINDING_MODELS = [
-  "@cf/deepseek-ai/deepseek-v4-flash-0731",
+  "@cf/deepseek-ai/deepseek-v4.1-flash-1017",
   "@cf/deepseek-ai/deepseek-v4-pro-0813",
   "@cf/qwen/qwen3.8-27b",
   "@cf/zai-org/glm-5.2",

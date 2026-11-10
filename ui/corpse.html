@@ -634,8 +634,8 @@ function renderModelOptions(catalog){
     ? `The previous model is outside this shortlist. Using ${selected.label}.`
     : `${available.length} models selected for poetry`;
   $("model-choice-help").textContent = CFG.authenticated
-    ? "DeepSeek V4 Flash is the default. Choose another available model above."
-    : "DeepSeek V4 Flash on Workers AI. CUNY Login keeps your poems.";
+    ? "DeepSeek V4.1 Flash is the default. Choose another available model above."
+    : "DeepSeek V4.1 Flash on Workers AI. CUNY Login keeps your poems.";
 }
 
 function selectRequestedModel(){
