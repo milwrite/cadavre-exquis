@@ -1,9 +1,11 @@
 // Curated against the live CAIL Featured registry, checked 2026-09-11.
 // Source: CUNY-AI-Lab/CUNY-AI-Lab-website/src/data/featured-models.json (2026-09-10).
-// DeepSeek V4 Flash is the suite default. Gemma is retired from both play modes.
+// DeepSeek V4.1 Flash 1017 is the suite default since 2026-11-09: Cloudflare retires V4 Flash 0731
+// on 2026-11-15. Probed that day with the fold and reading requests; thinking must stay switched off.
+// DeepSeek V4.1 Flash is the suite default. Gemma is retired from both play modes.
 // A registry listing is eligibility; active catalog intersection is still required.
 export const GAME_MODELS = [
-  { id: 'deepseek-v4-flash-0731', label: 'DeepSeek V4 Flash', group: 'CAIL Featured', provider: 'workers-ai', binding: '@cf/deepseek-ai/deepseek-v4-flash-0731' },
+  { id: 'deepseek-v4.1-flash-1017', label: 'DeepSeek V4.1 Flash', group: 'CAIL Featured', provider: 'workers-ai', binding: '@cf/deepseek-ai/deepseek-v4.1-flash-1017' },
   { id: 'deepseek-v4-pro-0813', label: 'DeepSeek V4 Pro', group: 'CAIL Featured', provider: 'workers-ai', binding: '@cf/deepseek-ai/deepseek-v4-pro-0813' },
   { id: 'qwen3.8-27b', label: 'Qwen3.8 · 27B', group: 'CAIL Featured', provider: 'workers-ai', binding: '@cf/qwen/qwen3.8-27b' },
   { id: 'minimax-m3', label: 'MiniMax M3', group: 'Also at the table', provider: 'openrouter', binding: 'minimax/minimax-m3' },

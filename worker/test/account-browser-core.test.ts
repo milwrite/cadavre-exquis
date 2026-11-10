@@ -41,7 +41,7 @@ test('dedicated Worker fails closed when its config is missing, including signed
 test('reopening an old Gemma poem chooses Flash without changing the saved record',()=>{
  const saved={model:'@cf/google/gemma-4-26b-a4b-it',poem:'paper moons\ndissolve slowly',turns:[{model:'gemma-4-26b-a4b-it',text:'dissolve slowly'}]};
  const original=JSON.stringify(saved);
- const flash={id:'deepseek-v4-flash-0731',model:'@cf/deepseek-ai/deepseek-v4-flash-0731',available:true};
+ const flash={id:'deepseek-v4.1-flash-1017',model:'@cf/deepseek-ai/deepseek-v4.1-flash-1017',available:true};
  const selected=core.chooseModel({default:flash.id,models:[flash]},[saved.model]);
  assert.equal(selected.id,flash.id);
  assert.equal(JSON.stringify(saved),original);

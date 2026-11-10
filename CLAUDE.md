@@ -6,7 +6,7 @@ Pipeline that scrapes public-domain surrealist/modernist poetry, reshapes it int
 next-line-continuation examples, QLoRA-fine-tunes a small Gemma, and serves the
 adapter from a multi-LoRA vLLM host that feeds an *Exquisite Corpse* game UI.
 The Open WebUI wrapper and the Cloudflare Worker (`CADAVRE_DEFAULT_MODEL`,
-`@cf/deepseek-ai/deepseek-v4-flash-0731`) default to DeepSeek V4 Flash; local vLLM
+`@cf/deepseek-ai/deepseek-v4.1-flash-1017`) default to DeepSeek V4.1 Flash; local vLLM
 routes use the `exquisite-corpse` adapter.
 
 **`PROGRESS.md` is the source of truth** for what's done and what's next.

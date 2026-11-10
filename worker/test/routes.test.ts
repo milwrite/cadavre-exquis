@@ -7,7 +7,7 @@ import { FAILED_TTL_MS, ensureReady, requestForRoute, RouteHealth, withFallback 
 import { signedCompletion, GatewayFailure } from '../src/signed-inference.ts';
 import type { ChatRequest } from '../src/shape.ts';
 
-const FLASH = 'deepseek-v4-flash-0731';
+const FLASH = 'deepseek-v4.1-flash-1017';
 const QWEN = 'qwen3.8-27b';
 const LLAMA = 'llama-3.1-8b-instruct-fp8';
 const MINIMAX = 'minimax-m3';

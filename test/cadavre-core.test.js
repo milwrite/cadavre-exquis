@@ -169,10 +169,10 @@ test("a saved sheet is restored only when every part of it is valid", () => {
   const Core = require("../assets/cadavre-core.js");
   const now = 1_800_000_000_000;
   const state = {
-    players: 3, modelSeat: 2, maxWords: 3, model: "deepseek-v4-flash-0731", actorIndex: 4,
+    players: 3, modelSeat: 2, maxWords: 3, model: "deepseek-v4.1-flash-1017", actorIndex: 4,
     contributions: [
       { text: "salt in the", isModel: false, seat: 1, turn: 0 },
-      { text: "hollow of", isModel: true, seat: 2, turn: 1, model: "deepseek-v4-flash-0731" },
+      { text: "hollow of", isModel: true, seat: 2, turn: 1, model: "deepseek-v4.1-flash-1017" },
       { text: "a borrowed tooth", isModel: false, seat: 1, turn: 3 },
     ],
     work: { id: "11111111-1111-4111-8111-111111111111", revision: 2 },
