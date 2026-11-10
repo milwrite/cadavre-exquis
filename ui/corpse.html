@@ -566,6 +566,12 @@ async function warmSelectedModel({ force = false } = {}){
       if (CFG.model !== requestedModel) return null;
       modelReadyFor = "";
       modelReadyAttempt++;
+      // Each check can cost a metered probe: stop after five instead of asking forever.
+      if (modelReadyAttempt >= 5) {
+        modelStatusEl.textContent = "not answering";
+        note("the other hand is not answering. reload the page to try again", true);
+        return null;
+      }
       const delay = Math.min(15000, 1000 * (2 ** Math.min(modelReadyAttempt, 4)));
       modelStatusEl.textContent = "finding an available model route…";
       note("the other hand is reconnecting <span class=\"breathe\">·</span>");
@@ -1116,6 +1122,19 @@ const opened=await window.CadavreWork?.mount({
     editedPoemContext=content.text!==content.contributions.map(m=>m.content).join("\n")?content.text:null;
     readingText=content.reading;closed=false;last=null;
     setCloseEnabled(Boolean(content.text));
+    // A poem saved after it was closed comes back closed, showing the reading it was saved
+    // with. Nothing is asked of the model again.
+    if(content.record?.closed && poemEl.querySelector(".line")){
+      closed=true;
+      poemEl.querySelectorAll(".line").forEach(l=>l.classList.add("settled"));
+      poemTokens=collectTokens();
+      document.querySelector("main").classList.add("revealed");
+      $("reading-col").classList.add("show");
+      entry.remove();
+      setRegenEnabled(false);setCloseEnabled(false);setKeepEnabled(true);$("edit-poem").disabled=false;
+      if(readingText){renderReadingLinked(readingEl,readingText,poemTokens);readingEl.classList.add("show");}
+      setRereadEnabled(readingsLeft>0);
+    }
     state.steer=content.settings.steer||"";steerEl.value=state.steer;
     if(Array.isArray(content.settings.tags))state.tags=content.settings.tags;
     state.override=content.settings.override??null;overrideOn.checked=state.override!==null;

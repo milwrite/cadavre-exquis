@@ -13,6 +13,9 @@
     return value;
   }
   // Network trouble and a busy service are tried again twice; everything else waits for the player.
+  // Equal content whatever order the store returns its keys in.
+  const canon=value=>Array.isArray(value)?value.map(canon):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canon(value[key])])):value;
+  const same=(a,b)=>JSON.stringify(canon(a))===JSON.stringify(canon(b));
   const RETRY_MS=[2000,8000];let attempts=0,recover=null;
   function offer(label,action){recover=action;if(button){button.textContent=label;button.hidden=false;}}
   function signInAgain(){window.open('/auth/start?next='+encodeURIComponent(location.pathname),'_blank','noopener');offer('Retry',()=>void save());say('Sign in on the new tab, then select Retry here. Your poem is still on this page.');}
@@ -34,6 +37,8 @@
       }catch(error){
         // An ended sign-in or a newer copy elsewhere cannot be fixed by sending the same save again.
         if(error.status===401){offer('Sign in again',signInAgain);say('Your CUNY sign-in ended. Your poem is still on this page.');return false;}
+        // If the store already holds exactly what was sent, the earlier reply was lost: carry on from it.
+        if(error.status===409){try{const current=await api('/entries/'+encodeURIComponent(id));if(same(current.item.content,content)){revision=current.item.revision;previous=serialized;attempts=0;recover=null;if(button)button.hidden=true;say('Saved');return true;}}catch{/* fall through to the choice below */}}
         if(error.status===409||error.status===404){offer('Save as a new copy',saveCopy);say('This poem was changed in another tab. Your version is still on this page; nothing was overwritten.');return false;}
         if((error.status===0||error.status===429||error.status>=500)&&attempts<RETRY_MS.length){const wait=RETRY_MS[attempts++];say('Saving again shortly…');clearTimeout(timer);timer=setTimeout(()=>void save(),wait);return false;}
         attempts=0;offer('Retry',()=>void save());say(error.message+' Your current poem is still here. Select Retry to save again.');return false;

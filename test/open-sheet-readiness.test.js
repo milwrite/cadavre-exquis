@@ -77,3 +77,12 @@ test("the poem editor grows to the poem instead of scrolling inside itself", () 
   assert.match(html, /poemEdit\.addEventListener\("input", growEditor\)/);
   assert.match(html, /editBtn\.textContent = "done editing";\n\s*growEditor\(\);/);
 });
+
+test("the open sheet's warm-up is bounded, and a closed poem reopens closed without a new reading", () => {
+  assert.match(html, /if \(modelReadyAttempt >= 5\) \{[\s\S]{0,300}return null;/);
+  const restore = html.slice(html.indexOf("restore: async (content) =>"));
+  assert.match(restore, /if\(content\.record\?\.closed && poemEl\.querySelector\("\.line"\)\)\{/);
+  const closedBlock = restore.slice(restore.indexOf("content.record?.closed"), restore.indexOf("state.steer="));
+  assert.match(closedBlock, /renderReadingLinked\(readingEl,readingText,poemTokens\)/);
+  assert.doesNotMatch(closedBlock, /fetchReading|request\(/, "restoring never calls the model");
+});

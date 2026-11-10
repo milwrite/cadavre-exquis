@@ -1281,6 +1281,7 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
       const start = el("startBtn");
       start.disabled = !ready;
       start.textContent = ready ? "begin the poem" : "warming…";
+      if (ready) delete start.dataset.check;
     }
 
     function acceptReadyModel(data, message = "the model is ready") {
@@ -1331,6 +1332,16 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
           if (CFG.model !== requestedModel) return null;
           modelReadyFor = "";
           modelReadyAttempt++;
+          // Each check can cost a metered probe, so the page stops asking after five and
+          // lets the table ask again by hand.
+          if (modelReadyAttempt >= 5) {
+            setModelReadiness("the other hand is not answering. check again in a minute", false);
+            const start = el("startBtn");
+            start.disabled = false;
+            start.textContent = "check again";
+            start.dataset.check = "1";
+            return null;
+          }
           const delay = Math.min(15000, 1000 * (2 ** Math.min(modelReadyAttempt, 4)));
           setModelReadiness("finding an available model route…", false);
           modelReadyRetry = setTimeout(() => warmSelectedModel({ force: true }), delay);
@@ -1723,6 +1734,13 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
     el("playerCount").addEventListener("change", syncSeats);
 
     async function begin() {
+      // after the warm-up gave up, the button only checks the model again
+      if (el("startBtn").dataset.check) {
+        delete el("startBtn").dataset.check;
+        modelReadyAttempt = 0;
+        void warmSelectedModel({ force: true });
+        return;
+      }
       if(await window.CadavreWork?.newWork()===false)return;
       if (modelReadyFor !== CFG.model) {
         const ready = await warmSelectedModel({ force: true });
