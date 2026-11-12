@@ -6,15 +6,15 @@ import { policyFromEnv } from '../src/policy.ts';
 import { generationBudget } from '../src/game-models.ts';
 const live=JSON.parse(readFileSync(new URL('./fixtures/cail-models-2026-11-12.json',import.meta.url),'utf8'));
 const FLASH='deepseek-v4.1-flash-1017';
-test('the full text registry is available with exactly ten featured choices',()=>{
+test('the active registry resolves exactly ten selectable models',()=>{
   const catalog=toCatalog(live,FLASH,policyFromEnv('all',true));
-  assert.equal(catalog.models.filter(m=>m.featured).length,10);
-  assert.equal(catalog.models.length,live.filter((m:any)=>m.status==='active'&&m.modality==='text'&&m.capabilities.includes('text-generation')).length);
+  assert.equal(catalog.models.length,10);
+  assert.equal(new Set(catalog.models.map(m=>m.id)).size,10);
   assert.equal(catalog.default,FLASH);
   assert.equal(findRoute(catalog,'kimi-k3')?.provider,'bedrock-runtime');
   assert.equal(findRoute(catalog,'minimax-m2.5')?.provider,'bedrock-mantle');
-  assert.equal(findRoute(catalog,'gemma-4-26b-a4b-it')?.featured,true);
-  assert.equal(findRoute(catalog,'gemma-3-27b-it')?.featured,false);
+  assert.equal(findRoute(catalog,'gemma-4-26b-a4b-it')?.provider,'workers-ai');
+  assert.equal(findRoute(catalog,'gemma-3-27b-it'),undefined);
 });
 test('without a gateway key only known featured binding routes are offered',()=>{
   const catalog=toCatalog(live,FLASH,policyFromEnv('all',false));
@@ -31,9 +31,9 @@ test('unsupported providers, inactive and non-text entries are excluded',()=>{
   ],FLASH,policyFromEnv('all',true));
   assert.deepEqual(catalog.models,[]);
 });
-test('gateway aliases do not require a guessed Workers AI binding namespace',()=>{
+test('unselected registry models are excluded even when gateway access is configured',()=>{
   const model={id:'new-registered-writer',provider:'workers-ai',capabilities:['text-generation']};
-  assert.equal(toCatalog([model],model.id,policyFromEnv('all',true)).models[0].model,model.id);
+  assert.equal(toCatalog([model],model.id,policyFromEnv('all',true)).models.length,0);
   assert.equal(toCatalog([model],model.id,policyFromEnv('all',false)).models.length,0);
 });
 test('cold-start fallback preserves the ten featured choices and de-duplicates routes',()=>{

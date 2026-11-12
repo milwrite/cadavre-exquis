@@ -78,11 +78,6 @@
     return `VISIBLE FOLD:\n${String(text ?? "")}\n\nWrite the next ${capPhrase(maxWords)}.`;
   }
 
-  function catalogModels(catalog, includeAll = false) {
-    const routes = Array.isArray(catalog?.models) ? catalog.models : (Array.isArray(catalog?.data) ? catalog.data : []);
-    return routes.filter(route => route && (includeAll || route.featured !== false));
-  }
-
   function chooseModel(catalog, requestedIds = []) {
     const routes = Array.isArray(catalog?.models) ? catalog.models : [];
     const available = routes.filter((route) => route?.id && route.available !== false);
@@ -418,7 +413,6 @@ Write one paragraph of 2–4 concrete sentences. Quote specific words and descri
     turnInfo,
     buildTurnPrompt,
     chooseModel,
-    catalogModels,
     normalizeWord,
     matchPhrase,
     paginateLines,

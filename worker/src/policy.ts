@@ -12,7 +12,7 @@ export function policyFromEnv(value:string|undefined, gatewayKeyPresent:boolean)
   const all = (value || 'workers-ai').trim().toLowerCase() === 'all' && gatewayKeyPresent;
   return {
     providers:new Set(all ? ['workers-ai','bedrock-mantle','bedrock-runtime','openrouter'] : ['workers-ai']),
-    exclude:EXCLUDE, allow:all ? [] : ALLOW, gateway:gatewayKeyPresent,
+    exclude:EXCLUDE, allow:ALLOW, gateway:gatewayKeyPresent,
   };
 }
 export function selectModels(models:GatewayModel[], policy:Policy):GatewayModel[] {

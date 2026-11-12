@@ -12,7 +12,6 @@ export type Route = {
   available: boolean;
   reasoning: boolean;
   group?: string;
-  featured?: boolean;
 };
 
 export type Catalog = { default: string; models: Route[] };
@@ -67,8 +66,7 @@ export function toCatalog(models: GatewayModel[], defaultModel: string, policy: 
       model,
       available: true,
       reasoning: (m.capabilities ?? []).includes("reasoning"),
-      group: featured ? "CAIL Featured" : "Full model registry",
-      featured: Boolean(featured),
+      group: featured?.group,
     });
   }
   const preferred = routes.find(r => r.id === defaultModel || r.model === defaultModel);

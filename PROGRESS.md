@@ -11,9 +11,9 @@ updates counts, and commits. Keep it honest — no checkbox ticked without evide
 
 ## Current Worker destination
 
-### Ten featured models and full registry — 2026-11-12
+### Ten selectable registry models — 2026-11-12
 
-- Both poetry surfaces offer ten featured models from the live CAIL catalog, with DeepSeek V4.1 Flash recommended. A full-registry checkbox adds every active text-generation route from the supported providers. Saved registry selections remain available on resume.
+- Both poetry surfaces offer exactly ten selectable models from the live CAIL catalog, with DeepSeek V4.1 Flash recommended. Public and signed-in menus share this list; the complete registry validates availability but does not add extra menu choices.
 - Kimi K3 uses Bedrock Runtime; Kimi K2.5, MiniMax M2.5 and Nemotron Super 120B use Bedrock Mantle. GLM 5.3 Flash and Gemma 4 26B return to the featured menu; GPT OSS 120B and Qwen3.8 27B complete the ten. Short AWS/GPT OSS requests reserve room for reasoning and visible output.
 - Catalog regression checks use the captured November 12 registry. Local core, proxy and Worker tests pass; live compatibility results are recorded separately after deployment. Corpus/training source is unchanged.
 
