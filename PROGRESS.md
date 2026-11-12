@@ -424,3 +424,9 @@ Core (surreal/modernist) = poetrydb + gutenberg = **6067** poems; GPC is padding
 - Fixed Cadavre static-asset redirects losing the CUNY mount, and introduced its own stable `/cadavre/play/` route.
 - 11 account tests, 13 Worker tests and real Doorway/Worker/static-assets/storage boundary passed; independent review reran the important path.
 - Deployed: account f94c9f62-0ba2-4cf3-a74e-983431f4947a (e2e2da1), Cadavre cc6bedd6-7c3d-4be6-842f-e6d6c7c523f5 (ffd5259), both 100%. Generic caller registration verified live. Firefox directory passed; save/reopen acceptance awaits the active browser.
+
+### 2026-11-12 live model follow-up
+
+- Removed provider parentheticals from model labels.
+- GLM 5.3 Flash spends tokens on reasoning despite the thinking-off hint. Reserve 2,048 tokens for short turns and readings while retaining the requested compact output.
+- Worker regression tests: 40 passing. Nine models passed live folds and readings; GLM retesting follows deployment of this correction.

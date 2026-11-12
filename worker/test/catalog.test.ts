@@ -43,6 +43,6 @@ test('cold-start fallback preserves the ten featured choices and de-duplicates r
   assert.equal(findRoute(catalog,'minimax-m3')?.id,'minimax-m2.5');
 });
 test('AWS short tasks reserve reasoning space without increasing compact tasks',()=>{
-  for(const id of ['minimax-m2.5','kimi-k2.5','kimi-k3','nemotron-super-3-120b'])assert.equal(generationBudget(id,80),2048);
+  for(const id of ['minimax-m2.5','kimi-k2.5','kimi-k3','nemotron-super-3-120b','glm-5.3-flash'])assert.equal(generationBudget(id,80),2048);
   assert.equal(generationBudget(FLASH,80),80);
 });

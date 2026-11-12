@@ -19,7 +19,7 @@ export const GAME_MODELS: ReadonlyArray<{id:string;label:string;group:string;pro
   },
   {
     "id": "kimi-k2.5",
-    "label": "Kimi K2.5 (AWS)",
+    "label": "Kimi K2.5",
     "group": "CAIL Featured",
     "provider": "bedrock-mantle",
     "binding": "kimi-k2.5",
@@ -59,7 +59,7 @@ export const GAME_MODELS: ReadonlyArray<{id:string;label:string;group:string;pro
   },
   {
     "id": "nemotron-super-3-120b",
-    "label": "Nemotron 3 Super \u00b7 120B (AWS)",
+    "label": "Nemotron 3 Super \u00b7 120B",
     "group": "CAIL Featured",
     "provider": "bedrock-mantle",
     "binding": "nemotron-super-3-120b",
@@ -108,10 +108,10 @@ export function gameModel(id: string) {
   const normalized = ALIASES[id] || id;
   return GAME_MODELS.find(model => model.id === normalized || model.binding === normalized);
 }
-// AWS reasoning models and GPT OSS need room for visible output even on short tasks.
+// AWS reasoning models, GLM, and GPT OSS need room for visible output even on short tasks.
 export function generationBudget(id: string, requested: number, provider?: string) {
   const model = gameModel(id);
-  if ((provider || model?.provider || '').startsWith('bedrock-') || model?.id === 'gpt-oss-120b') {
+  if ((provider || model?.provider || '').startsWith('bedrock-') || model?.id === 'gpt-oss-120b' || model?.id === 'glm-5.3-flash') {
     return Math.max(requested >= 5000 ? 8000 : 2048, requested);
   }
   return requested;
