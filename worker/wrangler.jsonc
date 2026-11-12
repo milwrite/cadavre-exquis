@@ -49,8 +49,8 @@
     "CAIL_CATALOG_URL": "https://tools.ailab.gc.cuny.edu/v1/catalog",
     "CAIL_GATEWAY_URL": "https://tools.ailab.gc.cuny.edu/v1",
     // "workers-ai" offers only @cf/ models. A configured secret routes them through CAIL.
-    // "all" adds the gateway's OpenRouter routes, which need CAIL_GATEWAY_KEY.
-    "CADAVRE_MODEL_POLICY": "workers-ai",
+    // "all" offers the active text registry through the server-side CAIL_GATEWAY_KEY.
+    "CADAVRE_MODEL_POLICY": "all",
     "CADAVRE_DEFAULT_MODEL": "deepseek-v4.1-flash-1017",
     // Completion tokens per UTC day before the parlor rests until tomorrow.
     "CADAVRE_DAILY_TOKEN_CEILING": "1500000",

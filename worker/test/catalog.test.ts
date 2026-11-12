@@ -1,60 +1,48 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { toCatalog, findRoute, FALLBACK_MODELS } from '../src/catalog.ts';
-import { policyFromEnv, type GatewayModel } from '../src/policy.ts';
-import { GAME_MODELS, generationBudget } from '../src/game-models.ts';
-const models:GatewayModel[] = [
-  ...GAME_MODELS.map(m=>({id:m.id,provider:m.provider,capabilities:['text-generation','reasoning']})),
-  {id:'deepseek-v4.1-flash-1017',provider:'workers-ai',capabilities:['text-generation']},
-  {id:'kimi-k3',provider:'openrouter',capabilities:['text-generation']},
-  {id:'whisper-large-v3-turbo',provider:'workers-ai',capabilities:['speech-to-text']},
-];
-test('MiniMax reserves reasoning room without changing compact-model budgets',()=>{
-  assert.equal(generationBudget('minimax-m3',80),2048);
-  assert.equal(generationBudget('minimax/minimax-m3',400),2048);
-  assert.equal(generationBudget('deepseek-v4.1-flash-1017',80),80);
+import { policyFromEnv } from '../src/policy.ts';
+import { generationBudget } from '../src/game-models.ts';
+const live=JSON.parse(readFileSync(new URL('./fixtures/cail-models-2026-11-12.json',import.meta.url),'utf8'));
+const FLASH='deepseek-v4.1-flash-1017';
+test('the full text registry is available with exactly ten featured choices',()=>{
+  const catalog=toCatalog(live,FLASH,policyFromEnv('all',true));
+  assert.equal(catalog.models.filter(m=>m.featured).length,10);
+  assert.equal(catalog.models.length,live.filter((m:any)=>m.status==='active'&&m.modality==='text'&&m.capabilities.includes('text-generation')).length);
+  assert.equal(catalog.default,FLASH);
+  assert.equal(findRoute(catalog,'kimi-k3')?.provider,'bedrock-runtime');
+  assert.equal(findRoute(catalog,'minimax-m2.5')?.provider,'bedrock-mantle');
+  assert.equal(findRoute(catalog,'gemma-4-26b-a4b-it')?.featured,true);
+  assert.equal(findRoute(catalog,'gemma-3-27b-it')?.featured,false);
 });
-test('public play offers only curated runnable binding models',()=>{
-  const catalog=toCatalog(models,'deepseek-v4.1-flash-1017',policyFromEnv('workers-ai',false));
-  assert.deepEqual(catalog.models.map(m=>m.id),['deepseek-v4.1-flash-1017','deepseek-v4-pro-0813','qwen3.8-27b','llama-3.1-8b-instruct-fp8']);
-  assert.equal(catalog.default,'deepseek-v4.1-flash-1017');
-  assert.equal(findRoute(catalog,'@cf/deepseek-ai/deepseek-v4.1-flash-1017')?.id,'deepseek-v4.1-flash-1017');
-  assert.equal(findRoute(catalog,'gemma-4-26b-a4b-it'),undefined);
-  assert.equal(findRoute(catalog,'minimax-m3'),undefined);
-});
-test('an app-key policy adds curated OpenRouter choices without exposing the full catalog',()=>{
-  const catalog=toCatalog(models,'minimax-m3',policyFromEnv('all',true));
-  assert.equal(catalog.models.length,5);
-  assert.equal(catalog.default,'minimax-m3');
+test('without a gateway key only known featured binding routes are offered',()=>{
+  const catalog=toCatalog(live,FLASH,policyFromEnv('all',false));
+  assert.equal(catalog.models.length,6);
+  assert.ok(catalog.models.every(m=>m.provider==='workers-ai'&&m.model.startsWith('@cf/')));
   assert.equal(findRoute(catalog,'kimi-k3'),undefined);
-  assert.equal(findRoute(catalog,'minimax-m3')?.provider,'openrouter');
-  assert.equal(toCatalog(models,'',policyFromEnv('all',false)).models.length,4);
 });
-test('inactive, wrong-provider, non-text, and unknown models never become routes',()=>{
+test('unsupported providers, inactive and non-text entries are excluded',()=>{
   const catalog=toCatalog([
-    {id:'deepseek-v4.1-flash-1017',provider:'workers-ai',status:'sunset'},
-    {id:'qwen3.8-27b',provider:'openrouter',capabilities:['text-generation']},
-    {id:'minimax-m3',provider:'openrouter',capabilities:['vision']},
-    {id:'unresolved-new-model',provider:'workers-ai',capabilities:['text-generation']},
-  ],'',policyFromEnv('all',true));
+    {id:'kimi-k3',provider:'openrouter',capabilities:['text-generation']},
+    {id:FLASH,provider:'workers-ai',status:'sunset',capabilities:['text-generation']},
+    {id:'audio',provider:'workers-ai',capabilities:['speech-to-text']},
+    {id:'unknown-provider',provider:'unknown',capabilities:['text-generation']},
+  ],FLASH,policyFromEnv('all',true));
   assert.deepEqual(catalog.models,[]);
-  assert.equal(catalog.default,'');
 });
-test('an outage fallback remains inside the shortlist and preserves supported full ids',()=>{
-  const full='@cf/deepseek-ai/deepseek-v4.1-flash-1017';
-  const catalog=toCatalog([...FALLBACK_MODELS,...FALLBACK_MODELS],full,policyFromEnv('workers-ai',false));
-  assert.equal(catalog.models.length,4);
-  assert.equal(catalog.default,'deepseek-v4.1-flash-1017');
-  assert.equal(findRoute(catalog,full)?.model,full);
-  assert.equal(findRoute(catalog,full)?.label,'DeepSeek V4.1 Flash');
+test('gateway aliases do not require a guessed Workers AI binding namespace',()=>{
+  const model={id:'new-registered-writer',provider:'workers-ai',capabilities:['text-generation']};
+  assert.equal(toCatalog([model],model.id,policyFromEnv('all',true)).models[0].model,model.id);
+  assert.equal(toCatalog([model],model.id,policyFromEnv('all',false)).models.length,0);
 });
-
-test('Gemma cannot re-enter either catalog, and retired defaults resolve to Flash',()=>{
-  const retired=['gemma-4-26b-a4b-it','gemma-4-31b-it','@cf/google/gemma-4-26b-a4b-it'];
-  for(const mode of ['workers-ai','all'])for(const old of retired){
-    const catalog=toCatalog([...models,...retired.map(id=>({id,provider:'workers-ai',capabilities:['text-generation']}))],old,policyFromEnv(mode,true));
-    assert.equal(catalog.default,'deepseek-v4.1-flash-1017');
-    assert.ok(catalog.models.every(m=>!m.id.includes('gemma')&&!m.model.includes('gemma')));
-    assert.equal(findRoute(catalog,old),undefined);
-  }
+test('cold-start fallback preserves the ten featured choices and de-duplicates routes',()=>{
+  const catalog=toCatalog([...FALLBACK_MODELS,...FALLBACK_MODELS],FLASH,policyFromEnv('all',true));
+  assert.equal(catalog.models.length,10);
+  assert.equal(findRoute(catalog,'@cf/google/gemma-4-26b-a4b-it')?.id,'gemma-4-26b-a4b-it');
+  assert.equal(findRoute(catalog,'minimax-m3')?.id,'minimax-m2.5');
+});
+test('AWS short tasks reserve reasoning space without increasing compact tasks',()=>{
+  for(const id of ['minimax-m2.5','kimi-k2.5','kimi-k3','nemotron-super-3-120b'])assert.equal(generationBudget(id,80),2048);
+  assert.equal(generationBudget(FLASH,80),80);
 });

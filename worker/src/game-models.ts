@@ -1,23 +1,118 @@
-// Curated against the live CAIL Featured registry, checked 2026-09-11.
-// Source: CUNY-AI-Lab/CUNY-AI-Lab-website/src/data/featured-models.json (2026-09-10).
-// DeepSeek V4.1 Flash 1017 is the suite default since 2026-11-09: Cloudflare retires V4 Flash 0731
-// on 2026-11-15. Probed that day with the fold and reading requests; thinking must stay switched off.
-// DeepSeek V4.1 Flash is the suite default. Gemma is retired from both play modes.
-// A registry listing is eligibility; active catalog intersection is still required.
-export const GAME_MODELS = [
-  { id: 'deepseek-v4.1-flash-1017', label: 'DeepSeek V4.1 Flash', group: 'CAIL Featured', provider: 'workers-ai', binding: '@cf/deepseek-ai/deepseek-v4.1-flash-1017' },
-  { id: 'deepseek-v4-pro-0813', label: 'DeepSeek V4 Pro', group: 'CAIL Featured', provider: 'workers-ai', binding: '@cf/deepseek-ai/deepseek-v4-pro-0813' },
-  { id: 'qwen3.8-27b', label: 'Qwen3.8 · 27B', group: 'CAIL Featured', provider: 'workers-ai', binding: '@cf/qwen/qwen3.8-27b' },
-  { id: 'minimax-m3', label: 'MiniMax M3', group: 'Also at the table', provider: 'openrouter', binding: 'minimax/minimax-m3' },
-  { id: 'llama-3.1-8b-instruct-fp8', label: 'Llama 3.1 · 8B', group: 'Compact writers', provider: 'workers-ai', binding: '@cf/meta/llama-3.1-8b-instruct-fp8' },
-] as const;
-
+// Ten featured text models, checked against the live CAIL registry on 2026-11-12.
+// Availability still requires an active entry with the same provider.
+export const GAME_MODELS: ReadonlyArray<{id:string;label:string;group:string;provider:string;binding:string;structuredOutput:boolean}> = [
+  {
+    "id": "deepseek-v4.1-flash-1017",
+    "label": "DeepSeek V4.1 Flash",
+    "group": "CAIL Featured",
+    "provider": "workers-ai",
+    "binding": "@cf/deepseek-ai/deepseek-v4.1-flash-1017",
+    "structuredOutput": false
+  },
+  {
+    "id": "kimi-k3",
+    "label": "Kimi K3",
+    "group": "CAIL Featured",
+    "provider": "bedrock-runtime",
+    "binding": "kimi-k3",
+    "structuredOutput": true
+  },
+  {
+    "id": "kimi-k2.5",
+    "label": "Kimi K2.5 (AWS)",
+    "group": "CAIL Featured",
+    "provider": "bedrock-mantle",
+    "binding": "kimi-k2.5",
+    "structuredOutput": true
+  },
+  {
+    "id": "deepseek-v4-pro-0813",
+    "label": "DeepSeek V4 Pro",
+    "group": "CAIL Featured",
+    "provider": "workers-ai",
+    "binding": "@cf/deepseek-ai/deepseek-v4-pro-0813",
+    "structuredOutput": false
+  },
+  {
+    "id": "glm-5.3-flash",
+    "label": "GLM 5.3 Flash",
+    "group": "CAIL Featured",
+    "provider": "workers-ai",
+    "binding": "@cf/zai-org/glm-5.3-flash",
+    "structuredOutput": false
+  },
+  {
+    "id": "gemma-4-26b-a4b-it",
+    "label": "Gemma 4 \u00b7 26B",
+    "group": "CAIL Featured",
+    "provider": "workers-ai",
+    "binding": "@cf/google/gemma-4-26b-a4b-it",
+    "structuredOutput": false
+  },
+  {
+    "id": "minimax-m2.5",
+    "label": "MiniMax M2.5",
+    "group": "CAIL Featured",
+    "provider": "bedrock-mantle",
+    "binding": "minimax-m2.5",
+    "structuredOutput": true
+  },
+  {
+    "id": "nemotron-super-3-120b",
+    "label": "Nemotron 3 Super \u00b7 120B (AWS)",
+    "group": "CAIL Featured",
+    "provider": "bedrock-mantle",
+    "binding": "nemotron-super-3-120b",
+    "structuredOutput": true
+  },
+  {
+    "id": "gpt-oss-120b",
+    "label": "GPT OSS 120B",
+    "group": "CAIL Featured",
+    "provider": "workers-ai",
+    "binding": "@cf/openai/gpt-oss-120b",
+    "structuredOutput": true
+  },
+  {
+    "id": "qwen3.8-27b",
+    "label": "Qwen3.8 \u00b7 27B",
+    "group": "CAIL Featured",
+    "provider": "workers-ai",
+    "binding": "@cf/qwen/qwen3.8-27b",
+    "structuredOutput": false
+  }
+];
+export const DEFAULT_GAME_MODEL = 'deepseek-v4.1-flash-1017';
+const ALIASES: Record<string,string> = {
+  "deepseek-v4-pro": "deepseek-v4-pro-0813",
+  "deepseek/deepseek-v4-pro": "deepseek-v4-pro-0813",
+  "deepseek/deepseek-v4-pro-0813": "deepseek-v4-pro-0813",
+  "deepseek-v4-flash": "deepseek-v4.1-flash-1017",
+  "deepseek-v4-flash-0731": "deepseek-v4.1-flash-1017",
+  "@cf/deepseek-ai/deepseek-v4-flash-0731": "deepseek-v4.1-flash-1017",
+  "deepseek/deepseek-v4-flash-0731": "deepseek-v4.1-flash-1017",
+  "deepseek-v4.1-flash": "deepseek-v4.1-flash-1017",
+  "kimi-k2.6": "kimi-k2.5",
+  "@cf/moonshotai/kimi-k2.6": "kimi-k2.5",
+  "moonshotai/kimi-k2.5": "kimi-k2.5",
+  "moonshotai/kimi-k3": "kimi-k3",
+  "minimax-m3": "minimax-m2.5",
+  "minimax/minimax-m3": "minimax-m2.5",
+  "minimax/minimax-m2.5": "minimax-m2.5",
+  "glm-5.3": "glm-5.3-flash",
+  "@cf/zai-org/glm-5.3": "glm-5.3-flash",
+  "nemotron-3-120b-a12b": "nemotron-super-3-120b",
+  "@cf/nvidia/nemotron-3-120b-a12b": "nemotron-super-3-120b"
+};
 export function gameModel(id: string) {
-  return GAME_MODELS.find(model => model.id === id || model.binding === id);
+  const normalized = ALIASES[id] || id;
+  return GAME_MODELS.find(model => model.id === normalized || model.binding === normalized);
 }
-
-// MiniMax still consumes reasoning tokens when reasoning.enabled is false.
-// Keep room for visible output after it processes the complete game prompt.
-export function generationBudget(id: string, requested: number) {
-  return gameModel(id)?.id === 'minimax-m3' ? Math.max(2048, requested) : requested;
+// AWS reasoning models and GPT OSS need room for visible output even on short tasks.
+export function generationBudget(id: string, requested: number, provider?: string) {
+  const model = gameModel(id);
+  if ((provider || model?.provider || '').startsWith('bedrock-') || model?.id === 'gpt-oss-120b') {
+    return Math.max(requested >= 5000 ? 8000 : 2048, requested);
+  }
+  return requested;
 }

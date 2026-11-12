@@ -232,6 +232,7 @@
     <label class="model-field" for="model-route"><span>Model</span>
       <select id="model-route" aria-label="model provider and model" aria-busy="true" disabled><option value="">Loading available models…</option></select>
     </label>
+    <label class="override-label"><input type="checkbox" id="all-models">Browse the full model registry</label>
     <p id="model-status" class="model-status" aria-live="polite"></p>
     <p id="model-choice-help" class="help"></p>
     <div class="menu-primary" id="writing-actions">
@@ -589,10 +590,14 @@ async function warmSelectedModel({ force = false } = {}){
   }
 }
 
+let modelCatalog = null;
+$("all-models").addEventListener("change", () => {
+  if(modelCatalog){ renderModelOptions(modelCatalog); modelReadyFor=""; warmSelectedModel({force:true}); }
+});
 function renderModelOptions(catalog){
-  const source = Array.isArray(catalog?.models)
-    ? catalog.models
-    : (Array.isArray(catalog?.data) ? catalog.data : []);
+  if(!modelCatalog && catalog.models?.some(route => route.featured === false && (route.id === CFG.model || route.model === CFG.model))) $("all-models").checked = true;
+  modelCatalog = catalog;
+  const source = CadavreCore.catalogModels(catalog, $("all-models").checked);
   const seen = new Set();
   const routes = source
     .filter(route => route && typeof route.id === "string" && route.id.trim())
@@ -637,11 +642,11 @@ function renderModelOptions(catalog){
   modelRouteEl.disabled = modelRouteEl.options.length < 2;
   modelRouteEl.setAttribute("aria-busy", "false");
   modelStatusEl.textContent = previous !== selected.id && previous !== selected.model
-    ? `The previous model is outside this shortlist. Using ${selected.label}.`
-    : `${available.length} models selected for poetry`;
+    ? `The previous model is outside this selection. Using ${selected.label}.`
+    : `${available.length} ${$("all-models").checked ? "registry" : "featured"} models available`;
   $("model-choice-help").textContent = CFG.authenticated
     ? "DeepSeek V4.1 Flash is the default. Choose another available model above."
-    : "DeepSeek V4.1 Flash on Workers AI. CUNY Login keeps your poems.";
+    : "Ten featured models, or browse the full text registry. CUNY Login keeps your poems.";
 }
 
 function selectRequestedModel(){

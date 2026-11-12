@@ -213,3 +213,12 @@ test("a hand's own punctuation and marks come back exactly after a refresh", () 
     assert.equal(back.contributions[0].text, line, "nothing is trimmed or rewritten");
   }
 });
+
+test('the picker shows featured models by default and can expose the whole text registry', () => {
+  const core = require('../assets/cadavre-core.js');
+  const models=Array.from({length:12},(_,index)=>({id:`model-${index}`,featured:index<10}));
+  assert.equal(core.catalogModels({models}).length,10);
+  assert.equal(core.catalogModels({models},true).length,12);
+  assert.deepEqual(core.catalogModels(null),[]);
+  assert.equal(core.chooseModel({models},['model-11']).id,'model-11');
+});

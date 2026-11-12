@@ -45,10 +45,10 @@ export class RouteHealth {
 
 export function requestForRoute(request: ChatRequest, route: Route): ChatRequest {
   if (request.model === route.id || request.model === route.model) {
-    return { ...(route.reasoning ? THINKING_OFF[route.provider] : {}), ...request, model: route.id, max_tokens: generationBudget(route.id, request.max_tokens) };
+    return { ...(route.reasoning ? THINKING_OFF[route.provider] : {}), ...request, model: route.id, max_tokens: generationBudget(route.id, request.max_tokens, route.provider) };
   }
   const { reasoning: _reasoning, chat_template_kwargs: _template, ...body } = request;
-  return { ...body, model: route.id, max_tokens: generationBudget(route.id, request.max_tokens), ...(route.reasoning ? THINKING_OFF[route.provider] : {}) };
+  return { ...body, model: route.id, max_tokens: generationBudget(route.id, request.max_tokens, route.provider), ...(route.reasoning ? THINKING_OFF[route.provider] : {}) };
 }
 
 type Runner<T> = (route: Route, signal: AbortSignal) => Promise<T>;

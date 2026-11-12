@@ -1,9 +1,8 @@
 import { authenticate, AuthFailure, boundedJson, enforceOrigin, ORIGIN, type AuthBindings } from '../../accounts/src/auth.ts';
 import { boundedText, entryId, exact, InputError, isRecord } from '../../accounts/src/contract.ts';
 import { configScript } from './config.ts';
-import { fetchGatewayModels, toCatalog } from './catalog.ts';
+import { fetchGatewayModels, findRoute, toCatalog } from './catalog.ts';
 import type { ChatRequest } from './shape.ts';
-import { GAME_MODELS, gameModel } from './game-models.ts';
 import { policyFromEnv } from './policy.ts';
 import { GatewayFailure, signedCompletion } from './signed-inference.ts';
 import { UpstreamError } from './inference.ts';
@@ -27,16 +26,15 @@ export async function signedIn(request:Request,env:SignedBindings,legacy:(reques
       const response=await env.GATEWAY.fetch(ORIGIN+'/v1/catalog',{signal:AbortSignal.any([request.signal,AbortSignal.timeout(5000)])});
       if(!response.ok)return Response.json({error:{code:'catalog_unavailable',message:'The model list could not be loaded.'}},{status:503,headers:noStore});
       const value=await response.json() as {data:{id:string;provider:string;status?:string;capabilities?:string[]}[]};
-      const models=GAME_MODELS.flatMap(choice=>value.data.filter(m=>gameModel(m.id)?.id===choice.id && m.provider===choice.provider && (m.status??'active')==='active' && m.capabilities?.includes('text-generation')).map(m=>({id:m.id,model:choice.binding,label:choice.label,group:choice.group,provider:m.provider,available:true})));
-      return Response.json({default:env.CADAVRE_DEFAULT_MODEL,models},{headers:noStore});
+      const catalog=toCatalog(value.data,env.CADAVRE_DEFAULT_MODEL,policyFromEnv('all',true));
+      return Response.json(catalog,{headers:noStore});
     }
     if(inference){
       const input=exact(await boundedJson(request),['model','messages','temperature','top_p','max_tokens','stream','workId','recordModel']);
       const selectedModel=boundedText(input.model,180,true);
       const catalog=await fetchGatewayModels(env.CAIL_CATALOG_URL,request.signal);
-      const choice=gameModel(selectedModel);
       const routes=toCatalog(catalog,env.CADAVRE_DEFAULT_MODEL,policyFromEnv('all',true));
-      const route=choice && routes.models.find(m=>gameModel(m.id)?.id===choice.id && m.provider===choice.provider);
+      const route=findRoute(routes,selectedModel);
       if(!route)return Response.json({error:{message:'This model is no longer available. Choose another model.'}},{status:404,headers:noStore});
       const model=route.id;
       if(!Array.isArray(input.messages)||input.messages.length<1||input.messages.length>300||input.stream!==false)throw new InputError('Invalid model request.');
@@ -55,7 +53,7 @@ export async function signedIn(request:Request,env:SignedBindings,legacy:(reques
       }
       // The Gateway reports a provider ID; the picker uses public CAIL aliases.
       // Keep the served model identity while normalizing its known alias.
-      return Response.json({...data,model:gameModel(data.model||model)?.id||data.model||model,failover:verdict.failover,requestedModel:model,workModelRecorded:recorded},{headers:noStore});
+      return Response.json({...data,model:findRoute(routes,data.model||model)?.id||data.model||model,failover:verdict.failover,requestedModel:model,workModelRecorded:recorded},{headers:noStore});
     }
     if(path.startsWith('/api/'))return legacy(translated);
     // The stable Worker route serves the existing sheet. Resolve asset clean-URL

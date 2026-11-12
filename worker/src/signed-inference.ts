@@ -1,5 +1,4 @@
-import type { Catalog, Route } from './catalog.ts';
-import { gameModel } from './game-models.ts';
+import { findRoute, type Catalog, type Route } from './catalog.ts';
 import { UpstreamError } from './inference.ts';
 import { requestForRoute, RouteHealth, withFallback } from './routes.ts';
 import type { ChatRequest } from './shape.ts';
@@ -35,6 +34,6 @@ export async function signedCompletion(gateway: Gateway, jwt: string, catalog: C
     if (!data.choices?.[0]?.message?.content?.trim()) throw new UpstreamError('The model returned no visible text.', 502);
     // Attribute the provider actually reported by the gateway, including its
     // own fallback, rather than attributing the requested route by assumption.
-    return { ...data, model: gameModel(data.model || candidate.id)?.id || data.model || candidate.id };
+    return { ...data, model: findRoute(catalog,data.model || candidate.id)?.id || data.model || candidate.id };
   }, { signal });
 }

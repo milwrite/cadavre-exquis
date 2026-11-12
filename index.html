@@ -651,6 +651,7 @@
             </select>
             <span id="modelReadiness" class="model-readiness" role="status" aria-live="polite">warming the other hand…</span>
           </label>
+          <label class="setting-field"><span><input type="checkbox" id="all-models"> Browse the full model registry</span><span class="setting-hint">Ten featured models are shown by default.</span></label>
           <label class="setting-field">
             <span class="setting-label">words per turn <span class="setting-hint">how long each line may be</span></span>
             <select id="maxWords" aria-label="words per turn">
@@ -1200,6 +1201,10 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
        grouped by provider family, and re-verifies readiness on each change.
        Without one (or with ?endpoint= / ?model=) it stays a single line. */
     let menuLoaded = false;
+    let modelCatalog = null;
+    el("all-models").addEventListener("change", () => {
+      if (modelCatalog) { renderModelOptions(modelCatalog); modelReadyFor = ""; warmSelectedModel({force:true}); }
+    });
 
     function routeGroup(route) {
       if (route.group) return { rank: 0, label: route.group };
@@ -1219,7 +1224,9 @@ Return only ${capPhrase()}. Use plain text without a label, explanation, alterna
     }
 
     function renderModelOptions(catalog) {
-      const source = Array.isArray(catalog?.models) ? catalog.models : [];
+      if (!modelCatalog && catalog.models?.some(route => route.featured === false && (route.id === CFG.model || route.model === CFG.model))) el("all-models").checked = true;
+      modelCatalog = catalog;
+      const source = Core.catalogModels(catalog, el("all-models").checked);
       const seen = new Set();
       const routes = source
         .filter((route) => route && typeof route.id === "string" && route.id.trim())
